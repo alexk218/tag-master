@@ -1,0 +1,179 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--spice-card);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--spice-button-disabled);
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: var(--spice-text);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalBody {
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 70px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.categorySection {
+  border: 1px solid var(--spice-button-disabled);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.categoryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--spice-button-disabled);
+}
+
+.categoryTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.categoryActions {
+  display: flex;
+  gap: 8px;
+}
+
+.actionButton {
+  background: var(--spice-button);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.deleteButton {
+  background: var(--spice-notification-error);
+}
+
+.tagList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.tagItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--spice-main);
+  border-radius: 4px;
+}
+
+.tagName {
+  font-size: 14px;
+}
+
+.tagActions {
+  display: flex;
+  gap: 4px;
+}
+
+.tagAction {
+  background: transparent;
+  border: none;
+  color: var(--spice-subtext);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.tagAction:hover {
+  color: var(--spice-text);
+}
+
+.tagDelete:hover {
+  color: var(--spice-notification-error);
+}
+
+.addTagForm,
+.addCategoryForm {
+  display: flex;
+  gap: 8px;
+}
+
+.tagInput,
+.categoryInput {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--spice-button-disabled);
+  background: var(--spice-main);
+  color: var(--spice-text);
+  font-size: 14px;
+}
+
+.addButton {
+  background: var(--spice-button-active);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.addCategorySection {
+  border-top: 1px solid var(--spice-button-disabled);
+  padding-top: 16px;
+}
+
+.sectionTitle {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+}

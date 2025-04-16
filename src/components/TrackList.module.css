@@ -1,0 +1,165 @@
+.container {
+  background: var(--spice-card);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.searchBox {
+  position: relative;
+  max-width: 300px;
+  width: 100%;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--spice-button-disabled);
+  background: var(--spice-main);
+  color: var(--spice-text);
+  font-size: 14px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--spice-button);
+}
+
+.tagFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--spice-button-disabled);
+}
+
+.tagFilter {
+  background: var(--spice-button-disabled);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tagFilter:hover {
+  background: var(--spice-button);
+}
+
+.tagFilter.active {
+  background: var(--spice-button-active);
+  font-weight: 600;
+}
+
+.trackList {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.noTracks {
+  color: var(--spice-subtext);
+  text-align: center;
+  margin: 32px 0;
+  font-style: italic;
+}
+
+.trackItem {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: 4px;
+  background: var(--spice-main);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.trackItem:hover {
+  background: var(--spice-highlight);
+}
+
+.trackItemInfo {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.trackItemArtist {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--spice-text);
+  margin-bottom: 2px;
+}
+
+.trackItemTitle {
+  font-size: 13px;
+  color: var(--spice-subtext);
+}
+
+.trackItemMeta {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--spice-subtext);
+}
+
+.trackItemRating {
+  margin-right: 12px;
+}
+
+.miniStar {
+  font-size: 12px;
+  color: var(--spice-button-disabled);
+}
+
+.miniStar.active {
+  color: var(--spice-notification);
+}
+
+.trackItemEnergy {
+  background: var(--spice-button-disabled);
+  color: var(--spice-text);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 12px;
+}
+
+.trackItemTags {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trackItemTag {
+  color: var(--spice-subtext);
+}
+
+.noTags {
+  color: var(--spice-button-disabled);
+  font-style: italic;
+}

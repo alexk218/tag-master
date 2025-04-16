@@ -1,0 +1,85 @@
+.container {
+  background: var(--spice-card);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.title {
+  font-size: 18px;
+  margin: 0 0 16px 0;
+  font-weight: 700;
+  color: var(--spice-text);
+}
+
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--spice-button-disabled);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.categoryHeader:hover {
+  background: var(--spice-button);
+}
+
+.categoryToggle {
+  margin-right: 8px;
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.categoryTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tagGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  background: var(--spice-main);
+  border: 1px solid var(--spice-button-disabled);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+}
+
+.tagButton {
+  background: var(--spice-button-disabled);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tagButton:hover {
+  background: var(--spice-button);
+}
+
+.tagApplied {
+  background: var(--spice-button-active);
+  font-weight: 600;
+}
