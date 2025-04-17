@@ -1,3 +1,4 @@
+// src/app.tsx
 import React, { useState, useEffect } from "react";
 import styles from "./app.module.css";
 import TagSelector from "./components/TagSelector";
@@ -5,6 +6,7 @@ import TrackDetails from "./components/TrackDetails";
 import TrackList from "./components/TrackList";
 import TagManager from "./components/TagManager";
 import ExportPanel from "./components/ExportPanel";
+import DataManager from "./components/DataManager";
 import { useTagData } from "./hooks/useTagData";
 
 interface SpotifyTrack {
@@ -19,6 +21,7 @@ const App: React.FC = () => {
   // Get tag data management functions from our custom hook
   const {
     tagData,
+    lastSaved,
     toggleTag,
     setRating,
     setEnergy,
@@ -28,7 +31,9 @@ const App: React.FC = () => {
     removeCategory,
     renameCategory,
     renameTag,
-    exportData
+    exportData,
+    exportBackup,
+    importBackup
   } = useTagData();
 
   // State for current track
@@ -93,6 +98,12 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      <DataManager 
+        onExportBackup={exportBackup} 
+        onImportBackup={importBackup}
+        lastSaved={lastSaved}
+      />
+
       <div className={styles.content}>
         {/* Current track details and metadata editor */}
         {currentTrack && (
@@ -129,7 +140,7 @@ const App: React.FC = () => {
           tagCategories={tagData.tagCategories}
           onClose={() => setShowTagManager(false)}
           onAddTag={addTag}
-          onRemoveTag={removeTag} // Now directly using removeTag is fine
+          onRemoveTag={removeTag} 
           onRenameTag={renameTag}
           onAddCategory={addCategory}
           onRemoveCategory={removeCategory}

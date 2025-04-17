@@ -1,0 +1,69 @@
+.container {
+  background: var(--spice-card);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--spice-text);
+}
+
+.lastSaved {
+  font-size: 14px;
+  color: var(--spice-subtext);
+  margin-bottom: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.actionButton {
+  background-color: var(--spice-button);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.actionButton:hover {
+  background-color: var(--spice-button-active);
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.info {
+  font-size: 14px;
+  color: var(--spice-subtext);
+  padding: 12px;
+  background: rgba(var(--spice-rgb-card), 0.6);
+  border-radius: 4px;
+}
+
+.info p {
+  margin: 0 0 8px 0;
+}
+
+.info p:last-child {
+  margin-bottom: 0;
+}

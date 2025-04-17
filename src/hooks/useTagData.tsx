@@ -7,8 +7,8 @@ interface Tag {
 }
 
 interface TrackData {
-    rating: number;  // 0-5 stars
-    energy: number;  // 1-10 scale
+    rating: number;
+    energy: number;
     tags: Tag[];
 }
 
@@ -21,7 +21,7 @@ interface TagDataStructure {
     };
 }
 
-// Default tag structure based on your requirements
+// Default tag structure
 const defaultTagData: TagDataStructure = {
     tagCategories: {
         "Genres": [
@@ -42,45 +42,130 @@ const defaultTagData: TagDataStructure = {
     tracks: {}
 };
 
-// Local storage key for tag data
+// Storage key for tag data in local storage (as fallback)
 const STORAGE_KEY = "tagmaster:tagData";
 
 export function useTagData() {
     // State to hold our tag data
     const [tagData, setTagData] = useState<TagDataStructure>(defaultTagData);
+    const [isLoading, setIsLoading] = useState(true);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-    // Load tag data from localStorage on component mount
-    useEffect(() => {
-        const loadTagData = () => {
-            try {
-                const savedData = localStorage.getItem(STORAGE_KEY);
-                if (savedData) {
-                    setTagData(JSON.parse(savedData));
-                    console.log("TagMaster: Loaded saved tag data");
-                } else {
-                    // Initialize with default data if nothing is saved
-                    setTagData(defaultTagData);
-                    // Save the default data
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultTagData));
-                    console.log("TagMaster: Initialized default tag data");
-                }
-            } catch (error) {
-                console.error("TagMaster: Error loading tag data", error);
-                setTagData(defaultTagData);
+    // Helper function to save to localStorage (fallback method)
+    const saveToLocalStorage = (data: TagDataStructure) => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            console.log("TagMaster: Data saved to localStorage");
+            return true;
+        } catch (error) {
+            console.error("TagMaster: Error saving to localStorage", error);
+            return false;
+        }
+    };
+
+    // Helper function to load from localStorage (fallback method)
+    const loadFromLocalStorage = (): TagDataStructure | null => {
+        try {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                return JSON.parse(savedData);
             }
-        };
+        } catch (error) {
+            console.error("TagMaster: Error loading from localStorage", error);
+        }
+        return null;
+    };
 
+    // Helper to create a folder if it doesn't exist
+    const ensureDirectoryExists = (dirPath: string) => {
+        try {
+            if (Spicetify.CosmosAsync) {
+                // We're in a Spicetify environment, but we need to use a different approach
+                // This is a placeholder - the actual implementation depends on what Spicetify allows
+                console.log("Would create directory:", dirPath);
+                return true;
+            }
+        } catch (error) {
+            console.error("Error creating directory:", error);
+        }
+        return false;
+    };
+
+    // Load tag data
+    const loadTagData = () => {
+        setIsLoading(true);
+        let loaded = false;
+
+        // Try loading from localStorage as a fallback
+        const localData = loadFromLocalStorage();
+        if (localData) {
+            setTagData(localData);
+            setLastSaved(new Date());
+            loaded = true;
+            console.log("TagMaster: Loaded data from localStorage");
+        } else {
+            // If no data in localStorage, use default
+            setTagData(defaultTagData);
+            console.log("TagMaster: Initialized with default data");
+        }
+
+        setIsLoading(false);
+        return loaded;
+    };
+
+    // Save tag data
+    const saveTagData = (data: TagDataStructure) => {
+        let saved = false;
+
+        // Save to localStorage as a fallback
+        saved = saveToLocalStorage(data);
+
+        if (saved) {
+            setLastSaved(new Date());
+        }
+
+        return saved;
+    };
+
+    // Export backup data as a downloadable file
+    const exportBackup = () => {
+        const jsonData = JSON.stringify(tagData, null, 2);
+        const blob = new Blob([jsonData], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `tagmaster-backup-${new Date().toISOString().split("T")[0]}.json`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        
+        Spicetify.showNotification("Backup created and downloaded");
+    };
+
+    // Import data from a backup file
+    const importBackup = (backupData: TagDataStructure) => {
+        setTagData(backupData);
+        saveTagData(backupData);
+        Spicetify.showNotification("Data restored from backup");
+    };
+
+    // Load tag data on component mount
+    useEffect(() => {
         loadTagData();
     }, []);
 
-    // Helper function to save tag data to localStorage
-    const saveTagData = (data: TagDataStructure) => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        } catch (error) {
-            console.error("TagMaster: Error saving tag data", error);
+    // Auto-save when data changes
+    useEffect(() => {
+        if (!isLoading) {
+            // Only save after initial load is complete
+            const timer = setTimeout(() => {
+                saveTagData(tagData);
+            }, 2000); // Debounce for performance
+
+            return () => clearTimeout(timer);
         }
-    };
+    }, [tagData, isLoading]);
 
     // Ensure track data exists for a given URI
     const ensureTrackData = (trackUri: string) => {
@@ -98,7 +183,6 @@ export function useTagData() {
                 }
             };
             setTagData(newTagData);
-            saveTagData(newTagData);
             return newTagData;
         }
         return tagData;
@@ -140,7 +224,6 @@ export function useTagData() {
         };
 
         setTagData(newTagData);
-        saveTagData(newTagData);
     };
 
     // Set rating for a track
@@ -161,7 +244,6 @@ export function useTagData() {
         };
 
         setTagData(newTagData);
-        saveTagData(newTagData);
     };
 
     // Set energy level for a track
@@ -182,7 +264,6 @@ export function useTagData() {
         };
 
         setTagData(newTagData);
-        saveTagData(newTagData);
     };
 
     // Add a new tag to a category
@@ -202,10 +283,9 @@ export function useTagData() {
         };
 
         setTagData(newTagData);
-        saveTagData(newTagData);
     };
 
-    // Update the removeTag function in useTagData.tsx to handle global removal with empty string
+    // Remove a tag from a category and/or track
     const removeTag = (trackUri: string, tag: string, category: string) => {
         // Create copy of tag data
         const newTagData = { ...tagData };
@@ -243,7 +323,6 @@ export function useTagData() {
         }
 
         setTagData(newTagData);
-        saveTagData(newTagData);
     };
 
     // Rename a tag in a category and in all tracks
@@ -271,7 +350,6 @@ export function useTagData() {
         });
 
         setTagData(newTagData);
-        saveTagData(newTagData);
     };
 
     // Add a new category
@@ -291,7 +369,6 @@ export function useTagData() {
         };
 
         setTagData(newTagData);
-        saveTagData(newTagData);
     };
 
     // Remove a category and all its tags from tracks
@@ -313,7 +390,6 @@ export function useTagData() {
         });
 
         setTagData(newTagData);
-        saveTagData(newTagData);
     };
 
     // Rename a category
@@ -342,7 +418,6 @@ export function useTagData() {
         });
 
         setTagData(newTagData);
-        saveTagData(newTagData);
     };
 
     // Export data for Rekordbox integration
@@ -375,6 +450,8 @@ export function useTagData() {
     // Return hook functions and data
     return {
         tagData,
+        isLoading,
+        lastSaved,
         toggleTag,
         setRating,
         setEnergy,
@@ -384,6 +461,8 @@ export function useTagData() {
         addCategory,
         removeCategory,
         renameCategory,
-        exportData
+        exportData,
+        exportBackup,
+        importBackup
     };
 }
