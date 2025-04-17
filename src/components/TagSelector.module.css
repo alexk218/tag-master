@@ -2,35 +2,66 @@
   background: var(--spice-card);
   border-radius: 8px;
   padding: 16px;
-  overflow-y: auto;
-  max-height: 300px;
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
 .title {
   font-size: 18px;
-  margin: 0 0 16px 0;
+  margin: 0;
   font-weight: 700;
   color: var(--spice-text);
 }
 
+.searchBox {
+  position: relative;
+  width: 200px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--spice-button-disabled);
+  background: var(--spice-main);
+  color: var(--spice-text);
+  font-size: 14px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--spice-button-active);
+}
+
 .categoryList {
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  flex: 1;
 }
 
 .category {
+  border: 1px solid var(--spice-button-disabled);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .categoryHeader {
+  background: var(--spice-button-disabled);
+  padding: 10px 12px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  background: var(--spice-button-disabled);
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 .categoryHeader:hover {
@@ -38,26 +69,70 @@
 }
 
 .categoryToggle {
-  margin-right: 8px;
   font-size: 12px;
+  margin-right: 8px;
+  width: 12px;
+  display: inline-block;
+  text-align: center;
   transition: transform 0.2s ease;
 }
 
 .categoryTitle {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
+  color: var(--spice-text);
+}
+
+.subcategoryList {
+  padding: 8px;
+  background: var(--spice-main);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subcategory {
+  border: 1px solid var(--spice-button-disabled);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.subcategoryHeader {
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  background: var(--spice-card);
+  transition: background 0.2s ease;
+}
+
+.subcategoryHeader:hover {
+  background: var(--spice-highlight);
+}
+
+.subcategoryToggle {
+  font-size: 10px;
+  margin-right: 8px;
+  width: 10px;
+  display: inline-block;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.subcategoryTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--spice-text);
 }
 
 .tagGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 8px;
-  padding: 12px;
+  padding: 10px;
   background: var(--spice-main);
-  border: 1px solid var(--spice-button-disabled);
-  border-top: none;
-  border-radius: 0 0 4px 4px;
 }
 
 .tagButton {
@@ -69,7 +144,7 @@
   font-size: 12px;
   cursor: pointer;
   text-align: center;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

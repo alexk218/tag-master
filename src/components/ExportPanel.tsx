@@ -1,8 +1,28 @@
 import React from "react";
 import styles from "./ExportPanel.module.css";
 
+interface ExportTrack {
+  rating: number;
+  energy: number;
+  tags: Array<{
+    categoryId: string;
+    subcategoryId: string;
+    tagId: string;
+    name: string;
+  }>;
+  rekordbox_comment: string;
+}
+
+interface ExportData {
+  version: string;
+  exported_at: string;
+  tracks: {
+    [trackId: string]: ExportTrack;
+  };
+}
+
 interface ExportPanelProps {
-  data: any;
+  data: ExportData;
   onClose: () => void;
 }
 
@@ -23,8 +43,24 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
   
   // Calculate export statistics
   const trackCount = Object.keys(data.tracks).length;
-  const ratedTrackCount = Object.values(data.tracks).filter((track: any) => track.rating > 0).length;
-  const taggedTrackCount = Object.values(data.tracks).filter((track: any) => track.tags.length > 0).length;
+  const ratedTrackCount = Object.values(data.tracks).filter(track => track.rating > 0).length;
+  const taggedTrackCount = Object.values(data.tracks).filter(track => track.tags.length > 0).length;
+  
+  // Calculate tag distribution
+  const tagDistribution: { [tagName: string]: number } = {};
+  Object.values(data.tracks).forEach(track => {
+    track.tags.forEach(tag => {
+      if (!tagDistribution[tag.name]) {
+        tagDistribution[tag.name] = 0;
+      }
+      tagDistribution[tag.name]++;
+    });
+  });
+  
+  // Sort tags by frequency for display
+  const sortedTags = Object.entries(tagDistribution)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10); // Top 10 tags
   
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
@@ -53,6 +89,26 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
             </div>
           </div>
           
+          {sortedTags.length > 0 && (
+            <div className={styles.tagDistributionSection}>
+              <h3 className={styles.sectionTitle}>Most Used Tags</h3>
+              <div className={styles.tagDistribution}>
+                {sortedTags.map(([tagName, count]) => (
+                  <div key={tagName} className={styles.distributionItem}>
+                    <div className={styles.tagName}>{tagName}</div>
+                    <div className={styles.tagCount}>{count}</div>
+                    <div className={styles.tagBar}>
+                      <div 
+                        className={styles.tagBarFill} 
+                        style={{ width: `${(count / sortedTags[0][1]) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           <div className={styles.infoSection}>
             <h3 className={styles.sectionTitle}>Export Format</h3>
             <p className={styles.infoText}>
@@ -62,7 +118,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
               <li>Star ratings (1-5) that will map to Rekordbox ratings</li>
               <li>Energy levels (1-10) for each track</li>
               <li>All tags organized by category</li>
-              <li>Formatted comments for Rekordbox in the format: "Energy - Tag1, Tag2, Tag3"</li>
+              <li>Formatted comments for Rekordbox in the format: "Energy X - Tag1, Tag2, Tag3"</li>
             </ul>
           </div>
           

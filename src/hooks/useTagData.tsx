@@ -1,48 +1,288 @@
 import { useState, useEffect } from "react";
 
-// Define types for our tag data structure
-interface Tag {
-    tag: string;
-    category: string;
+// Define types for our hierarchical tag data structure
+export interface Tag {
+    name: string;
+    id: string; // Unique identifier for the tag
 }
 
-interface TrackData {
-    rating: number;
-    energy: number;
+export interface Subcategory {
+    name: string;
+    id: string; // Unique identifier for the subcategory
     tags: Tag[];
 }
 
-interface TagDataStructure {
-    tagCategories: {
-        [category: string]: string[];
-    };
+export interface Category {
+    name: string;
+    id: string; // Unique identifier for the category
+    subcategories: Subcategory[];
+}
+
+export interface TrackTag {
+    tagId: string;
+    subcategoryId: string;
+    categoryId: string;
+}
+
+export interface TrackData {
+    rating: number; // 1-5 stars
+    energy: number; // 1-10 scale
+    tags: TrackTag[]; // References to tags by their IDs
+}
+
+export interface TagDataStructure {
+    categories: Category[];
     tracks: {
         [trackUri: string]: TrackData;
     };
 }
 
-// Default tag structure
+// Generate a unique ID
+const generateId = (): string => {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+};
+
+// Default tag structure with 4 main categories
 const defaultTagData: TagDataStructure = {
-    tagCategories: {
-        "Genres": [
-            "Organic", "Minimal", "Soul", "Beautiful", "Bootleg",
-            "Indie", "Disco", "Downtempo", "Progressive", "Melodic",
-            "Deep", "Tech", "Dubby", "Afro", "Tribal",
-            "Latin", "Boho", "Jazzy", "Ambient", "YES",
-            "Classic", "Acid", "Organiklakk"
-        ],
-        "Label-defined sounds": [
-            "Maccabi", "HOOM", "ADID", "PAMPA"
-        ],
-        "Artist-inspired styles": [
-            "KORA minimal (organica)", "SIS minimal", "RUSSO",
-            "ZETA indie", "KOLETSKI LASER", "D Hohmes organic"
-        ]
-    },
+    categories: [
+        {
+            name: "Genres & Styles",
+            id: "genres-styles",
+            subcategories: [
+                {
+                    name: "Genres",
+                    id: "genres",
+                    tags: [
+                        { name: "Organic", id: "organic" },
+                        { name: "Minimal", id: "minimal" },
+                        { name: "Soul", id: "soul" },
+                        { name: "Beautiful", id: "beautiful" },
+                        { name: "Bootleg", id: "bootleg" },
+                        { name: "Indie", id: "indie" },
+                        { name: "Disco", id: "disco" },
+                        { name: "Downtempo", id: "downtempo" },
+                        { name: "Progressive", id: "progressive" },
+                        { name: "Melodic", id: "melodic" },
+                        { name: "Deep", id: "deep" },
+                        { name: "Tech", id: "tech" },
+                        { name: "Dubby", id: "dubby" },
+                        { name: "Afro", id: "afro" },
+                        { name: "Tribal", id: "tribal" },
+                        { name: "Latin", id: "latin" },
+                        { name: "Boho", id: "boho" },
+                        { name: "Jazzy", id: "jazzy" },
+                        { name: "Ambient", id: "ambient" },
+                    ]
+                },
+                {
+                    name: "Label-defined sounds",
+                    id: "label-sounds",
+                    tags: [
+                        { name: "Maccabi", id: "maccabi" },
+                        { name: "HOOM", id: "hoom" },
+                        { name: "ADID", id: "adid" },
+                        { name: "PAMPA", id: "pampa" }
+                    ]
+                },
+                {
+                    name: "Artist-inspired styles",
+                    id: "artist-styles",
+                    tags: [
+                        { name: "KORA minimal (organica)", id: "kora-minimal" },
+                        { name: "SIS minimal", id: "sis-minimal" },
+                        { name: "RUSSO", id: "russo" },
+                        { name: "ZETA indie", id: "zeta-indie" }
+                    ]
+                }
+            ]
+        },
+        {
+            name: "Energy & Mood",
+            id: "energy-mood",
+            subcategories: [
+                {
+                    name: "Emotional qualities",
+                    id: "emotional-qualities",
+                    tags: [
+                        { name: "Melancholic", id: "melancholic" },
+                        { name: "Euphoric", id: "euphoric" },
+                        { name: "Bittersweet", id: "bittersweet" },
+                        { name: "Uplifting", id: "uplifting" },
+                        { name: "Happy", id: "happy" },
+                        { name: "Dreamy", id: "dreamy" },
+                        { name: "Spiritual", id: "spiritual" },
+                        { name: "Introspective", id: "introspective" }
+                    ]
+                },
+                {
+                    name: "Character descriptors",
+                    id: "character-descriptors",
+                    tags: [
+                        { name: "Cheesy", id: "cheesy" },
+                        { name: "Dissonant", id: "dissonant" },
+                        { name: "Dark", id: "dark" },
+                        { name: "Weird", id: "weird" },
+                        { name: "Aggressive", id: "aggressive" },
+                        { name: "Persistent", id: "persistent" },
+                        { name: "Dirty", id: "dirty" },
+                        { name: "Epic", id: "epic" },
+                        { name: "Silly", id: "silly" },
+                        { name: "Fun", id: "fun" },
+                        { name: "Funky", id: "funky" }
+                    ]
+                },
+                {
+                    name: "Scene-based moods",
+                    id: "scene-moods",
+                    tags: [
+                        { name: "Satan Lounge", id: "satan-lounge" },
+                        { name: "Desert Hearts", id: "desert-hearts" },
+                        { name: "Ketamine", id: "ketamine" },
+                        { name: "Sex", id: "sex" },
+                        { name: "Energy up", id: "energy-up" },
+                        { name: "Familiar", id: "familiar" },
+                        { name: "Feel", id: "feel" }
+                    ]
+                }
+            ]
+        },
+        {
+            name: "Sound Elements",
+            id: "sound-elements",
+            subcategories: [
+                {
+                    name: "Vocals",
+                    id: "vocals",
+                    tags: [
+                        { name: "Female vocal", id: "f-vocal" },
+                        { name: "Male vocal", id: "m-vocal" },
+                        { name: "Sporadic vocals", id: "v-sporadic" },
+                        { name: "Continuous vocals", id: "v-continuous" },
+                        { name: "Spoken word", id: "spoken-word" },
+                        { name: "Spiritual vocals", id: "vocal-spiritual" },
+                        { name: "Ethereal vocals", id: "vocal-ethereal" },
+                        { name: "Abstract vocals", id: "vocal-abstract" },
+                        { name: "African vocals", id: "vocal-african" },
+                        { name: "Whisper vocals", id: "vocal-whisper" },
+                        { name: "Rap", id: "rap" }
+                    ]
+                },
+                {
+                    name: "Pads",
+                    id: "pads",
+                    tags: [
+                        { name: "Atmospheric pads", id: "atmospheric-pads" },
+                        { name: "Evolving pads", id: "evolving-pads" },
+                        { name: "Cold digital pads", id: "cold-digital-pads" },
+                        { name: "Ethereal pads", id: "ethereal-pads" },
+                        { name: "Dark pads", id: "dark-pads" }
+                    ]
+                },
+                {
+                    name: "Bass",
+                    id: "bass",
+                    tags: [
+                        { name: "Groovy bassline", id: "groovy-bassline" },
+                        { name: "Rolling bass", id: "rolling-bass" },
+                        { name: "Sub bass", id: "sub-bass" },
+                        { name: "Melodic bass", id: "melodic-bass" },
+                        { name: "Plucked bass", id: "plucked-bass" },
+                        { name: "Arpeggiated bass", id: "arpeggiated-bass" },
+                        { name: "Dub bass", id: "dub-bass" }
+                    ]
+                },
+                {
+                    name: "Drums",
+                    id: "drums",
+                    tags: [
+                        { name: "Tribal drums", id: "tribal-drums" },
+                        { name: "Organic drums", id: "organic-drums" },
+                        { name: "808", id: "808" },
+                        { name: "Minimal drums", id: "minimal-drums" },
+                        { name: "Percussion heavy", id: "percussion-heavy" },
+                        { name: "Hi-hat driven", id: "hi-hat-driven" },
+                        { name: "Kick focused", id: "kick-focused" }
+                    ]
+                },
+                {
+                    name: "Synths",
+                    id: "synths",
+                    tags: [
+                        { name: "Plucky leads", id: "plucky-leads" },
+                        { name: "String pads", id: "string-pads" },
+                        { name: "Classic arps", id: "classic-arps" },
+                        { name: "Big stabs", id: "big-stabs" },
+                        { name: "Futuristic synths", id: "futuristic-synths" }
+                    ]
+                },
+                {
+                    name: "Instruments",
+                    id: "instruments",
+                    tags: [
+                        { name: "Piano", id: "piano" },
+                        { name: "Acoustic guitar", id: "acoustic-guitar" },
+                        { name: "Electric guitar", id: "electric-guitar" },
+                        { name: "Brass", id: "brass" }
+                    ]
+                },
+                {
+                    name: "Production techniques",
+                    id: "production-techniques",
+                    tags: [
+                        { name: "Bouncy", id: "bouncy" },
+                        { name: "Broken/glitch", id: "broken-glitch" },
+                        { name: "Loopy", id: "loopy" },
+                        { name: "Punchy", id: "punchy" },
+                        { name: "Reverb wash", id: "reverb-wash" },
+                        { name: "Sidechain", id: "sidechain" },
+                        { name: "Field recordings", id: "field-recordings" },
+                        { name: "Acid lines", id: "acid-lines" }
+                    ]
+                }
+            ]
+        },
+        {
+            name: "Functional Roles",
+            id: "functional-roles",
+            subcategories: [
+                {
+                    name: "Set placement",
+                    id: "set-placement",
+                    tags: [
+                        { name: "Opener", id: "opener" },
+                        { name: "Peak time", id: "peak-time" },
+                        { name: "Closer", id: "closer" },
+                        { name: "AM sunrise", id: "am-sunrise" },
+                        { name: "AM night", id: "am-night" },
+                        { name: "Daytime", id: "daytime" },
+                        { name: "Lounge", id: "lounge" }
+                    ]
+                },
+                {
+                    name: "Transitional function",
+                    id: "transitional-function",
+                    tags: [
+                        { name: "Energy shifter", id: "energy-shifter" },
+                        { name: "Genre bridge", id: "genre-bridge" },
+                        { name: "Builder", id: "builder" },
+                        { name: "Build down", id: "build-down" }
+                    ]
+                },
+                {
+                    name: "Mixing characteristics",
+                    id: "mixing-characteristics",
+                    tags: [
+                        { name: "Long intro", id: "long-intro" },
+                        { name: "Dramatic break", id: "dramatic-break" }
+                    ]
+                }
+            ]
+        }
+    ],
     tracks: {}
 };
 
-// Storage key for tag data in local storage (as fallback)
+// Storage key for tag data in local storage
 const STORAGE_KEY = "tagmaster:tagData";
 
 export function useTagData() {
@@ -51,7 +291,7 @@ export function useTagData() {
     const [isLoading, setIsLoading] = useState(true);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-    // Helper function to save to localStorage (fallback method)
+    // Helper function to save to localStorage
     const saveToLocalStorage = (data: TagDataStructure) => {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -63,7 +303,7 @@ export function useTagData() {
         }
     };
 
-    // Helper function to load from localStorage (fallback method)
+    // Helper function to load from localStorage
     const loadFromLocalStorage = (): TagDataStructure | null => {
         try {
             const savedData = localStorage.getItem(STORAGE_KEY);
@@ -76,32 +316,15 @@ export function useTagData() {
         return null;
     };
 
-    // Helper to create a folder if it doesn't exist
-    const ensureDirectoryExists = (dirPath: string) => {
-        try {
-            if (Spicetify.CosmosAsync) {
-                // We're in a Spicetify environment, but we need to use a different approach
-                // This is a placeholder - the actual implementation depends on what Spicetify allows
-                console.log("Would create directory:", dirPath);
-                return true;
-            }
-        } catch (error) {
-            console.error("Error creating directory:", error);
-        }
-        return false;
-    };
-
     // Load tag data
     const loadTagData = () => {
         setIsLoading(true);
-        let loaded = false;
-
-        // Try loading from localStorage as a fallback
+        
+        // Try loading from localStorage
         const localData = loadFromLocalStorage();
         if (localData) {
             setTagData(localData);
             setLastSaved(new Date());
-            loaded = true;
             console.log("TagMaster: Loaded data from localStorage");
         } else {
             // If no data in localStorage, use default
@@ -110,20 +333,14 @@ export function useTagData() {
         }
 
         setIsLoading(false);
-        return loaded;
     };
 
     // Save tag data
     const saveTagData = (data: TagDataStructure) => {
-        let saved = false;
-
-        // Save to localStorage as a fallback
-        saved = saveToLocalStorage(data);
-
+        const saved = saveToLocalStorage(data);
         if (saved) {
             setLastSaved(new Date());
         }
-
         return saved;
     };
 
@@ -167,6 +384,219 @@ export function useTagData() {
         }
     }, [tagData, isLoading]);
 
+    // CATEGORY MANAGEMENT
+
+    // Add a new main category
+    const addCategory = (name: string) => {
+        const newCategory: Category = {
+            name,
+            id: generateId(),
+            subcategories: []
+        };
+
+        setTagData({
+            ...tagData,
+            categories: [...tagData.categories, newCategory]
+        });
+    };
+
+    // Remove a main category
+    const removeCategory = (categoryId: string) => {
+        // Create updated categories without the removed one
+        const updatedCategories = tagData.categories.filter(
+            category => category.id !== categoryId
+        );
+
+        // Remove tags from this category from all tracks
+        const updatedTracks = { ...tagData.tracks };
+        Object.keys(updatedTracks).forEach(uri => {
+            updatedTracks[uri] = {
+                ...updatedTracks[uri],
+                tags: updatedTracks[uri].tags.filter(tag => tag.categoryId !== categoryId)
+            };
+        });
+
+        setTagData({
+            categories: updatedCategories,
+            tracks: updatedTracks
+        });
+    };
+
+    // Rename a main category
+    const renameCategory = (categoryId: string, newName: string) => {
+        const updatedCategories = tagData.categories.map(category => 
+            category.id === categoryId ? { ...category, name: newName } : category
+        );
+
+        setTagData({
+            ...tagData,
+            categories: updatedCategories
+        });
+    };
+
+    // SUBCATEGORY MANAGEMENT
+
+    // Add a new subcategory to a main category
+    const addSubcategory = (categoryId: string, name: string) => {
+        const newSubcategory: Subcategory = {
+            name,
+            id: generateId(),
+            tags: []
+        };
+
+        const updatedCategories = tagData.categories.map(category => 
+            category.id === categoryId 
+                ? { ...category, subcategories: [...category.subcategories, newSubcategory] } 
+                : category
+        );
+
+        setTagData({
+            ...tagData,
+            categories: updatedCategories
+        });
+    };
+
+    // Remove a subcategory
+    const removeSubcategory = (categoryId: string, subcategoryId: string) => {
+        // Update categories
+        const updatedCategories = tagData.categories.map(category => {
+            if (category.id !== categoryId) return category;
+            
+            return {
+                ...category,
+                subcategories: category.subcategories.filter(sub => sub.id !== subcategoryId)
+            };
+        });
+
+        // Remove tags from this subcategory from all tracks
+        const updatedTracks = { ...tagData.tracks };
+        Object.keys(updatedTracks).forEach(uri => {
+            updatedTracks[uri] = {
+                ...updatedTracks[uri],
+                tags: updatedTracks[uri].tags.filter(tag => !(tag.categoryId === categoryId && tag.subcategoryId === subcategoryId))
+            };
+        });
+
+        setTagData({
+            categories: updatedCategories,
+            tracks: updatedTracks
+        });
+    };
+
+    // Rename a subcategory
+    const renameSubcategory = (categoryId: string, subcategoryId: string, newName: string) => {
+        const updatedCategories = tagData.categories.map(category => {
+            if (category.id !== categoryId) return category;
+            
+            return {
+                ...category,
+                subcategories: category.subcategories.map(sub => 
+                    sub.id === subcategoryId ? { ...sub, name: newName } : sub
+                )
+            };
+        });
+
+        setTagData({
+            ...tagData,
+            categories: updatedCategories
+        });
+    };
+
+    // TAG MANAGEMENT
+
+    // Add a new tag to a subcategory
+    const addTag = (categoryId: string, subcategoryId: string, name: string) => {
+        const newTag: Tag = {
+            name,
+            id: generateId()
+        };
+
+        const updatedCategories = tagData.categories.map(category => {
+            if (category.id !== categoryId) return category;
+            
+            return {
+                ...category,
+                subcategories: category.subcategories.map(sub => {
+                    if (sub.id !== subcategoryId) return sub;
+                    
+                    return {
+                        ...sub,
+                        tags: [...sub.tags, newTag]
+                    };
+                })
+            };
+        });
+
+        setTagData({
+            ...tagData,
+            categories: updatedCategories
+        });
+    };
+
+    // Remove a tag
+    const removeTag = (categoryId: string, subcategoryId: string, tagId: string) => {
+        // Update categories
+        const updatedCategories = tagData.categories.map(category => {
+            if (category.id !== categoryId) return category;
+            
+            return {
+                ...category,
+                subcategories: category.subcategories.map(sub => {
+                    if (sub.id !== subcategoryId) return sub;
+                    
+                    return {
+                        ...sub,
+                        tags: sub.tags.filter(tag => tag.id !== tagId)
+                    };
+                })
+            };
+        });
+
+        // Remove this tag from all tracks
+        const updatedTracks = { ...tagData.tracks };
+        Object.keys(updatedTracks).forEach(uri => {
+            updatedTracks[uri] = {
+                ...updatedTracks[uri],
+                tags: updatedTracks[uri].tags.filter(tag => 
+                    !(tag.categoryId === categoryId && tag.subcategoryId === subcategoryId && tag.tagId === tagId)
+                )
+            };
+        });
+
+        setTagData({
+            categories: updatedCategories,
+            tracks: updatedTracks
+        });
+    };
+
+    // Rename a tag
+    const renameTag = (categoryId: string, subcategoryId: string, tagId: string, newName: string) => {
+        const updatedCategories = tagData.categories.map(category => {
+            if (category.id !== categoryId) return category;
+            
+            return {
+                ...category,
+                subcategories: category.subcategories.map(sub => {
+                    if (sub.id !== subcategoryId) return sub;
+                    
+                    return {
+                        ...sub,
+                        tags: sub.tags.map(tag => 
+                            tag.id === tagId ? { ...tag, name: newName } : tag
+                        )
+                    };
+                })
+            };
+        });
+
+        setTagData({
+            ...tagData,
+            categories: updatedCategories
+        });
+    };
+
+    // TRACK TAG MANAGEMENT
+
     // Ensure track data exists for a given URI
     const ensureTrackData = (trackUri: string) => {
         if (!tagData.tracks[trackUri]) {
@@ -189,14 +619,14 @@ export function useTagData() {
     };
 
     // Toggle a tag for a track
-    const toggleTag = (trackUri: string, tag: string, category: string) => {
+    const toggleTrackTag = (trackUri: string, categoryId: string, subcategoryId: string, tagId: string) => {
         // Ensure track data exists
         const currentData = ensureTrackData(trackUri);
         const trackData = currentData.tracks[trackUri];
 
         // Find if tag already exists
         const existingTagIndex = trackData.tags.findIndex(t =>
-            t.tag === tag && t.category === category
+            t.categoryId === categoryId && t.subcategoryId === subcategoryId && t.tagId === tagId
         );
 
         let updatedTags;
@@ -208,7 +638,7 @@ export function useTagData() {
             ];
         } else {
             // Add tag if it doesn't exist
-            updatedTags = [...trackData.tags, { tag, category }];
+            updatedTags = [...trackData.tags, { categoryId, subcategoryId, tagId }];
         }
 
         // Update state
@@ -266,158 +696,16 @@ export function useTagData() {
         setTagData(newTagData);
     };
 
-    // Add a new tag to a category
-    const addTag = (category: string, tag: string) => {
-        // Check if tag already exists in category
-        if (tagData.tagCategories[category].includes(tag)) {
-            return;
-        }
-
-        // Add tag to category
-        const newTagData = {
-            ...tagData,
-            tagCategories: {
-                ...tagData.tagCategories,
-                [category]: [...tagData.tagCategories[category], tag]
-            }
-        };
-
-        setTagData(newTagData);
-    };
-
-    // Remove a tag from a category and/or track
-    const removeTag = (trackUri: string, tag: string, category: string) => {
-        // Create copy of tag data
-        const newTagData = { ...tagData };
-
-        // If trackUri is empty string, treat it as a global removal
-        if (!trackUri) {
-            // Remove tag from all tracks
-            Object.keys(newTagData.tracks).forEach(uri => {
-                const trackData = newTagData.tracks[uri];
-                newTagData.tracks[uri] = {
-                    ...trackData,
-                    tags: trackData.tags.filter(t => !(t.tag === tag && t.category === category))
-                };
-            });
-
-            // Also remove from the category
-            if (newTagData.tagCategories[category]) {
-                const tagIndex = newTagData.tagCategories[category].indexOf(tag);
-                if (tagIndex >= 0) {
-                    newTagData.tagCategories[category] = [
-                        ...newTagData.tagCategories[category].slice(0, tagIndex),
-                        ...newTagData.tagCategories[category].slice(tagIndex + 1)
-                    ];
-                }
-            }
-        } else {
-            // Remove from just the specific track
-            if (newTagData.tracks[trackUri]) {
-                const trackData = newTagData.tracks[trackUri];
-                newTagData.tracks[trackUri] = {
-                    ...trackData,
-                    tags: trackData.tags.filter(t => !(t.tag === tag && t.category === category))
-                };
-            }
-        }
-
-        setTagData(newTagData);
-    };
-
-    // Rename a tag in a category and in all tracks
-    const renameTag = (category: string, oldTag: string, newTag: string) => {
-        // Create copy of tag data
-        const newTagData = { ...tagData };
-
-        // Rename tag in category
-        const tagIndex = newTagData.tagCategories[category]?.indexOf(oldTag);
-        if (tagIndex >= 0) {
-            newTagData.tagCategories[category][tagIndex] = newTag;
-        }
-
-        // Rename tag in all tracks
-        Object.keys(newTagData.tracks).forEach(uri => {
-            const trackData = newTagData.tracks[uri];
-            newTagData.tracks[uri] = {
-                ...trackData,
-                tags: trackData.tags.map(t =>
-                    t.tag === oldTag && t.category === category
-                        ? { ...t, tag: newTag }
-                        : t
-                )
-            };
-        });
-
-        setTagData(newTagData);
-    };
-
-    // Add a new category
-    const addCategory = (category: string) => {
-        // Check if category already exists
-        if (tagData.tagCategories[category]) {
-            return;
-        }
-
-        // Add new category
-        const newTagData = {
-            ...tagData,
-            tagCategories: {
-                ...tagData.tagCategories,
-                [category]: []
-            }
-        };
-
-        setTagData(newTagData);
-    };
-
-    // Remove a category and all its tags from tracks
-    const removeCategory = (category: string) => {
-        // Create copy of tag data
-        const newTagData = { ...tagData };
-
-        // Delete category
-        const { [category]: _, ...remainingCategories } = newTagData.tagCategories;
-        newTagData.tagCategories = remainingCategories;
-
-        // Remove all tags from this category from tracks
-        Object.keys(newTagData.tracks).forEach(uri => {
-            const trackData = newTagData.tracks[uri];
-            newTagData.tracks[uri] = {
-                ...trackData,
-                tags: trackData.tags.filter(t => t.category !== category)
-            };
-        });
-
-        setTagData(newTagData);
-    };
-
-    // Rename a category
-    const renameCategory = (oldCategory: string, newCategory: string) => {
-        // Create copy of tag data
-        const newTagData = { ...tagData };
-
-        // Create new category with the same tags
-        newTagData.tagCategories[newCategory] = [...newTagData.tagCategories[oldCategory]];
-
-        // Remove old category
-        const { [oldCategory]: _, ...remainingCategories } = newTagData.tagCategories;
-        newTagData.tagCategories = remainingCategories;
-
-        // Update category name in all track tags
-        Object.keys(newTagData.tracks).forEach(uri => {
-            const trackData = newTagData.tracks[uri];
-            newTagData.tracks[uri] = {
-                ...trackData,
-                tags: trackData.tags.map(t =>
-                    t.category === oldCategory
-                        ? { ...t, category: newCategory }
-                        : t
-                )
-            };
-        });
-
-        setTagData(newTagData);
+    // Helper function to find tag name by ids
+    const findTagName = (categoryId: string, subcategoryId: string, tagId: string): string => {
+        const category = tagData.categories.find(c => c.id === categoryId);
+        if (!category) return "";
+        
+        const subcategory = category.subcategories.find(s => s.id === subcategoryId);
+        if (!subcategory) return "";
+        
+        const tag = subcategory.tags.find(t => t.id === tagId);
+        return tag ? tag.name : "";
     };
 
     // Export data for Rekordbox integration
@@ -432,19 +720,44 @@ export function useTagData() {
         Object.entries(tagData.tracks).forEach(([uri, data]) => {
             const trackId = uri.split(':').pop() || uri;
 
-            // Convert tags array to format for Rekordbox
-            const tagList = data.tags.map(t => t.tag).join(', ');
+            // Build tag names array for comments
+            const tagNames = data.tags.map(tag => 
+                findTagName(tag.categoryId, tag.subcategoryId, tag.tagId)
+            ).filter(name => name !== "");
 
-            // Use string indexing with type assertion to avoid TypeScript error
-            exportResult.tracks[trackId as string] = {
+            // Format for Rekordbox
+            exportResult.tracks[trackId] = {
                 rating: data.rating,
                 energy: data.energy,
-                tags: data.tags,
-                rekordbox_comment: `${data.energy} - ${tagList}`
+                tags: data.tags.map(tag => ({
+                    categoryId: tag.categoryId,
+                    subcategoryId: tag.subcategoryId,
+                    tagId: tag.tagId,
+                    name: findTagName(tag.categoryId, tag.subcategoryId, tag.tagId)
+                })),
+                rekordbox_comment: `Energy ${data.energy} - ${tagNames.join(', ')}`
             };
         });
 
         return exportResult;
+    };
+
+    // Find tag in hierarchy by IDs
+    const getTagInfo = (categoryId: string, subcategoryId: string, tagId: string) => {
+        const category = tagData.categories.find(c => c.id === categoryId);
+        if (!category) return null;
+        
+        const subcategory = category.subcategories.find(s => s.id === subcategoryId);
+        if (!subcategory) return null;
+        
+        const tag = subcategory.tags.find(t => t.id === tagId);
+        if (!tag) return null;
+        
+        return {
+            categoryName: category.name,
+            subcategoryName: subcategory.name,
+            tagName: tag.name
+        };
     };
 
     // Return hook functions and data
@@ -452,15 +765,31 @@ export function useTagData() {
         tagData,
         isLoading,
         lastSaved,
-        toggleTag,
+        
+        // Track tag management
+        toggleTrackTag,
         setRating,
         setEnergy,
-        addTag,
-        removeTag,
-        renameTag,
+        
+        // Category management
         addCategory,
         removeCategory,
         renameCategory,
+        
+        // Subcategory management
+        addSubcategory,
+        removeSubcategory,
+        renameSubcategory,
+        
+        // Tag management
+        addTag,
+        removeTag,
+        renameTag,
+        
+        // Helpers
+        getTagInfo,
+        
+        // Import/Export
         exportData,
         exportBackup,
         importBackup

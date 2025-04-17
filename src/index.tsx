@@ -10,7 +10,11 @@ const TagMaster = () => {
 
   // Create root and render our React app into the container
   const root = ReactDOM.createRoot(container);
-  root.render(<React.StrictMode><App /></React.StrictMode>);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
 };
 
 // Wait for Spicetify to load before initializing our app
@@ -21,10 +25,19 @@ export default async function main() {
   
   // Initialize our app when Spicetify is ready
   TagMaster();
+  
+  // Show welcome message
+  Spicetify.showNotification("TagMaster loaded! Start tagging your tracks.");
 }
 
 // This will be called when the app is unloaded
 export function getCSS() {
-  // You can add global CSS here if needed
-  return ``;
+  return `
+    #tagmaster-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+  `;
 }

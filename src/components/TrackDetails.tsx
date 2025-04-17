@@ -1,16 +1,6 @@
 import React from "react";
 import styles from "./TrackDetails.module.css";
-
-interface Tag {
-  tag: string;
-  category: string;
-}
-
-interface TrackData {
-  rating: number;
-  energy: number;
-  tags: Tag[];
-}
+import { Category, TrackTag } from "../hooks/useTagData";
 
 interface TrackDetailsProps {
   track: {
@@ -19,17 +9,21 @@ interface TrackDetailsProps {
     artists: { name: string }[];
     album: { name: string };
   };
-  trackData: TrackData;
-  tagCategories: { [category: string]: string[] };
+  trackData: {
+    rating: number;
+    energy: number;
+    tags: TrackTag[];
+  };
+  categories: Category[];
   onSetRating: (rating: number) => void;
   onSetEnergy: (energy: number) => void;
-  onRemoveTag: (tag: string, category: string) => void;
+  onRemoveTag: (categoryId: string, subcategoryId: string, tagId: string) => void;
 }
 
 const TrackDetails: React.FC<TrackDetailsProps> = ({
   track,
   trackData,
-  tagCategories,
+  categories,
   onSetRating,
   onSetEnergy,
   onRemoveTag
@@ -37,14 +31,72 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   // Get track artist names as a string
   const artistNames = track.artists.map(artist => artist.name).join(", ");
   
-  // Group tags by category for display
-  const tagsByCategory: { [category: string]: string[] } = {};
-  trackData.tags.forEach(({ tag, category }) => {
-    if (!tagsByCategory[category]) {
-      tagsByCategory[category] = [];
-    }
-    tagsByCategory[category].push(tag);
-  });
+  // Helper function to find tag name by ids
+  const findTagInfo = (categoryId: string, subcategoryId: string, tagId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return null;
+    
+    const subcategory = category.subcategories.find(s => s.id === subcategoryId);
+    if (!subcategory) return null;
+    
+    const tag = subcategory.tags.find(t => t.id === tagId);
+    if (!tag) return null;
+    
+    return {
+      categoryName: category.name,
+      subcategoryName: subcategory.name,
+      tagName: tag.name
+    };
+  };
+  
+  // Group tags by category for better organization in the UI
+  const organizeTagsByCategory = () => {
+    const groupedTags: {
+      [categoryId: string]: {
+        categoryName: string;
+        subcategories: {
+          [subcategoryId: string]: {
+            subcategoryName: string;
+            tags: {
+              id: string;
+              name: string;
+            }[];
+          };
+        };
+      };
+    } = {};
+    
+    trackData.tags.forEach(tag => {
+      const tagInfo = findTagInfo(tag.categoryId, tag.subcategoryId, tag.tagId);
+      if (!tagInfo) return;
+      
+      // Initialize category if not exists
+      if (!groupedTags[tag.categoryId]) {
+        groupedTags[tag.categoryId] = {
+          categoryName: tagInfo.categoryName,
+          subcategories: {}
+        };
+      }
+      
+      // Initialize subcategory if not exists
+      if (!groupedTags[tag.categoryId].subcategories[tag.subcategoryId]) {
+        groupedTags[tag.categoryId].subcategories[tag.subcategoryId] = {
+          subcategoryName: tagInfo.subcategoryName,
+          tags: []
+        };
+      }
+      
+      // Add tag
+      groupedTags[tag.categoryId].subcategories[tag.subcategoryId].tags.push({
+        id: tag.tagId,
+        name: tagInfo.tagName
+      });
+    });
+    
+    return groupedTags;
+  };
+  
+  const groupedTags = organizeTagsByCategory();
   
   return (
     <div className={styles.container}>
@@ -87,27 +139,34 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         
         <div className={styles.tagsSection}>
           <label className={styles.label}>Applied Tags:</label>
-          {Object.keys(tagsByCategory).length === 0 ? (
+          {Object.keys(groupedTags).length === 0 ? (
             <p className={styles.noTags}>No tags applied</p>
           ) : (
-            <div className={styles.appliedTags}>
-              {Object.entries(tagsByCategory).map(([category, tags]) => (
-                <div key={category} className={styles.tagCategory}>
-                  <span className={styles.categoryName}>{category}:</span>
-                  <div className={styles.tagList}>
-                    {tags.map(tag => (
-                      <div key={`${category}-${tag}`} className={styles.tagItem}>
-                        <span className={styles.tagName}>{tag}</span>
-                        <button
-                          className={styles.removeTag}
-                          onClick={() => onRemoveTag(tag, category)}
-                          aria-label={`Remove tag ${tag}`}
-                        >
-                          ×
-                        </button>
+            <div className={styles.tagCategories}>
+              {Object.entries(groupedTags).map(([categoryId, category]) => (
+                <div key={categoryId} className={styles.tagCategory}>
+                  <h4 className={styles.categoryName}>{category.categoryName}</h4>
+                  
+                  {Object.entries(category.subcategories).map(([subcategoryId, subcategory]) => (
+                    <div key={subcategoryId} className={styles.tagSubcategory}>
+                      <h5 className={styles.subcategoryName}>{subcategory.subcategoryName}</h5>
+                      
+                      <div className={styles.tagList}>
+                        {subcategory.tags.map(tag => (
+                          <div key={tag.id} className={styles.tagItem}>
+                            <span className={styles.tagName}>{tag.name}</span>
+                            <button
+                              className={styles.removeTag}
+                              onClick={() => onRemoveTag(categoryId, subcategoryId, tag.id)}
+                              aria-label={`Remove tag ${tag.name}`}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>

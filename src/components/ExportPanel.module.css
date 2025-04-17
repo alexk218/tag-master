@@ -15,7 +15,7 @@
   background: var(--spice-card);
   border-radius: 8px;
   width: 90%;
-  max-width: 600px;
+  max-width: 700px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
@@ -34,6 +34,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 700;
+  color: var(--spice-text);
 }
 
 .closeButton {
@@ -58,6 +59,7 @@
 }
 
 .exportSection,
+.tagDistributionSection,
 .infoSection,
 .instructionsSection {
   display: flex;
@@ -69,6 +71,7 @@
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+  color: var(--spice-text);
 }
 
 .stats {
@@ -97,6 +100,49 @@
   font-size: 24px;
   font-weight: 700;
   color: var(--spice-text);
+}
+
+.tagDistribution {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.distributionItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tagName {
+  width: 120px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--spice-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tagCount {
+  width: 40px;
+  font-size: 13px;
+  color: var(--spice-subtext);
+  text-align: right;
+}
+
+.tagBar {
+  flex: 1;
+  height: 8px;
+  background: var(--spice-button-disabled);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tagBarFill {
+  height: 100%;
+  background: var(--spice-notification);
+  border-radius: 4px;
 }
 
 .infoText {

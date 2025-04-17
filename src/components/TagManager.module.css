@@ -34,6 +34,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 700;
+  color: var(--spice-text);
 }
 
 .closeButton {
@@ -57,27 +58,40 @@
   gap: 24px;
 }
 
-.categorySection {
-  border: 1px solid var(--spice-button-disabled);
-  border-radius: 8px;
-  padding: 16px;
+/* Categories */
+.categoriesList {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.categorySection {
+  border: 1px solid var(--spice-button-disabled);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .categoryHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--spice-button-disabled);
+  padding: 12px 16px;
+  background-color: var(--spice-card);
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.categoryHeader:hover {
+  background-color: var(--spice-highlight);
 }
 
 .categoryTitle {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--spice-text);
+  flex-grow: 1;
 }
 
 .categoryActions {
@@ -85,42 +99,109 @@
   gap: 8px;
 }
 
-.actionButton {
-  background: var(--spice-button);
-  color: var(--spice-text);
-  border: none;
+.categoryContent {
+  padding: 16px;
+  background-color: var(--spice-main);
+  border-top: 1px solid var(--spice-button-disabled);
+}
+
+/* Subcategories */
+.subcategoriesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.subcategorySection {
+  border: 1px solid var(--spice-button-disabled);
   border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
+  overflow: hidden;
+}
+
+.subcategoryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--spice-card);
   cursor: pointer;
+  user-select: none;
 }
 
-.deleteButton {
-  background: var(--spice-notification-error);
+.subcategoryHeader:hover {
+  background-color: var(--spice-highlight);
 }
 
+.subcategoryTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--spice-text);
+  flex-grow: 1;
+}
+
+.subcategoryActions {
+  display: flex;
+  gap: 4px;
+}
+
+.subcategoryContent {
+  padding: 12px;
+  background-color: var(--spice-main);
+  border-top: 1px solid var(--spice-button-disabled);
+}
+
+/* Tags */
 .tagList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 8px;
+  margin-bottom: 12px;
 }
 
 .tagItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: var(--spice-main);
+  padding: 6px 10px;
+  background-color: var(--spice-main);
+  border: 1px solid var(--spice-button-disabled);
   border-radius: 4px;
 }
 
 .tagName {
-  font-size: 14px;
+  font-size: 13px;
+  color: var(--spice-text);
 }
 
 .tagActions {
   display: flex;
   gap: 4px;
+}
+
+/* Common button and input styles */
+.actionButton {
+  background-color: var(--spice-button);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.actionButton:hover {
+  background-color: var(--spice-button-active);
+}
+
+.deleteButton {
+  background-color: var(--spice-notification-error);
+}
+
+.deleteButton:hover {
+  opacity: 0.8;
 }
 
 .tagAction {
@@ -140,31 +221,43 @@
   color: var(--spice-notification-error);
 }
 
-.addTagForm,
-.addCategoryForm {
-  display: flex;
-  gap: 8px;
-}
-
-.tagInput,
-.categoryInput {
-  flex: 1;
+.input {
   padding: 8px 12px;
   border-radius: 4px;
   border: 1px solid var(--spice-button-disabled);
   background: var(--spice-main);
   color: var(--spice-text);
   font-size: 14px;
+  flex-grow: 1;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--spice-button-active);
 }
 
 .addButton {
-  background: var(--spice-button-active);
+  background-color: var(--spice-button-active);
   color: var(--spice-text);
   border: none;
   border-radius: 4px;
   padding: 8px 12px;
   font-size: 14px;
   cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.addButton:hover {
+  opacity: 0.9;
+}
+
+/* Form containers */
+.addTagForm,
+.addSubcategoryForm,
+.addCategoryForm {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .addCategorySection {
@@ -176,4 +269,19 @@
   margin: 0 0 12px 0;
   font-size: 16px;
   font-weight: 600;
+  color: var(--spice-text);
+}
+
+/* Expand/collapse icons */
+.expandIcon {
+  margin-right: 8px;
+  font-size: 12px;
+  transition: transform 0.2s;
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+}
+
+.expanded {
+  transform: rotate(0deg);
 }
