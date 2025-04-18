@@ -30,7 +30,13 @@ interface TrackListProps {
 const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
   const [trackInfo, setTrackInfo] = useState<{[uri: string]: SpotifyTrackInfo}>({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  
+  // Advanced filtering states
+  const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
+  const [energyMinFilter, setEnergyMinFilter] = useState<number | null>(null);
+  const [energyMaxFilter, setEnergyMaxFilter] = useState<number | null>(null);
+  const [showFilterOptions, setShowFilterOptions] = useState(false);
   
   // Fetch track info from Spotify on component mount and when tracks change
   useEffect(() => {
@@ -109,7 +115,67 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
     });
   });
   
-  // Filter tracks based on search term and active filter
+  // Extract all possible rating values
+  const allRatings = new Set<number>();
+  Object.values(tracks).forEach(track => {
+    if (track.rating > 0) {
+      allRatings.add(track.rating);
+    }
+  });
+  
+  // Extract all possible energy values
+  const allEnergyLevels = new Set<number>();
+  Object.values(tracks).forEach(track => {
+    if (track.energy > 0) {
+      allEnergyLevels.add(track.energy);
+    }
+  });
+  
+  // Toggle a tag filter
+  const toggleTagFilter = (tag: string) => {
+    setActiveTagFilters(prev => 
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+  
+  // Toggle a rating filter
+  const toggleRatingFilter = (rating: number) => {
+    setRatingFilter(prev => prev === rating ? null : rating);
+  };
+  
+  // Handle energy range filtering
+  const handleEnergyMinChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value === "" ? null : parseInt(event.target.value);
+    setEnergyMinFilter(value);
+    
+    // If max is less than min, adjust max
+    if (value !== null && energyMaxFilter !== null && value > energyMaxFilter) {
+      setEnergyMaxFilter(value);
+    }
+  };
+  
+  const handleEnergyMaxChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value === "" ? null : parseInt(event.target.value);
+    setEnergyMaxFilter(value);
+    
+    // If min is greater than max, adjust min
+    if (value !== null && energyMinFilter !== null && energyMinFilter > value) {
+      setEnergyMinFilter(value);
+    }
+  };
+  
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setActiveTagFilters([]);
+    setRatingFilter(null);
+    setEnergyMinFilter(null);
+    setEnergyMaxFilter(null);
+  };
+  
+  // Filter tracks based on all applied filters
   const filteredTracks = Object.entries(tracks).filter(([uri, trackData]) => {
     const info = trackInfo[uri];
     
@@ -123,25 +189,47 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
       searchTerm === "" || 
       info.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       info.artists.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    // Tag filter
-    const matchesFilter = 
-      activeFilter === null || 
-      trackData.tags.some(({ tag }) => tag === activeFilter);
     
-    return matchesSearch && matchesFilter;
+    // Tag filters - track must have ALL selected tags
+    const matchesTags = 
+      activeTagFilters.length === 0 || 
+      activeTagFilters.every(tag => 
+        trackData.tags.some(t => t.tag === tag)
+      );
+    
+    // Rating filter
+    const matchesRating = 
+      ratingFilter === null || 
+      trackData.rating === ratingFilter;
+    
+    // Energy range filter
+    const matchesEnergyMin = 
+      energyMinFilter === null || 
+      trackData.energy >= energyMinFilter;
+      
+    const matchesEnergyMax = 
+      energyMaxFilter === null || 
+      trackData.energy <= energyMaxFilter;
+    
+    return matchesSearch && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax;
   });
   
-  // Sort filtered tracks by track name first then artist name
+  // Sort filtered tracks by track name
   const sortedTracks = [...filteredTracks].sort((a, b) => {
     const infoA = trackInfo[a[0]];
     const infoB = trackInfo[b[0]];
     
     if (!infoA || !infoB) return 0;
     
-    // Sort by track name first
+    // Sort by track name
     return infoA.name.localeCompare(infoB.name);
   });
+  
+  // Calculate active filter count for badge
+  const activeFilterCount = 
+    activeTagFilters.length + 
+    (ratingFilter !== null ? 1 : 0) + 
+    (energyMinFilter !== null || energyMaxFilter !== null ? 1 : 0);
   
   return (
     <div className={styles.container}>
@@ -158,23 +246,98 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
         </div>
       </div>
       
-      <div className={styles.tagFilters}>
+      <div className={styles.filterControls}>
         <button 
-          className={`${styles.tagFilter} ${activeFilter === null ? styles.active : ''}`}
-          onClick={() => setActiveFilter(null)}
+          className={styles.filterToggle}
+          onClick={() => setShowFilterOptions(!showFilterOptions)}
         >
-          All
+          Filters {activeFilterCount > 0 && <span className={styles.filterBadge}>{activeFilterCount}</span>}
         </button>
-        {Array.from(allTags).map(tag => (
-          <button
-            key={tag}
-            className={`${styles.tagFilter} ${activeFilter === tag ? styles.active : ''}`}
-            onClick={() => setActiveFilter(activeFilter === tag ? null : tag)}
+        
+        {activeFilterCount > 0 && (
+          <button 
+            className={styles.clearFilters}
+            onClick={clearAllFilters}
           >
-            {tag}
+            Clear All
           </button>
-        ))}
+        )}
       </div>
+      
+      {showFilterOptions && (
+        <div className={styles.filterOptions}>
+          {allRatings.size > 0 && (
+            <div className={styles.filterSection}>
+              <h3 className={styles.filterSectionTitle}>Rating</h3>
+              <div className={styles.ratingFilters}>
+                {Array.from(allRatings).sort((a, b) => b - a).map(rating => (
+                  <button
+                    key={`rating-${rating}`}
+                    className={`${styles.ratingFilter} ${ratingFilter === rating ? styles.active : ''}`}
+                    onClick={() => toggleRatingFilter(rating)}
+                  >
+                    {Array(rating).fill(0).map((_, i) => (
+                      <span key={i} className={styles.filterStar}>★</span>
+                    ))}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {allEnergyLevels.size > 0 && (
+            <div className={styles.filterSection}>
+              <h3 className={styles.filterSectionTitle}>Energy Level</h3>
+              <div className={styles.energyRangeFilter}>
+                <div className={styles.rangeControl}>
+                  <label className={styles.rangeLabel}>From:</label>
+                  <select 
+                    value={energyMinFilter === null ? "" : energyMinFilter.toString()} 
+                    onChange={handleEnergyMinChange}
+                    className={styles.rangeSelect}
+                  >
+                    <option value="">Any</option>
+                    {Array.from(allEnergyLevels).sort((a, b) => a - b).map(energy => (
+                      <option key={`min-${energy}`} value={energy}>{energy}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className={styles.rangeControl}>
+                  <label className={styles.rangeLabel}>To:</label>
+                  <select 
+                    value={energyMaxFilter === null ? "" : energyMaxFilter.toString()} 
+                    onChange={handleEnergyMaxChange}
+                    className={styles.rangeSelect}
+                  >
+                    <option value="">Any</option>
+                    {Array.from(allEnergyLevels).sort((a, b) => a - b).map(energy => (
+                      <option key={`max-${energy}`} value={energy}>{energy}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {allTags.size > 0 && (
+            <div className={styles.filterSection}>
+              <h3 className={styles.filterSectionTitle}>Tags</h3>
+              <div className={styles.tagFilters}>
+                {Array.from(allTags).sort().map(tag => (
+                  <button
+                    key={tag}
+                    className={`${styles.tagFilter} ${activeTagFilters.includes(tag) ? styles.active : ''}`}
+                    onClick={() => toggleTagFilter(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       
       <div className={styles.trackList}>
         {sortedTracks.length === 0 ? (
@@ -212,7 +375,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
                     </div>
                   )}
                   {data.energy > 0 && (
-                    <div className={styles.trackItemEnergy}>E{data.energy}</div>
+                    <div className={styles.trackItemEnergy}>{data.energy}</div>
                   )}
                   <div className={styles.trackItemTags}>
                     {data.tags.length > 0 
