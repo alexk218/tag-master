@@ -38,15 +38,33 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
       const trackUris = Object.keys(tracks);
       const newTrackInfo: {[uri: string]: SpotifyTrackInfo} = {};
       
-      // Process tracks in batches of 50 (Spotify API limit)
-      for (let i = 0; i < trackUris.length; i += 50) {
-        const batch = trackUris.slice(i, i + 50);
+      // Process tracks in batches of 20 (reduce from 50 to be safer)
+      for (let i = 0; i < trackUris.length; i += 20) {
+        const batch = trackUris.slice(i, i + 20);
         
         try {
-          // Filter out any non-track URIs
-          const trackIds = batch.map(uri => uri.split(':').pop()).filter(Boolean);
+          // Extract track IDs from URIs (spotify:track:1234567 -> 1234567)
+          // Map URI to ID and create a lookup
+          const uriToIdMap: {[uri: string]: string} = {};
           
-          if (trackIds.length === 0) continue;
+          batch.forEach(uri => {
+            const parts = uri.split(':');
+            if (parts.length >= 3 && parts[1] === 'track') {
+              uriToIdMap[uri] = parts[2];
+            }
+          });
+          
+          // Get all valid track IDs
+          const trackIds = Object.values(uriToIdMap).filter(id => 
+            id && id.length > 0 && id !== 'undefined' && id !== 'null'
+          );
+          
+          if (trackIds.length === 0) {
+            console.log("No valid track IDs found in batch, skipping");
+            continue;
+          }
+          
+          console.log("Fetching track info for IDs:", trackIds);
           
           // Use Spicetify's API to get track info
           const response = await Spicetify.CosmosAsync.get(
@@ -54,9 +72,19 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
           );
           
           if (response && response.tracks) {
-            response.tracks.forEach((track: any, index: number) => {
+            // Create a map of ID to track data
+            const idToTrackMap: {[id: string]: any} = {};
+            response.tracks.forEach((track: any) => {
+              if (track && track.id) {
+                idToTrackMap[track.id] = track;
+              }
+            });
+            
+            // Now match back to original URIs using our map
+            Object.entries(uriToIdMap).forEach(([uri, id]) => {
+              const track = idToTrackMap[id];
               if (track) {
-                newTrackInfo[batch[index]] = {
+                newTrackInfo[uri] = {
                   name: track.name,
                   artists: track.artists.map((a: any) => a.name).join(", "),
                   albumName: track.album?.name || "Unknown Album"
@@ -72,7 +100,9 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
       setTrackInfo(newTrackInfo);
     };
     
-    fetchTrackInfo();
+    if (Object.keys(tracks).length > 0) {
+      fetchTrackInfo();
+    }
   }, [tracks]);
   
   // Extract all unique tags from all tracks

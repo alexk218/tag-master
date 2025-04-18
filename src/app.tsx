@@ -50,10 +50,17 @@ const App: React.FC = () => {
   useEffect(() => {
     // Function to update current track based on Spicetify API
     const updateCurrentTrack = () => {
-      // Check if we have a valid player data and item
-      if (!Spicetify?.Player?.data?.item) return;
+      // Check if we have a valid player data
+      if (!Spicetify?.Player?.data) return;
       
-      const item = Spicetify.Player.data?.item;
+      // The actual runtime structure might differ from type definitions
+      // We'll handle both possibilities
+      const item = Spicetify.Player.data.item || Spicetify.Player.data.track;
+      
+      if (!item) {
+        console.warn("Could not find track data in Spicetify.Player.data");
+        return;
+      }
       
       // Map the data to our expected format
       setCurrentTrack({
@@ -87,30 +94,65 @@ const App: React.FC = () => {
       };
     } = {};
 
-    Object.entries(tagData.tracks).forEach(([uri, track]) => {
-      result[uri] = {
-        rating: track.rating,
-        energy: track.energy,
-        tags: track.tags.map(tag => {
-          // Find tag name
-          const category = tagData.categories?.find(c => c.id === tag.categoryId);
-          if (!category) return { tag: "Unknown", category: "Unknown" };
+    try {
+      // First check if categories exist
+      if (!tagData?.categories) {
+        console.error("TagData is missing categories array");
+        return {}; // Return empty object to avoid further errors
+      }
+
+      Object.entries(tagData?.tracks || {}).forEach(([uri, track]) => {
+        // Create a place for this track in the result
+        result[uri] = {
+          rating: track?.rating || 0,
+          energy: track?.energy || 5,
+          tags: []
+        };
+        
+        // Check if track has tags
+        if (!track?.tags || !Array.isArray(track.tags)) {
+          return; // Skip this track if it has no tags array
+        }
+        
+        // Map each tag to the legacy format with careful null checking
+        track.tags.forEach(tag => {
+          if (!tag || !tag.categoryId || !tag.subcategoryId || !tag.tagId) {
+            console.warn("Found invalid tag data:", tag);
+            return; // Skip this tag
+          }
           
-          const subcategory = category.subcategories?.find(s => s.id === tag.subcategoryId);
-          if (!subcategory) return { tag: "Unknown", category: category.name };
+          const category = tagData.categories?.find(c => c?.id === tag.categoryId);
+          if (!category) {
+            console.warn(`Could not find category with ID: ${tag.categoryId}`);
+            return; // Skip this tag
+          }
           
-          const tagItem = subcategory.tags?.find(t => t.id === tag.tagId);
-          if (!tagItem) return { tag: "Unknown", category: `${category.name} > ${subcategory.name}` };
+          const subcategory = category.subcategories?.find(s => s?.id === tag.subcategoryId);
+          if (!subcategory) {
+            console.warn(`Could not find subcategory with ID: ${tag.subcategoryId} in category ${category.name}`);
+            return; // Skip this tag
+          }
           
-          return { 
+          const tagItem = subcategory.tags?.find(t => t?.id === tag.tagId);
+          if (!tagItem) {
+            console.warn(`Could not find tag with ID: ${tag.tagId} in subcategory ${subcategory.name}`);
+            return; // Skip this tag
+          }
+          
+          // Add the tag with proper names, not just IDs
+          result[uri].tags.push({ 
             tag: tagItem.name, 
             category: `${category.name} > ${subcategory.name}` 
-          };
-        })
-      };
-    });
+          });
+        });
+      });
 
-    return result;
+      console.log("Formatted tracks for TrackList:", result);
+      return result;
+    } catch (error) {
+      console.error("Error formatting track data:", error);
+      return {}; // Return empty object on error
+    }
   };
 
   return (
@@ -154,7 +196,7 @@ const App: React.FC = () => {
           />
         )}
 
-        {/* Tag selector */}
+        {/*  hierarchical tag selector */}
         {currentTrack && (
           <TagSelector
             track={currentTrack}
@@ -177,7 +219,7 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Tag manager modal */}
+      {/* Hierarchical tag manager modal */}
       {showTagManager && (
         <TagManager
           categories={tagData.categories}
@@ -194,7 +236,7 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Export modal */}
+      {/*  export panel for Rekordbox */}
       {showExport && (
         <ExportPanel
           data={exportData()}
