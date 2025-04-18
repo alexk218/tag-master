@@ -54,16 +54,16 @@ const App: React.FC = () => {
     const updateCurrentTrack = () => {
       // Check if we have a valid player data
       if (!Spicetify?.Player?.data) return;
-      
+
       // The actual runtime structure might differ from type definitions
       // We'll handle both possibilities
       const item = Spicetify.Player.data.item || Spicetify.Player.data.track;
-      
+
       if (!item) {
         console.warn("Could not find track data in Spicetify.Player.data");
         return;
       }
-      
+
       // Map the data to our expected format
       setCurrentTrack({
         uri: item.uri,
@@ -76,17 +76,16 @@ const App: React.FC = () => {
 
     // Set up event listener
     Spicetify.Player.addEventListener("songchange", updateCurrentTrack);
-    
+
     // Initial track check
     updateCurrentTrack();
-    
+
     // Clean up on unmount
     return () => {
       Spicetify.Player.removeEventListener("songchange", updateCurrentTrack);
     };
   }, []);
 
-  // Legacy track data format for TrackList compatibility
   const getLegacyFormatTracks = () => {
     const result: {
       [uri: string]: {
@@ -97,59 +96,65 @@ const App: React.FC = () => {
     } = {};
 
     try {
-      // First check if categories exist
-      if (!tagData?.categories) {
-        console.error("TagData is missing categories array");
+      // First check if we have valid tagData
+      if (!tagData || typeof tagData !== 'object') {
+        console.error("TagData is invalid", tagData);
+        return {};
+      }
+
+      // Check if categories exist and is an array
+      if (!tagData.categories || !Array.isArray(tagData.categories)) {
+        console.error("TagData is missing valid categories array", tagData.categories);
         return {}; // Return empty object to avoid further errors
       }
 
-      Object.entries(tagData?.tracks || {}).forEach(([uri, track]) => {
-        // Create a place for this track in the result
+      // Check if tracks exist
+      if (!tagData.tracks || typeof tagData.tracks !== 'object') {
+        console.error("TagData is missing valid tracks object", tagData.tracks);
+        return {};
+      }
+
+      // Process each track
+      Object.entries(tagData.tracks).forEach(([uri, track]) => {
+        // Skip invalid tracks
+        if (!track) return;
+
+        // Create entry for this track
         result[uri] = {
-          rating: track?.rating || 0,
-          energy: track?.energy || 5,
+          rating: track.rating || 0,
+          energy: track.energy || 5,
           tags: []
         };
-        
-        // Check if track has tags
-        if (!track?.tags || !Array.isArray(track.tags)) {
-          return; // Skip this track if it has no tags array
+
+        // Skip if no tags
+        if (!track.tags || !Array.isArray(track.tags) || track.tags.length === 0) {
+          return;
         }
-        
-        // Map each tag to the legacy format with careful null checking
+
+        // Process each tag
         track.tags.forEach(tag => {
-          if (!tag || !tag.categoryId || !tag.subcategoryId || !tag.tagId) {
-            console.warn("Found invalid tag data:", tag);
-            return; // Skip this tag
-          }
-          
-          const category = tagData.categories?.find(c => c?.id === tag.categoryId);
-          if (!category) {
-            console.warn(`Could not find category with ID: ${tag.categoryId}`);
-            return; // Skip this tag
-          }
-          
-          const subcategory = category.subcategories?.find(s => s?.id === tag.subcategoryId);
-          if (!subcategory) {
-            console.warn(`Could not find subcategory with ID: ${tag.subcategoryId} in category ${category.name}`);
-            return; // Skip this tag
-          }
-          
-          const tagItem = subcategory.tags?.find(t => t?.id === tag.tagId);
-          if (!tagItem) {
-            console.warn(`Could not find tag with ID: ${tag.tagId} in subcategory ${subcategory.name}`);
-            return; // Skip this tag
-          }
-          
-          // Add the tag with proper names, not just IDs
-          result[uri].tags.push({ 
-            tag: tagItem.name, 
-            category: `${category.name} > ${subcategory.name}` 
+          // Find the tag info
+          const category = tagData.categories.find(c => c.id === tag.categoryId);
+          if (!category) return;
+
+          const subcategory = category.subcategories.find(s => s.id === tag.subcategoryId);
+          if (!subcategory) return;
+
+          const tagObj = subcategory.tags.find(t => t.id === tag.tagId);
+          if (!tagObj) return;
+
+          // Add the tag with proper names
+          result[uri].tags.push({
+            tag: tagObj.name,
+            category: `${category.name} > ${subcategory.name}`
           });
         });
       });
 
+      // Log the result for debugging
       console.log("Formatted tracks for TrackList:", result);
+      console.log("Track count:", Object.keys(result).length);
+
       return result;
     } catch (error) {
       console.error("Error formatting track data:", error);
@@ -185,8 +190,8 @@ const App: React.FC = () => {
         </div>
       ) : (
         <>
-          <DataManager 
-            onExportBackup={exportBackup} 
+          <DataManager
+            onExportBackup={exportBackup}
             onImportBackup={importBackup}
             lastSaved={lastSaved}
           />
@@ -200,7 +205,7 @@ const App: React.FC = () => {
                 categories={tagData.categories}
                 onSetRating={(rating) => setRating(currentTrack.uri, rating)}
                 onSetEnergy={(energy) => setEnergy(currentTrack.uri, energy)}
-                onRemoveTag={(categoryId, subcategoryId, tagId) => 
+                onRemoveTag={(categoryId, subcategoryId, tagId) =>
                   toggleTrackTag(currentTrack.uri, categoryId, subcategoryId, tagId)
                 }
               />
@@ -212,7 +217,7 @@ const App: React.FC = () => {
                 track={currentTrack}
                 categories={tagData.categories}
                 trackTags={tagData.tracks[currentTrack.uri]?.tags || []}
-                onToggleTag={(categoryId, subcategoryId, tagId) => 
+                onToggleTag={(categoryId, subcategoryId, tagId) =>
                   toggleTrackTag(currentTrack.uri, categoryId, subcategoryId, tagId)
                 }
               />

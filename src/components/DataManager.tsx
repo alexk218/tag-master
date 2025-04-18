@@ -8,37 +8,45 @@ interface DataManagerProps {
     lastSaved: Date | null;
 }
 
-const DataManager: React.FC<DataManagerProps> = ({ 
-    onExportBackup, 
+const DataManager: React.FC<DataManagerProps> = ({
+    onExportBackup,
     onImportBackup,
-    lastSaved 
+    lastSaved
 }) => {
     const [isImporting, setIsImporting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    
+
     const handleImportClick = () => {
         if (fileInputRef.current) {
             fileInputRef.current.click();
         }
     };
-    
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
-        
+
         setIsImporting(true);
-        
+
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const content = e.target?.result as string;
-                const data = JSON.parse(content) as TagDataStructure;
-                
-                // Validate the data structure
-                if (data && data.categories && data.tracks) {
+                const data = JSON.parse(content);
+
+                // More thorough validation of the data structure
+                if (
+                    data &&
+                    typeof data === 'object' &&
+                    data.categories &&
+                    Array.isArray(data.categories) &&
+                    data.tracks &&
+                    typeof data.tracks === 'object'
+                ) {
                     onImportBackup(data);
                     Spicetify.showNotification("Data imported successfully!");
                 } else {
+                    console.error("Invalid backup structure:", data);
                     Spicetify.showNotification("Invalid backup file format", true);
                 }
             } catch (error) {
@@ -52,43 +60,43 @@ const DataManager: React.FC<DataManagerProps> = ({
                 }
             }
         };
-        
+
         reader.onerror = () => {
             Spicetify.showNotification("Error reading backup file", true);
             setIsImporting(false);
         };
-        
+
         reader.readAsText(file);
     };
-    
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
                 <h3 className={styles.title}>Data Management</h3>
             </div>
-            
+
             {lastSaved && (
                 <div className={styles.lastSaved}>
                     Last saved: {lastSaved.toLocaleString()}
                 </div>
             )}
-            
+
             <div className={styles.actions}>
-                <button 
+                <button
                     className={styles.actionButton}
                     onClick={onExportBackup}
                 >
                     Export Backup File
                 </button>
-                
-                <button 
+
+                <button
                     className={styles.actionButton}
                     onClick={handleImportClick}
                     disabled={isImporting}
                 >
                     {isImporting ? "Importing..." : "Import Backup File"}
                 </button>
-                
+
                 <input
                     ref={fileInputRef}
                     type="file"
@@ -97,7 +105,7 @@ const DataManager: React.FC<DataManagerProps> = ({
                     style={{ display: 'none' }}
                 />
             </div>
-            
+
             <div className={styles.info}>
                 <p>Backup your tag data regularly to prevent data loss. Your data is currently stored in the browser's localStorage.</p>
                 <p>Export a backup file to keep your tag data safe. You can import this file later to restore your data.</p>

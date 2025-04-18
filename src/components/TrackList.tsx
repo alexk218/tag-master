@@ -28,83 +28,83 @@ interface TrackListProps {
 }
 
 const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
-  const [trackInfo, setTrackInfo] = useState<{[uri: string]: SpotifyTrackInfo}>({});
+  console.log("TrackList received tracks:", tracks, "count:", Object.keys(tracks).length);
+  const [trackInfo, setTrackInfo] = useState<{ [uri: string]: SpotifyTrackInfo }>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  
+
   // Fetch track info from Spotify on component mount and when tracks change
+  // Inside useEffect in TrackList.tsx
   useEffect(() => {
     const fetchTrackInfo = async () => {
       const trackUris = Object.keys(tracks);
-      const newTrackInfo: {[uri: string]: SpotifyTrackInfo} = {};
-      
-      // Process tracks in batches of 20 (reduce from 50 to be safer)
+      console.log("Fetching info for tracks:", trackUris);
+
+      if (trackUris.length === 0) {
+        console.log("No tracks to fetch info for");
+        return;
+      }
+
+      const newTrackInfo: { [uri: string]: SpotifyTrackInfo } = {};
+
+      // Process tracks in batches of 20
       for (let i = 0; i < trackUris.length; i += 20) {
         const batch = trackUris.slice(i, i + 20);
-        
+        console.log(`Processing batch ${i / 20 + 1}, size ${batch.length}`);
+
         try {
-          // Extract track IDs from URIs (spotify:track:1234567 -> 1234567)
-          // Map URI to ID and create a lookup
-          const uriToIdMap: {[uri: string]: string} = {};
-          
-          batch.forEach(uri => {
+          // Extract track IDs from URIs
+          const trackIds = batch.map(uri => {
             const parts = uri.split(':');
-            if (parts.length >= 3 && parts[1] === 'track') {
-              uriToIdMap[uri] = parts[2];
-            }
-          });
-          
-          // Get all valid track IDs
-          const trackIds = Object.values(uriToIdMap).filter(id => 
-            id && id.length > 0 && id !== 'undefined' && id !== 'null'
-          );
-          
+            return parts.length >= 3 && parts[1] === 'track' ? parts[2] : null;
+          }).filter(Boolean);
+
           if (trackIds.length === 0) {
-            console.log("No valid track IDs found in batch, skipping");
+            console.log("No valid track IDs in this batch");
             continue;
           }
-          
+
+          // Fetch track info
           console.log("Fetching track info for IDs:", trackIds);
-          
-          // Use Spicetify's API to get track info
           const response = await Spicetify.CosmosAsync.get(
             `https://api.spotify.com/v1/tracks?ids=${trackIds.join(',')}`
           );
-          
+
           if (response && response.tracks) {
-            // Create a map of ID to track data
-            const idToTrackMap: {[id: string]: any} = {};
+            // Process the response
             response.tracks.forEach((track: any) => {
               if (track && track.id) {
-                idToTrackMap[track.id] = track;
+                // Find the original URI for this track
+                const uri = batch.find(u => u.includes(track.id));
+                if (uri) {
+                  newTrackInfo[uri] = {
+                    name: track.name,
+                    artists: track.artists.map((a: any) => a.name).join(", "),
+                    albumName: track.album?.name || "Unknown Album"
+                  };
+                }
               }
             });
-            
-            // Now match back to original URIs using our map
-            Object.entries(uriToIdMap).forEach(([uri, id]) => {
-              const track = idToTrackMap[id];
-              if (track) {
-                newTrackInfo[uri] = {
-                  name: track.name,
-                  artists: track.artists.map((a: any) => a.name).join(", "),
-                  albumName: track.album?.name || "Unknown Album"
-                };
-              }
-            });
+          } else {
+            console.warn("Invalid response from Spotify API:", response);
           }
         } catch (error) {
-          console.error("Error fetching track info:", error);
+          console.error("Error fetching track info for batch:", error);
         }
       }
-      
+
+      console.log("Track info fetched:", Object.keys(newTrackInfo).length, "tracks");
       setTrackInfo(newTrackInfo);
     };
-    
+
     if (Object.keys(tracks).length > 0) {
       fetchTrackInfo();
+    } else {
+      console.log("No tracks available to fetch info for");
     }
-  }, [tracks]);
-  
+    console.log("TrackInfo updated:", Object.keys(trackInfo).length, "tracks");
+  }, [tracks]);;
+
   // Extract all unique tags from all tracks
   const allTags = new Set<string>();
   Object.values(tracks).forEach(track => {
@@ -112,38 +112,45 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
       allTags.add(tag);
     });
   });
-  
+
   // Filter tracks based on search term and active filter
+  // Inside TrackList.tsx - modify the filtering code
   const filteredTracks = Object.entries(tracks).filter(([uri, trackData]) => {
     const info = trackInfo[uri];
-    
-    // Skip if we don't have info for this track yet
-    if (!info) return false;
-    
+
+    // If we don't have info for this track yet but are still loading, 
+    // include it anyway so it appears after loading completes
+    if (!info) {
+      console.log(`No info for track ${uri} yet`);
+      return false; // Only filter out after we've tried to load info
+    }
+
     // Search term filter
-    const matchesSearch = 
-      searchTerm === "" || 
+    const matchesSearch =
+      searchTerm === "" ||
       info.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       info.artists.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     // Tag filter
-    const matchesFilter = 
-      activeFilter === null || 
+    const matchesFilter =
+      activeFilter === null ||
       trackData.tags.some(({ tag }) => tag === activeFilter);
-    
+
     return matchesSearch && matchesFilter;
   });
-  
+
+  console.log("Filtered tracks:", filteredTracks.length, "from", Object.keys(tracks).length);
+
   // Sort filtered tracks by artist name
   const sortedTracks = [...filteredTracks].sort((a, b) => {
     const infoA = trackInfo[a[0]];
     const infoB = trackInfo[b[0]];
-    
+
     if (!infoA || !infoB) return 0;
-    
+
     return infoA.artists.localeCompare(infoB.artists);
   });
-  
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -158,9 +165,9 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
           />
         </div>
       </div>
-      
+
       <div className={styles.tagFilters}>
-        <button 
+        <button
           className={`${styles.tagFilter} ${activeFilter === null ? styles.active : ''}`}
           onClick={() => setActiveFilter(null)}
         >
@@ -176,22 +183,22 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
           </button>
         ))}
       </div>
-      
+
       <div className={styles.trackList}>
         {sortedTracks.length === 0 ? (
           <p className={styles.noTracks}>
-            {Object.keys(tracks).length === 0 
-              ? "No tagged tracks yet. Start tagging your favorite tracks!" 
+            {Object.keys(tracks).length === 0
+              ? "No tagged tracks yet. Start tagging your favorite tracks!"
               : "No tracks match your filters."}
           </p>
         ) : (
           sortedTracks.map(([uri, data]) => {
             const info = trackInfo[uri];
             if (!info) return null;
-            
+
             return (
-              <div 
-                key={uri} 
+              <div
+                key={uri}
                 className={styles.trackItem}
                 onClick={() => onSelectTrack(uri)}
               >
@@ -202,8 +209,8 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
                 <div className={styles.trackItemMeta}>
                   <div className={styles.trackItemRating}>
                     {Array(5).fill(0).map((_, i) => (
-                      <span 
-                        key={i} 
+                      <span
+                        key={i}
                         className={`${styles.miniStar} ${i < data.rating ? styles.active : ''}`}
                       >
                         ★
@@ -212,13 +219,13 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
                   </div>
                   <div className={styles.trackItemEnergy}>E{data.energy}</div>
                   <div className={styles.trackItemTags}>
-                    {data.tags.length > 0 
-                      ? data.tags.map(({tag}, i) => (
-                          <React.Fragment key={i}>
-                            {i > 0 && ", "}
-                            <span className={styles.trackItemTag}>{tag}</span>
-                          </React.Fragment>
-                        ))
+                    {data.tags.length > 0
+                      ? data.tags.map(({ tag }, i) => (
+                        <React.Fragment key={i}>
+                          {i > 0 && ", "}
+                          <span className={styles.trackItemTag}>{tag}</span>
+                        </React.Fragment>
+                      ))
                       : <span className={styles.noTags}>No tags</span>
                     }
                   </div>
