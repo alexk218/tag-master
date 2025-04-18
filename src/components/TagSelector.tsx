@@ -74,7 +74,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
       </div>
       
       <div className={styles.categoryList}>
-        {categories.map(category => {
+        {categories?.map(category => {
           const hasMatchingTags = category.subcategories.some(subcategory => 
             subcategory.tags.some(tag => filterTag(tag.name))
           );
@@ -95,7 +95,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
               
               {expandedCategories.includes(category.id) && (
                 <div className={styles.subcategoryList}>
-                  {category.subcategories.map(subcategory => {
+                  {category.subcategories?.map(subcategory => {
                     const hasMatchingSubcategoryTags = subcategory.tags.some(tag => filterTag(tag.name));
                     
                     if (searchTerm && !hasMatchingSubcategoryTags) return null;

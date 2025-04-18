@@ -424,7 +424,7 @@ export function useTagData() {
 
     // Rename a main category
     const renameCategory = (categoryId: string, newName: string) => {
-        const updatedCategories = tagData.categories.map(category => 
+        const updatedCategories = tagData.categories?.map(category => 
             category.id === categoryId ? { ...category, name: newName } : category
         );
 
@@ -444,7 +444,7 @@ export function useTagData() {
             tags: []
         };
 
-        const updatedCategories = tagData.categories.map(category => 
+        const updatedCategories = tagData.categories?.map(category => 
             category.id === categoryId 
                 ? { ...category, subcategories: [...category.subcategories, newSubcategory] } 
                 : category
@@ -459,7 +459,7 @@ export function useTagData() {
     // Remove a subcategory
     const removeSubcategory = (categoryId: string, subcategoryId: string) => {
         // Update categories
-        const updatedCategories = tagData.categories.map(category => {
+        const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
             
             return {
@@ -485,12 +485,12 @@ export function useTagData() {
 
     // Rename a subcategory
     const renameSubcategory = (categoryId: string, subcategoryId: string, newName: string) => {
-        const updatedCategories = tagData.categories.map(category => {
+        const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
             
             return {
                 ...category,
-                subcategories: category.subcategories.map(sub => 
+                subcategories: category.subcategories?.map(sub => 
                     sub.id === subcategoryId ? { ...sub, name: newName } : sub
                 )
             };
@@ -511,12 +511,12 @@ export function useTagData() {
             id: generateId()
         };
 
-        const updatedCategories = tagData.categories.map(category => {
+        const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
             
             return {
                 ...category,
-                subcategories: category.subcategories.map(sub => {
+                subcategories: category.subcategories?.map(sub => {
                     if (sub.id !== subcategoryId) return sub;
                     
                     return {
@@ -536,12 +536,12 @@ export function useTagData() {
     // Remove a tag
     const removeTag = (categoryId: string, subcategoryId: string, tagId: string) => {
         // Update categories
-        const updatedCategories = tagData.categories.map(category => {
+        const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
             
             return {
                 ...category,
-                subcategories: category.subcategories.map(sub => {
+                subcategories: category.subcategories?.map(sub => {
                     if (sub.id !== subcategoryId) return sub;
                     
                     return {
@@ -571,12 +571,12 @@ export function useTagData() {
 
     // Rename a tag
     const renameTag = (categoryId: string, subcategoryId: string, tagId: string, newName: string) => {
-        const updatedCategories = tagData.categories.map(category => {
+        const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
             
             return {
                 ...category,
-                subcategories: category.subcategories.map(sub => {
+                subcategories: category.subcategories?.map(sub => {
                     if (sub.id !== subcategoryId) return sub;
                     
                     return {

@@ -1,21 +1,6 @@
 import React, { useState, useRef } from "react";
 import styles from "./DataManager.module.css";
-
-interface TagDataStructure {
-    tagCategories: {
-        [category: string]: string[];
-    };
-    tracks: {
-        [trackUri: string]: {
-            rating: number;
-            energy: number;
-            tags: {
-                tag: string;
-                category: string;
-            }[];
-        };
-    };
-}
+import { TagDataStructure } from "../hooks/useTagData";
 
 interface DataManagerProps {
     onExportBackup: () => void;
@@ -50,7 +35,7 @@ const DataManager: React.FC<DataManagerProps> = ({
                 const data = JSON.parse(content) as TagDataStructure;
                 
                 // Validate the data structure
-                if (data && data.tagCategories && data.tracks) {
+                if (data && data.categories && data.tracks) {
                     onImportBackup(data);
                     Spicetify.showNotification("Data imported successfully!");
                 } else {

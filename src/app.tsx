@@ -7,7 +7,7 @@ import TagManager from "./components/TagManager";
 import ExportPanel from "./components/ExportPanel";
 import DataManager from "./components/DataManager";
 import { useTagData } from "./hooks/useTagData";
-import { TagDataStructure } from "./hooks/useTagData";
+// import { TagDataStructure } from "./hooks/useTagData";
 
 interface SpotifyTrack {
   uri: string;
@@ -53,7 +53,7 @@ const App: React.FC = () => {
       // Check if we have a valid player data and item
       if (!Spicetify?.Player?.data?.item) return;
       
-      const item = Spicetify.Player.data.item;
+      const item = Spicetify.Player.data?.item;
       
       // Map the data to our expected format
       setCurrentTrack({
@@ -93,13 +93,13 @@ const App: React.FC = () => {
         energy: track.energy,
         tags: track.tags.map(tag => {
           // Find tag name
-          const category = tagData.categories.find(c => c.id === tag.categoryId);
+          const category = tagData.categories?.find(c => c.id === tag.categoryId);
           if (!category) return { tag: "Unknown", category: "Unknown" };
           
-          const subcategory = category.subcategories.find(s => s.id === tag.subcategoryId);
+          const subcategory = category.subcategories?.find(s => s.id === tag.subcategoryId);
           if (!subcategory) return { tag: "Unknown", category: category.name };
           
-          const tagItem = subcategory.tags.find(t => t.id === tag.tagId);
+          const tagItem = subcategory.tags?.find(t => t.id === tag.tagId);
           if (!tagItem) return { tag: "Unknown", category: `${category.name} > ${subcategory.name}` };
           
           return { 

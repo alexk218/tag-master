@@ -219,7 +219,7 @@ const TagManager: React.FC<TagManagerProps> = ({
                 <div className={styles.modalBody}>
                     {/* Categories */}
                     <div className={styles.categoriesList}>
-                        {categories.map((category) => (
+                        {categories?.map((category) => (
                             <div key={category.id} className={styles.categorySection}>
                                 <div 
                                     className={styles.categoryHeader}
@@ -255,7 +255,7 @@ const TagManager: React.FC<TagManagerProps> = ({
                                     <div className={styles.categoryContent}>
                                         {/* Subcategories */}
                                         <div className={styles.subcategoriesList}>
-                                            {category.subcategories.map((subcategory) => (
+                                            {category.subcategories?.map((subcategory) => (
                                                 <div key={subcategory.id} className={styles.subcategorySection}>
                                                     <div 
                                                         className={styles.subcategoryHeader}
