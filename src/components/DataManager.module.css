@@ -29,6 +29,7 @@
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .actionButton {
@@ -50,6 +51,14 @@
 .actionButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.dangerButton {
+  background-color: var(--spice-notification-error);
+}
+
+.dangerButton:hover {
+  opacity: 0.9;
 }
 
 .info {
