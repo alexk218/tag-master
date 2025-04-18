@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import styles from "./app.module.css";
+// Import  components that support hierarchical tags
 import TrackDetails from "./components/TrackDetails";
 import TagSelector from "./components/TagSelector";
 import TrackList from "./components/TrackList";
 import TagManager from "./components/TagManager";
 import ExportPanel from "./components/ExportPanel";
 import DataManager from "./components/DataManager";
+// Use the  tag data hook for hierarchical structure
 import { useTagData } from "./hooks/useTagData";
-// import { TagDataStructure } from "./hooks/useTagData";
 
 interface SpotifyTrack {
   uri: string;
@@ -22,6 +23,7 @@ const App: React.FC = () => {
   const {
     tagData,
     lastSaved,
+    isLoading,
     toggleTrackTag,
     setRating,
     setEnergy,
@@ -163,85 +165,95 @@ const App: React.FC = () => {
           <button
             onClick={() => setShowExport(true)}
             className={styles.actionButton}
+            disabled={isLoading}
           >
             Export for Rekordbox
           </button>
           <button
             onClick={() => setShowTagManager(true)}
             className={styles.actionButton}
+            disabled={isLoading}
           >
             Manage Tags
           </button>
         </div>
       </div>
 
-      <DataManager 
-        onExportBackup={exportBackup} 
-        onImportBackup={importBackup}
-        lastSaved={lastSaved}
-      />
-
-      <div className={styles.content}>
-        {/* Current track details and metadata editor */}
-        {currentTrack && (
-          <TrackDetails
-            track={currentTrack}
-            trackData={tagData.tracks[currentTrack.uri] || { rating: 0, energy: 5, tags: [] }}
-            categories={tagData.categories}
-            onSetRating={(rating) => setRating(currentTrack.uri, rating)}
-            onSetEnergy={(energy) => setEnergy(currentTrack.uri, energy)}
-            onRemoveTag={(categoryId, subcategoryId, tagId) => 
-              toggleTrackTag(currentTrack.uri, categoryId, subcategoryId, tagId)
-            }
+      {isLoading ? (
+        <div className={styles.loadingContainer}>
+          <p className={styles.loadingText}>Loading tag data...</p>
+        </div>
+      ) : (
+        <>
+          <DataManager 
+            onExportBackup={exportBackup} 
+            onImportBackup={importBackup}
+            lastSaved={lastSaved}
           />
-        )}
 
-        {/*  hierarchical tag selector */}
-        {currentTrack && (
-          <TagSelector
-            track={currentTrack}
-            categories={tagData.categories}
-            trackTags={tagData.tracks[currentTrack.uri]?.tags || []}
-            onToggleTag={(categoryId, subcategoryId, tagId) => 
-              toggleTrackTag(currentTrack.uri, categoryId, subcategoryId, tagId)
-            }
-          />
-        )}
+          <div className={styles.content}>
+            {/* Current track details and metadata editor */}
+            {currentTrack && (
+              <TrackDetails
+                track={currentTrack}
+                trackData={tagData.tracks[currentTrack.uri] || { rating: 0, energy: 5, tags: [] }}
+                categories={tagData.categories}
+                onSetRating={(rating) => setRating(currentTrack.uri, rating)}
+                onSetEnergy={(energy) => setEnergy(currentTrack.uri, energy)}
+                onRemoveTag={(categoryId, subcategoryId, tagId) => 
+                  toggleTrackTag(currentTrack.uri, categoryId, subcategoryId, tagId)
+                }
+              />
+            )}
 
-        {/* List of tagged tracks */}
-        <TrackList
-          tracks={getLegacyFormatTracks()}
-          onSelectTrack={(uri) => {
-            if (Spicetify.Player && Spicetify.Player.playUri) {
-              Spicetify.Player.playUri(uri);
-            }
-          }}
-        />
-      </div>
+            {/*  hierarchical tag selector */}
+            {currentTrack && (
+              <TagSelector
+                track={currentTrack}
+                categories={tagData.categories}
+                trackTags={tagData.tracks[currentTrack.uri]?.tags || []}
+                onToggleTag={(categoryId, subcategoryId, tagId) => 
+                  toggleTrackTag(currentTrack.uri, categoryId, subcategoryId, tagId)
+                }
+              />
+            )}
 
-      {/* Hierarchical tag manager modal */}
-      {showTagManager && (
-        <TagManager
-          categories={tagData.categories}
-          onClose={() => setShowTagManager(false)}
-          onAddCategory={addCategory}
-          onRemoveCategory={removeCategory}
-          onRenameCategory={renameCategory}
-          onAddSubcategory={addSubcategory}
-          onRemoveSubcategory={removeSubcategory}
-          onRenameSubcategory={renameSubcategory}
-          onAddTag={addTag}
-          onRemoveTag={removeTag}
-          onRenameTag={renameTag}
-        />
-      )}
+            {/* List of tagged tracks */}
+            <TrackList
+              tracks={getLegacyFormatTracks()}
+              onSelectTrack={(uri) => {
+                if (Spicetify.Player && Spicetify.Player.playUri) {
+                  Spicetify.Player.playUri(uri);
+                }
+              }}
+            />
+          </div>
 
-      {/*  export panel for Rekordbox */}
-      {showExport && (
-        <ExportPanel
-          data={exportData()}
-          onClose={() => setShowExport(false)}
-        />
+          {/* Hierarchical tag manager modal */}
+          {showTagManager && (
+            <TagManager
+              categories={tagData.categories}
+              onClose={() => setShowTagManager(false)}
+              onAddCategory={addCategory}
+              onRemoveCategory={removeCategory}
+              onRenameCategory={renameCategory}
+              onAddSubcategory={addSubcategory}
+              onRemoveSubcategory={removeSubcategory}
+              onRenameSubcategory={renameSubcategory}
+              onAddTag={addTag}
+              onRemoveTag={removeTag}
+              onRenameTag={renameTag}
+            />
+          )}
+
+          {/*  export panel for Rekordbox */}
+          {showExport && (
+            <ExportPanel
+              data={exportData()}
+              onClose={() => setShowExport(false)}
+            />
+          )}
+        </>
       )}
     </div>
   );

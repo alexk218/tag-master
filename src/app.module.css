@@ -45,6 +45,11 @@
   background-color: var(--spice-button-active);
 }
 
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .content {
   display: grid;
   grid-template-columns: 1fr;
@@ -52,4 +57,20 @@
   gap: 16px;
   height: calc(100% - 80px);
   overflow: hidden;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  background-color: var(--spice-card);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.loadingText {
+  font-size: 18px;
+  color: var(--spice-text);
+  opacity: 0.8;
 }
