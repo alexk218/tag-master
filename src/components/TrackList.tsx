@@ -33,7 +33,8 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
   
   // Advanced filtering states
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
-  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
+  // Changed from single rating to array of ratings
+  const [ratingFilters, setRatingFilters] = useState<number[]>([]);
   const [energyMinFilter, setEnergyMinFilter] = useState<number | null>(null);
   const [energyMaxFilter, setEnergyMaxFilter] = useState<number | null>(null);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
@@ -140,9 +141,13 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
     );
   };
   
-  // Toggle a rating filter
+  // Toggle a rating filter - now adds/removes from array
   const toggleRatingFilter = (rating: number) => {
-    setRatingFilter(prev => prev === rating ? null : rating);
+    setRatingFilters(prev => 
+      prev.includes(rating)
+        ? prev.filter(r => r !== rating)
+        : [...prev, rating]
+    );
   };
   
   // Handle energy range filtering
@@ -170,7 +175,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
   const clearAllFilters = () => {
     setSearchTerm("");
     setActiveTagFilters([]);
-    setRatingFilter(null);
+    setRatingFilters([]);
     setEnergyMinFilter(null);
     setEnergyMaxFilter(null);
   };
@@ -197,10 +202,10 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
         trackData.tags.some(t => t.tag === tag)
       );
     
-    // Rating filter
+    // Rating filter - Updated to check if track rating is in the ratingFilters array
     const matchesRating = 
-      ratingFilter === null || 
-      trackData.rating === ratingFilter;
+      ratingFilters.length === 0 || 
+      (trackData.rating > 0 && ratingFilters.includes(trackData.rating));
     
     // Energy range filter
     const matchesEnergyMin = 
@@ -228,7 +233,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
   // Calculate active filter count for badge
   const activeFilterCount = 
     activeTagFilters.length + 
-    (ratingFilter !== null ? 1 : 0) + 
+    (ratingFilters.length > 0 ? 1 : 0) + 
     (energyMinFilter !== null || energyMaxFilter !== null ? 1 : 0);
   
   return (
@@ -273,7 +278,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
                 {Array.from(allRatings).sort((a, b) => b - a).map(rating => (
                   <button
                     key={`rating-${rating}`}
-                    className={`${styles.ratingFilter} ${ratingFilter === rating ? styles.active : ''}`}
+                    className={`${styles.ratingFilter} ${ratingFilters.includes(rating) ? styles.active : ''}`}
                     onClick={() => toggleRatingFilter(rating)}
                   >
                     {Array(rating).fill(0).map((_, i) => (
