@@ -185,3 +185,27 @@
 .manageButton:hover {
   background-color: var(--spice-button-active);
 }
+
+.expandCollapseButton {
+  background-color: transparent;
+  color: var(--spice-text);
+  border: 1px solid var(--spice-button-disabled);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.expandCollapseButton:hover {
+  background-color: var(--spice-button-disabled);
+  border-color: var(--spice-button);
+}
+
+.expandCollapseIcon {
+  font-size: 10px;
+}

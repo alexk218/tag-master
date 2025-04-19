@@ -10,7 +10,7 @@ interface TagSelectorProps {
   categories: Category[];
   trackTags: TrackTag[];
   onToggleTag: (categoryId: string, subcategoryId: string, tagId: string) => void;
-  onOpenTagManager: () => void; // Add this new prop
+  onOpenTagManager: () => void;
 }
 
 const TagSelector: React.FC<TagSelectorProps> = ({
@@ -23,6 +23,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   // Keep track of expanded categories and subcategories
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
+  const [areAllExpanded, setAreAllExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Toggle category expansion
@@ -49,6 +50,34 @@ const TagSelector: React.FC<TagSelectorProps> = ({
       }
       return newSet;
     });
+  };
+
+  // Function to expand all categories and subcategories
+  const expandAll = () => {
+    const allCategoryIds = categories.map(category => category.id);
+    const allSubcategoryIds = categories.flatMap(category => 
+      category.subcategories.map(subcategory => subcategory.id)
+    );
+    
+    setExpandedCategories(new Set(allCategoryIds));
+    setExpandedSubcategories(new Set(allSubcategoryIds));
+    setAreAllExpanded(true);
+  };
+
+  // Function to collapse all categories and subcategories
+  const collapseAll = () => {
+    setExpandedCategories(new Set());
+    setExpandedSubcategories(new Set());
+    setAreAllExpanded(false);
+  };
+
+  // Toggle expand/collapse all
+  const toggleExpandAll = () => {
+    if (areAllExpanded) {
+      collapseAll();
+    } else {
+      expandAll();
+    }
   };
 
   // Check if a tag is applied to the track
@@ -106,6 +135,17 @@ const TagSelector: React.FC<TagSelectorProps> = ({
       <div className={styles.header}>
         <h2 className={styles.title}>Add Tags</h2>
         <div className={styles.controls}>
+          <button
+            className={styles.expandCollapseButton}
+            onClick={toggleExpandAll}
+            title={areAllExpanded ? "Collapse all categories" : "Expand all categories"}
+          >
+            <span className={styles.expandCollapseIcon}>
+              {areAllExpanded ? "▼" : "►"}
+            </span>
+            {areAllExpanded ? "Collapse All" : "Expand All"}
+          </button>
+          
           <button
             className={styles.manageButton}
             onClick={(e) => {
