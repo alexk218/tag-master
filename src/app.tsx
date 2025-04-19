@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import styles from "./app.module.css";
-// Import  components that support hierarchical tags
+// Import components that support hierarchical tags
 import TrackDetails from "./components/TrackDetails";
 import TagSelector from "./components/TagSelector";
 import TrackList from "./components/TrackList";
 import TagManager from "./components/TagManager";
 import ExportPanel from "./components/ExportPanel";
 import DataManager from "./components/DataManager";
-// Use the  tag data hook for hierarchical structure
+// Use the tag data hook for hierarchical structure
 import { useTagData } from "./hooks/useTagData";
 
 interface SpotifyTrack {
@@ -166,22 +166,6 @@ const App: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>TagMaster</h1>
-        <div className={styles.actions}>
-          <button
-            onClick={() => setShowExport(true)}
-            className={styles.actionButton}
-            disabled={isLoading}
-          >
-            Export for Rekordbox
-          </button>
-          <button
-            onClick={() => setShowTagManager(true)}
-            className={styles.actionButton}
-            disabled={isLoading}
-          >
-            Manage Tags
-          </button>
-        </div>
       </div>
 
       {isLoading ? (
@@ -193,6 +177,7 @@ const App: React.FC = () => {
           <DataManager
             onExportBackup={exportBackup}
             onImportBackup={importBackup}
+            onExportRekordbox={() => setShowExport(true)}
             lastSaved={lastSaved}
           />
 
@@ -211,7 +196,7 @@ const App: React.FC = () => {
               />
             )}
 
-            {/*  hierarchical tag selector */}
+            {/* Hierarchical tag selector */}
             {currentTrack && (
               <TagSelector
                 track={currentTrack}
@@ -220,6 +205,7 @@ const App: React.FC = () => {
                 onToggleTag={(categoryId, subcategoryId, tagId) =>
                   toggleTrackTag(currentTrack.uri, categoryId, subcategoryId, tagId)
                 }
+                onOpenTagManager={() => setShowTagManager(true)}
               />
             )}
 
@@ -251,7 +237,7 @@ const App: React.FC = () => {
             />
           )}
 
-          {/*  export panel for Rekordbox */}
+          {/* Export panel for Rekordbox */}
           {showExport && (
             <ExportPanel
               data={exportData()}

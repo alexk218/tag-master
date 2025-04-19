@@ -32,20 +32,20 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
     const jsonData = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement("a");
     a.href = url;
     a.download = `tagmaster-export-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
-    
+
     URL.revokeObjectURL(url);
   };
-  
+
   // Calculate export statistics
   const trackCount = Object.keys(data.tracks).length;
   const ratedTrackCount = Object.values(data.tracks).filter(track => track.rating > 0).length;
   const taggedTrackCount = Object.values(data.tracks).filter(track => track.tags.length > 0).length;
-  
+
   // Calculate tag distribution
   const tagDistribution: { [tagName: string]: number } = {};
   Object.values(data.tracks).forEach(track => {
@@ -56,12 +56,12 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
       tagDistribution[tag.name]++;
     });
   });
-  
+
   // Sort tags by frequency for display
   const sortedTags = Object.entries(tagDistribution)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10); // Top 10 tags
-  
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
@@ -69,7 +69,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
           <h2 className={styles.modalTitle}>Export for Rekordbox</h2>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
-        
+
         <div className={styles.modalBody}>
           <div className={styles.exportSection}>
             <h3 className={styles.sectionTitle}>Export Statistics</h3>
@@ -88,7 +88,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
               </div>
             </div>
           </div>
-          
+
           {sortedTags.length > 0 && (
             <div className={styles.tagDistributionSection}>
               <h3 className={styles.sectionTitle}>Most Used Tags</h3>
@@ -98,8 +98,8 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
                     <div className={styles.tagName}>{tagName}</div>
                     <div className={styles.tagCount}>{count}</div>
                     <div className={styles.tagBar}>
-                      <div 
-                        className={styles.tagBarFill} 
+                      <div
+                        className={styles.tagBarFill}
                         style={{ width: `${(count / sortedTags[0][1]) * 100}%` }}
                       ></div>
                     </div>
@@ -108,7 +108,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
               </div>
             </div>
           )}
-          
+
           <div className={styles.infoSection}>
             <h3 className={styles.sectionTitle}>Export Format</h3>
             <p className={styles.infoText}>
@@ -121,7 +121,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
               <li>Formatted comments for Rekordbox in the format: "Energy X - Tag1, Tag2, Tag3"</li>
             </ul>
           </div>
-          
+
           <div className={styles.instructionsSection}>
             <h3 className={styles.sectionTitle}>Next Steps</h3>
             <ol className={styles.instructionsList}>
@@ -130,11 +130,11 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
               <li>Import your tracks into Rekordbox to see the updated metadata</li>
             </ol>
             <p className={styles.note}>
-              <strong>Note:</strong> To use this data, you'll need to run the separate integration script 
+              <strong>Note:</strong> To use this data, you'll need to run the separate integration script
               that will write this metadata to your music files before importing them into Rekordbox.
             </p>
           </div>
-          
+
           <div className={styles.exportActions}>
             <button className={styles.downloadButton} onClick={handleDownload}>
               Download Export File

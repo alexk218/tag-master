@@ -319,7 +319,7 @@ export function useTagData() {
     // Load tag data
     const loadTagData = () => {
         setIsLoading(true);
-        
+
         // Try loading from localStorage
         const localData = loadFromLocalStorage();
         if (localData && localData.categories && Array.isArray(localData.categories)) {
@@ -351,14 +351,14 @@ export function useTagData() {
         const jsonData = JSON.stringify(tagData, null, 2);
         const blob = new Blob([jsonData], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement("a");
         a.href = url;
         a.download = `tagmaster-backup-${new Date().toISOString().split("T")[0]}.json`;
         a.click();
-        
+
         URL.revokeObjectURL(url);
-        
+
         Spicetify.showNotification("Backup created and downloaded");
     };
 
@@ -428,7 +428,7 @@ export function useTagData() {
 
     // Rename a main category
     const renameCategory = (categoryId: string, newName: string) => {
-        const updatedCategories = tagData.categories?.map(category => 
+        const updatedCategories = tagData.categories?.map(category =>
             category.id === categoryId ? { ...category, name: newName } : category
         );
 
@@ -448,9 +448,9 @@ export function useTagData() {
             tags: []
         };
 
-        const updatedCategories = tagData.categories?.map(category => 
-            category.id === categoryId 
-                ? { ...category, subcategories: [...category.subcategories, newSubcategory] } 
+        const updatedCategories = tagData.categories?.map(category =>
+            category.id === categoryId
+                ? { ...category, subcategories: [...category.subcategories, newSubcategory] }
                 : category
         );
 
@@ -465,7 +465,7 @@ export function useTagData() {
         // Update categories
         const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
-            
+
             return {
                 ...category,
                 subcategories: category.subcategories.filter(sub => sub.id !== subcategoryId)
@@ -491,10 +491,10 @@ export function useTagData() {
     const renameSubcategory = (categoryId: string, subcategoryId: string, newName: string) => {
         const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
-            
+
             return {
                 ...category,
-                subcategories: category.subcategories?.map(sub => 
+                subcategories: category.subcategories?.map(sub =>
                     sub.id === subcategoryId ? { ...sub, name: newName } : sub
                 )
             };
@@ -517,12 +517,12 @@ export function useTagData() {
 
         const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
-            
+
             return {
                 ...category,
                 subcategories: category.subcategories?.map(sub => {
                     if (sub.id !== subcategoryId) return sub;
-                    
+
                     return {
                         ...sub,
                         tags: [...sub.tags, newTag]
@@ -542,12 +542,12 @@ export function useTagData() {
         // Update categories
         const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
-            
+
             return {
                 ...category,
                 subcategories: category.subcategories?.map(sub => {
                     if (sub.id !== subcategoryId) return sub;
-                    
+
                     return {
                         ...sub,
                         tags: sub.tags.filter(tag => tag.id !== tagId)
@@ -561,7 +561,7 @@ export function useTagData() {
         Object.keys(updatedTracks).forEach(uri => {
             updatedTracks[uri] = {
                 ...updatedTracks[uri],
-                tags: updatedTracks[uri].tags.filter(tag => 
+                tags: updatedTracks[uri].tags.filter(tag =>
                     !(tag.categoryId === categoryId && tag.subcategoryId === subcategoryId && tag.tagId === tagId)
                 )
             };
@@ -577,15 +577,15 @@ export function useTagData() {
     const renameTag = (categoryId: string, subcategoryId: string, tagId: string, newName: string) => {
         const updatedCategories = tagData.categories?.map(category => {
             if (category.id !== categoryId) return category;
-            
+
             return {
                 ...category,
                 subcategories: category.subcategories?.map(sub => {
                     if (sub.id !== subcategoryId) return sub;
-                    
+
                     return {
                         ...sub,
-                        tags: sub.tags.map(tag => 
+                        tags: sub.tags.map(tag =>
                             tag.id === tagId ? { ...tag, name: newName } : tag
                         )
                     };
@@ -704,10 +704,10 @@ export function useTagData() {
     const findTagName = (categoryId: string, subcategoryId: string, tagId: string): string => {
         const category = tagData.categories.find(c => c.id === categoryId);
         if (!category) return "";
-        
+
         const subcategory = category.subcategories.find(s => s.id === subcategoryId);
         if (!subcategory) return "";
-        
+
         const tag = subcategory.tags.find(t => t.id === tagId);
         return tag ? tag.name : "";
     };
@@ -725,13 +725,13 @@ export function useTagData() {
             const trackId = uri.split(':').pop() || uri;
 
             // Build tag names array for comments
-            const tagNames = data.tags.map(tag => 
+            const tagNames = data.tags.map(tag =>
                 findTagName(tag.categoryId, tag.subcategoryId, tag.tagId)
             ).filter(name => name !== "");
 
             // Format energy level for comment (only include if set)
             const energyComment = data.energy > 0 ? `Energy ${data.energy} - ` : '';
-            
+
             // Format for Rekordbox
             exportResult.tracks[trackId] = {
                 rating: data.rating,
@@ -742,7 +742,7 @@ export function useTagData() {
                     tagId: tag.tagId,
                     name: findTagName(tag.categoryId, tag.subcategoryId, tag.tagId)
                 })),
-                rekordbox_comment: tagNames.length > 0 
+                rekordbox_comment: tagNames.length > 0
                     ? `${energyComment}${tagNames.join(', ')}`
                     : energyComment.length > 0 ? energyComment.slice(0, -3) : '' // Remove trailing " - " if no tags
             };
@@ -755,13 +755,13 @@ export function useTagData() {
     const getTagInfo = (categoryId: string, subcategoryId: string, tagId: string) => {
         const category = tagData.categories.find(c => c.id === categoryId);
         if (!category) return null;
-        
+
         const subcategory = category.subcategories.find(s => s.id === subcategoryId);
         if (!subcategory) return null;
-        
+
         const tag = subcategory.tags.find(t => t.id === tagId);
         if (!tag) return null;
-        
+
         return {
             categoryName: category.name,
             subcategoryName: subcategory.name,
@@ -774,30 +774,30 @@ export function useTagData() {
         tagData,
         isLoading,
         lastSaved,
-        
+
         // Track tag management
         toggleTrackTag,
         setRating,
         setEnergy,
-        
+
         // Category management
         addCategory,
         removeCategory,
         renameCategory,
-        
+
         // Subcategory management
         addSubcategory,
         removeSubcategory,
         renameSubcategory,
-        
+
         // Tag management
         addTag,
         removeTag,
         renameTag,
-        
+
         // Helpers
         getTagInfo,
-        
+
         // Import/Export
         exportData,
         exportBackup,

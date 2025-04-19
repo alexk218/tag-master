@@ -10,19 +10,21 @@ interface TagSelectorProps {
   categories: Category[];
   trackTags: TrackTag[];
   onToggleTag: (categoryId: string, subcategoryId: string, tagId: string) => void;
+  onOpenTagManager: () => void; // Add this new prop
 }
 
 const TagSelector: React.FC<TagSelectorProps> = ({
   track,
   categories,
   trackTags,
-  onToggleTag
+  onToggleTag,
+  onOpenTagManager
 }) => {
   // Keep track of expanded categories and subcategories
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Toggle category expansion
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => {
@@ -35,7 +37,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
       return newSet;
     });
   };
-  
+
   // Toggle subcategory expansion
   const toggleSubcategory = (subcategoryId: string) => {
     setExpandedSubcategories(prev => {
@@ -48,19 +50,19 @@ const TagSelector: React.FC<TagSelectorProps> = ({
       return newSet;
     });
   };
-  
+
   // Check if a tag is applied to the track
   const isTagApplied = (categoryId: string, subcategoryId: string, tagId: string) => {
     return trackTags.some(
-      tag => tag.categoryId === categoryId && 
-             tag.subcategoryId === subcategoryId && 
-             tag.tagId === tagId
+      tag => tag.categoryId === categoryId &&
+        tag.subcategoryId === subcategoryId &&
+        tag.tagId === tagId
     );
   };
-  
+
   // Filter functionality
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Filter function for tags
   const filterTag = (tagName: string) => {
     if (!searchTerm) return true;
@@ -70,63 +72,75 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   // Auto-expand categories and subcategories when searching
   useEffect(() => {
     if (!searchTerm) return;
-    
+
     // Find categories and subcategories that contain matching tags
     const matchingCategories = new Set<string>();
     const matchingSubcategories = new Set<string>();
-    
+
     categories.forEach(category => {
       let categoryHasMatches = false;
-      
+
       category.subcategories.forEach(subcategory => {
-        const hasMatchingTags = subcategory.tags.some(tag => 
+        const hasMatchingTags = subcategory.tags.some(tag =>
           tag.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        
+
         if (hasMatchingTags) {
           matchingSubcategories.add(subcategory.id);
           categoryHasMatches = true;
         }
       });
-      
+
       if (categoryHasMatches) {
         matchingCategories.add(category.id);
       }
     });
-    
+
     // Expand matching categories and subcategories
     setExpandedCategories(matchingCategories);
     setExpandedSubcategories(matchingSubcategories);
   }, [searchTerm, categories]);
-  
+
   return (
     <div className={styles.container} ref={containerRef}>
       <div className={styles.header}>
         <h2 className={styles.title}>Add Tags</h2>
-        <div className={styles.searchBox}>
-          <input
-            type="text"
-            placeholder="Search tags..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={styles.searchInput}
-          />
+        <div className={styles.controls}>
+          <button
+            className={styles.manageButton}
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log("Manage Tags clicked from TagSelector");
+              onOpenTagManager();
+            }}
+          >
+            Manage Tags
+          </button>
+          <div className={styles.searchBox}>
+            <input
+              type="text"
+              placeholder="Search tags..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+            />
+          </div>
         </div>
       </div>
-      
+
       <div className={styles.categoryList}>
         {categories?.map(category => {
-          const hasMatchingTags = category.subcategories.some(subcategory => 
+          const hasMatchingTags = category.subcategories.some(subcategory =>
             subcategory.tags.some(tag => filterTag(tag.name))
           );
-          
+
           if (searchTerm && !hasMatchingTags) return null;
-          
+
           const isCategoryExpanded = expandedCategories.has(category.id);
-          
+
           return (
             <div key={category.id} className={styles.category}>
-              <div 
+              <div
                 className={styles.categoryHeader}
                 onClick={() => toggleCategory(category.id)}
               >
@@ -135,19 +149,19 @@ const TagSelector: React.FC<TagSelectorProps> = ({
                 </span>
                 <h3 className={styles.categoryTitle}>{category.name}</h3>
               </div>
-              
+
               {isCategoryExpanded && (
                 <div className={styles.subcategoryList}>
                   {category.subcategories?.map(subcategory => {
                     const hasMatchingSubcategoryTags = subcategory.tags.some(tag => filterTag(tag.name));
-                    
+
                     if (searchTerm && !hasMatchingSubcategoryTags) return null;
-                    
+
                     const isSubcategoryExpanded = expandedSubcategories.has(subcategory.id);
-                    
+
                     return (
                       <div key={subcategory.id} className={styles.subcategory}>
-                        <div 
+                        <div
                           className={styles.subcategoryHeader}
                           onClick={() => toggleSubcategory(subcategory.id)}
                         >
@@ -156,7 +170,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
                           </span>
                           <h4 className={styles.subcategoryTitle}>{subcategory.name}</h4>
                         </div>
-                        
+
                         {isSubcategoryExpanded && (
                           <div className={styles.tagGrid}>
                             {subcategory.tags
