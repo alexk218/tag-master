@@ -37,9 +37,32 @@ export interface TagDataStructure {
     };
 }
 
-// Generate a unique ID
-const generateId = (): string => {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+// Generate an ID from a name string
+const generateIdFromName = (name: string): string => {
+    // Convert to lowercase, replace spaces and special characters with hyphens
+    // then remove any leading or trailing hyphens
+    return name
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '') // Remove special characters
+        .replace(/[\s_]+/g, '-')  // Replace spaces and underscores with hyphens
+        .replace(/-+/g, '-')      // Replace multiple hyphens with single hyphen
+        .replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
+};
+
+// Check if ID already exists within a collection and make it unique if needed
+const ensureUniqueId = (id: string, existingIds: string[]): string => {
+    if (!existingIds.includes(id)) return id;
+
+    let counter = 1;
+    let newId = `${id}-${counter}`;
+
+    while (existingIds.includes(newId)) {
+        counter++;
+        newId = `${id}-${counter}`;
+    }
+
+    return newId;
 };
 
 // Default tag structure with 4 main categories
@@ -392,9 +415,16 @@ export function useTagData() {
 
     // Add a new main category
     const addCategory = (name: string) => {
+        // Get existing category IDs
+        const existingCategoryIds = tagData.categories.map(c => c.id);
+
+        // Generate ID and ensure it's unique
+        const baseId = generateIdFromName(name);
+        const uniqueId = ensureUniqueId(baseId, existingCategoryIds);
+
         const newCategory: Category = {
             name,
-            id: generateId(),
+            id: uniqueId,
             subcategories: []
         };
 
@@ -442,9 +472,20 @@ export function useTagData() {
 
     // Add a new subcategory to a main category
     const addSubcategory = (categoryId: string, name: string) => {
+        // Find the category first
+        const category = tagData.categories.find(c => c.id === categoryId);
+        if (!category) return;
+
+        // Get existing subcategory IDs in this category
+        const existingSubcategoryIds = category.subcategories.map(s => s.id);
+
+        // Generate ID and ensure it's unique
+        const baseId = generateIdFromName(name);
+        const uniqueId = ensureUniqueId(baseId, existingSubcategoryIds);
+
         const newSubcategory: Subcategory = {
             name,
-            id: generateId(),
+            id: uniqueId,
             tags: []
         };
 
@@ -510,9 +551,23 @@ export function useTagData() {
 
     // Add a new tag to a subcategory
     const addTag = (categoryId: string, subcategoryId: string, name: string) => {
+        // Find the subcategory first
+        const category = tagData.categories.find(c => c.id === categoryId);
+        if (!category) return;
+
+        const subcategory = category.subcategories.find(s => s.id === subcategoryId);
+        if (!subcategory) return;
+
+        // Get existing tag IDs in this subcategory
+        const existingTagIds = subcategory.tags.map(t => t.id);
+
+        // Generate ID and ensure it's unique
+        const baseId = generateIdFromName(name);
+        const uniqueId = ensureUniqueId(baseId, existingTagIds);
+
         const newTag: Tag = {
             name,
-            id: generateId()
+            id: uniqueId
         };
 
         const updatedCategories = tagData.categories?.map(category => {
