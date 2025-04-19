@@ -119,10 +119,15 @@ const App: React.FC = () => {
         // Skip invalid tracks
         if (!track) return;
 
+        // Skip tracks that have no meaningful data
+        if (track.rating === 0 && track.energy === 0 && (!track.tags || track.tags.length === 0)) {
+          return;
+        }
+
         // Create entry for this track
         result[uri] = {
           rating: track.rating || 0,
-          energy: track.energy || 5,
+          energy: track.energy || 0,  // Don't default to 5 if energy is 0
           tags: []
         };
 

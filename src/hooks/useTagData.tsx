@@ -722,6 +722,11 @@ export function useTagData() {
 
         // Format track data for export
         Object.entries(tagData.tracks).forEach(([uri, data]) => {
+            // Skip tracks that have no meaningful data
+            if (data.rating === 0 && data.energy === 0 && (!data.tags || data.tags.length === 0)) {
+                return;
+            }
+
             const trackId = uri.split(':').pop() || uri;
 
             // Build tag names array for comments
