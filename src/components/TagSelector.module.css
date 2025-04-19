@@ -2,9 +2,15 @@
   background: var(--spice-card);
   border-radius: 8px;
   padding: 16px;
-  max-height: 500px;
   display: flex;
   flex-direction: column;
+  /* Remove the fixed max-height constraint */
+  /* max-height: 500px; */
+  /* Set a min-height instead */
+  min-height: 300px;
+  max-height: 70vh; /* Use viewport height for maximum height */
+  /* Add overflow for the container itself */
+  overflow: auto;
 }
 
 .header {
@@ -12,6 +18,12 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  /* Make header sticky */
+  position: sticky;
+  top: 0;
+  background: var(--spice-card);
+  z-index: 10;
+  padding-bottom: 8px;
 }
 
 .title {
@@ -42,12 +54,13 @@
 }
 
 .categoryList {
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex: 1;
   padding-right: 8px;
+  /* Remove the overflow here, as we've added it to the container */
+  /* overflow-y: auto; */
 }
 
 .category {
@@ -91,8 +104,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 250px;
-  overflow-y: auto;
+  /* Remove the fixed height constraint */
+  /* max-height: 250px; */
+  /* Remove overflow, as we've added it to the container */
+  /* overflow-y: auto; */
 }
 
 .subcategory {
@@ -136,8 +151,10 @@
   gap: 8px;
   padding: 10px;
   background: var(--spice-main);
-  max-height: 200px;
-  overflow-y: auto;
+  /* Remove the fixed height constraint */
+  /* max-height: 200px; */
+  /* Remove overflow, as we've added it to the container */
+  /* overflow-y: auto; */
 }
 
 .tagButton {
