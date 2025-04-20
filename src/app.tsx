@@ -18,6 +18,10 @@ interface SpotifyTrack {
   duration_ms: number;
 }
 
+// Constants for localStorage keys
+const LOCK_STATE_KEY = "tagmaster:lockState";
+const LOCKED_TRACK_KEY = "tagmaster:lockedTrack";
+
 const App: React.FC = () => {
   // Get tag data management functions from our custom hook
   const {
@@ -53,6 +57,33 @@ const App: React.FC = () => {
   // State for UI
   const [showTagManager, setShowTagManager] = useState(false);
   const [showExport, setShowExport] = useState(false);
+
+  // Load saved lock state and locked track on initial render
+  useEffect(() => {
+    try {
+      const savedLockState = localStorage.getItem(LOCK_STATE_KEY);
+      const savedLockedTrack = localStorage.getItem(LOCKED_TRACK_KEY);
+      
+      if (savedLockState === 'true' && savedLockedTrack) {
+        setIsLocked(true);
+        setLockedTrack(JSON.parse(savedLockedTrack));
+        console.log("TagMaster: Restored locked state for track", JSON.parse(savedLockedTrack).name);
+      }
+    } catch (error) {
+      console.error("TagMaster: Error loading saved lock state:", error);
+    }
+  }, []);
+
+  // Save lock state and locked track whenever they change
+  useEffect(() => {
+    if (isLocked && lockedTrack) {
+      localStorage.setItem(LOCK_STATE_KEY, 'true');
+      localStorage.setItem(LOCKED_TRACK_KEY, JSON.stringify(lockedTrack));
+    } else {
+      localStorage.removeItem(LOCK_STATE_KEY);
+      localStorage.removeItem(LOCKED_TRACK_KEY);
+    }
+  }, [isLocked, lockedTrack]);
 
   // The active track is either the locked track (if we're locked) or the current playing track
   const activeTrack = isLocked && lockedTrack ? lockedTrack : currentTrack;
@@ -114,7 +145,6 @@ const App: React.FC = () => {
     };
   }, [isLocked]);
 
-  // NEW: Check for track URI in URL parameters
   // Check for track URI in URL parameters
   useEffect(() => {
     // Define the track URI checker function
@@ -179,6 +209,8 @@ const App: React.FC = () => {
             // Set as locked track and enable lock - IMPORTANT!
             setLockedTrack(trackInfo);
             setIsLocked(true);
+            
+            // The useEffect will handle saving to localStorage
 
             // Show notification
             Spicetify.showNotification(`TagMaster: Tagging "${trackInfo.name}"`);
@@ -189,6 +221,7 @@ const App: React.FC = () => {
         }
       } else {
         console.log("TagMaster: No track URI found in URL");
+        // Don't reset lock state here - we want to maintain it
       }
     };
 
@@ -214,15 +247,18 @@ const App: React.FC = () => {
         unlisten();
       }
     };
-  }, []);;
+  }, []);
 
   // Function to handle locking/unlocking the track
   const toggleLock = () => {
     if (isLocked) {
       // When unlocking, update the locked track to the current track
       setLockedTrack(currentTrack);
+      setIsLocked(false);
+    } else {
+      // When locking, use current locked track (which should be current track)
+      setIsLocked(true);
     }
-    setIsLocked(!isLocked);
   };
 
   // Function to handle a track selected from TracList for tagging
@@ -253,9 +289,8 @@ const App: React.FC = () => {
         // Lock to this track
         setLockedTrack(trackInfo);
         setIsLocked(true);
-
-        // Show notification to the user
-        Spicetify.showNotification(`TagMaster: Tagging "${trackInfo.name}"`);
+        
+        // This will trigger the useEffect that saves to localStorage
       }
     } catch (error) {
       console.error("Error loading track for tagging:", error);
@@ -354,7 +389,7 @@ const App: React.FC = () => {
                 onClick={toggleLock}
                 title={isLocked ? "Unlock to follow currently playing track" : "Lock to this track"}
               >
-                {isLocked ? "🔒 Locked" : "🔓 Unlocked"}
+                {isLocked ? "Unlock" : "Lock"}
               </button>
               {isLocked && currentTrack && currentTrack.uri !== activeTrack.uri && (
                 <button

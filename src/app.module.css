@@ -57,7 +57,7 @@
   cursor: not-allowed;
 }
 
-/* Track lock styles */
+/* Track lock styles - updated for new behavior */
 .trackLockControl {
   display: flex;
   align-items: center;
@@ -66,14 +66,25 @@
   position: relative; /* Make it appear above other elements */
 }
 
-.lockActive {
-  background-color: var(--spice-notification);
+/* When not locked (Lock button), make it blue/active */
+.actionButton:not(.lockActive) {
+  background-color: var(--spice-button-active);
   color: white;
 }
 
-.lockActive:hover {
-  background-color: var(--spice-notification);
+.actionButton:not(.lockActive):hover {
+  background-color: var(--spice-button-active);
   opacity: 0.9;
+}
+
+/* When locked (Unlock button), make it less prominent */
+.lockActive {
+  background-color: var(--spice-button-disabled);
+  color: var(--spice-text);
+}
+
+.lockActive:hover {
+  background-color: var(--spice-button);
 }
 
 /* Locked track info display */
