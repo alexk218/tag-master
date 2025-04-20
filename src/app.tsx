@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useEffect } from "react";
 import styles from "./app.module.css";
 // Import components that support hierarchical tags
 import TrackDetails from "./components/TrackDetails";
@@ -18,12 +18,7 @@ interface SpotifyTrack {
   duration_ms: number;
 }
 
-// Define the ref methods that will be exposed
-export interface AppRef {
-  handleTrackSelected: (track: SpotifyTrack) => void;
-}
-
-const App = forwardRef<AppRef, {}>((_, ref) => {
+const App: React.FC = () => {
   // Get tag data management functions from our custom hook
   const {
     tagData,
@@ -48,10 +43,10 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
 
   // State for current track
   const [currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null);
-  
+
   // State for the locked track (the one we're currently editing regardless of what's playing)
   const [lockedTrack, setLockedTrack] = useState<SpotifyTrack | null>(null);
-  
+
   // State to track whether we're locked to a specific track
   const [isLocked, setIsLocked] = useState(false);
 
@@ -61,14 +56,6 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
 
   // The active track is either the locked track (if we're locked) or the current playing track
   const activeTrack = isLocked && lockedTrack ? lockedTrack : currentTrack;
-
-  // Expose methods to parent via ref
-  useImperativeHandle(ref, () => ({
-    handleTrackSelected: (track: SpotifyTrack) => {
-      setLockedTrack(track);
-      setIsLocked(true);
-    }
-  }));
 
   // Listen for track changes
   useEffect(() => {
@@ -80,11 +67,11 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
       try {
         // Try to get the track data - different Spicetify versions might have different structures
         let trackData = null;
-        
+
         // First try 'track' property which is the most common
         if (Spicetify.Player.data.track) {
           trackData = Spicetify.Player.data.track;
-        } 
+        }
         // Then try 'item' property which might be present in some versions
         else if ((Spicetify.Player.data as any).item) {
           trackData = (Spicetify.Player.data as any).item;
@@ -103,9 +90,9 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
           album: trackData.album || { name: "Unknown Album" },
           duration_ms: typeof trackData.duration === 'number' ? trackData.duration : 0
         };
-        
+
         setCurrentTrack(newTrack);
-        
+
         // If we're not locked, also update the locked track to match the current track
         if (!isLocked) {
           setLockedTrack(newTrack);
@@ -127,6 +114,108 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
     };
   }, [isLocked]);
 
+  // NEW: Check for track URI in URL parameters
+  // Check for track URI in URL parameters
+  useEffect(() => {
+    // Define the track URI checker function
+    const checkForTrackUri = async () => {
+      // Get the current location and log it for debugging
+      const currentLocation = Spicetify.Platform.History.location || window.location;
+      console.log("TagMaster: Current location:", currentLocation);
+
+      // Try multiple ways to get the URI parameter
+      let trackUri = null;
+
+      // Try from window.location.search
+      const windowParams = new URLSearchParams(window.location.search);
+      if (windowParams.has('uri')) {
+        trackUri = windowParams.get('uri');
+        console.log("TagMaster: Found URI in window.location.search:", trackUri);
+      }
+
+      // Try from Spicetify.Platform.History.location if available
+      if (!trackUri && Spicetify.Platform.History.location) {
+        const historyParams = new URLSearchParams(Spicetify.Platform.History.location.search);
+        if (historyParams.has('uri')) {
+          trackUri = historyParams.get('uri');
+          console.log("TagMaster: Found URI in History location search:", trackUri);
+        }
+
+        // Also check state
+        if (!trackUri && Spicetify.Platform.History.location.state?.trackUri) {
+          trackUri = Spicetify.Platform.History.location.state.trackUri;
+          console.log("TagMaster: Found URI in History state:", trackUri);
+        }
+      }
+
+      if (trackUri) {
+        console.log("TagMaster: Processing track URI:", trackUri);
+
+        try {
+          // Extract the track ID from the URI
+          const trackId = trackUri.split(':').pop();
+
+          if (!trackId) {
+            throw new Error("Invalid track URI");
+          }
+
+          // Fetch track info using Spicetify's Cosmos API
+          const response = await Spicetify.CosmosAsync.get(
+            `https://api.spotify.com/v1/tracks/${trackId}`
+          );
+
+          if (response) {
+            // Format the track info
+            const trackInfo: SpotifyTrack = {
+              uri: trackUri,
+              name: response.name,
+              artists: response.artists.map((artist: any) => ({ name: artist.name })),
+              album: { name: response.album?.name || "Unknown Album" },
+              duration_ms: response.duration_ms
+            };
+
+            console.log("TagMaster: Setting locked track:", trackInfo.name);
+
+            // Set as locked track and enable lock - IMPORTANT!
+            setLockedTrack(trackInfo);
+            setIsLocked(true);
+
+            // Show notification
+            Spicetify.showNotification(`TagMaster: Tagging "${trackInfo.name}"`);
+          }
+        } catch (error) {
+          console.error("TagMaster: Error loading track from URI parameter:", error);
+          Spicetify.showNotification("Error loading track for tagging", true);
+        }
+      } else {
+        console.log("TagMaster: No track URI found in URL");
+      }
+    };
+
+    // Run the check immediately when component mounts
+    checkForTrackUri();
+
+    // Set up better history listener
+    let unlisten: (() => void) | null = null;
+
+    if (Spicetify.Platform && Spicetify.Platform.History) {
+      console.log("TagMaster: Setting up history listener");
+
+      unlisten = Spicetify.Platform.History.listen((location: any) => {
+        console.log("TagMaster: History changed:", location);
+        checkForTrackUri();
+      });
+    }
+
+    // Cleanup listener on unmount
+    return () => {
+      if (unlisten) {
+        console.log("TagMaster: Cleaning up history listener");
+        unlisten();
+      }
+    };
+  }, []);;
+
   // Function to handle locking/unlocking the track
   const toggleLock = () => {
     if (isLocked) {
@@ -141,16 +230,16 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
     try {
       // Extract the ID from the URI
       const trackId = uri.split(":").pop();
-      
+
       if (!trackId) {
         throw new Error("Invalid track URI");
       }
-      
+
       // Fetch track info from Spotify API
       const response = await Spicetify.CosmosAsync.get(
         `https://api.spotify.com/v1/tracks/${trackId}`
       );
-      
+
       if (response) {
         // Format the track info to our needed structure
         const trackInfo: SpotifyTrack = {
@@ -160,11 +249,11 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
           album: { name: response.album?.name || "Unknown Album" },
           duration_ms: response.duration_ms
         };
-        
+
         // Lock to this track
         setLockedTrack(trackInfo);
         setIsLocked(true);
-        
+
         // Show notification to the user
         Spicetify.showNotification(`TagMaster: Tagging "${trackInfo.name}"`);
       }
@@ -256,11 +345,11 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <h1 className={styles.title}>TagMaster</h1>
-          
+
           {/* Moved track lock control below the title */}
           {activeTrack && (
             <div className={styles.trackLockControl}>
-              <button 
+              <button
                 className={`${styles.actionButton} ${isLocked ? styles.lockActive : ''}`}
                 onClick={toggleLock}
                 title={isLocked ? "Unlock to follow currently playing track" : "Lock to this track"}
@@ -268,7 +357,7 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
                 {isLocked ? "🔒 Locked" : "🔓 Unlocked"}
               </button>
               {isLocked && currentTrack && currentTrack.uri !== activeTrack.uri && (
-                <button 
+                <button
                   className={styles.actionButton}
                   onClick={() => {
                     setLockedTrack(currentTrack);
@@ -281,7 +370,7 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
             </div>
           )}
         </div>
-        
+
         {/* Track info display when locked */}
         {isLocked && activeTrack && (
           <div className={styles.lockedTrackInfo}>
@@ -369,6 +458,6 @@ const App = forwardRef<AppRef, {}>((_, ref) => {
       )}
     </div>
   );
-});
+};
 
 export default App;
