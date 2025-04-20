@@ -545,9 +545,14 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 className={`${styles.energySlider} ${trackData.energy === 0 ? styles.energySliderUnset : ''}`}
                 onChange={(e) => onSetEnergy(parseInt(e.target.value))}
                 onClick={(e) => {
+                  const clickedValue = parseInt((e.target as HTMLInputElement).value);
                   // If energy is currently 0, set it when clicked
                   if (trackData.energy === 0) {
-                    onSetEnergy(parseInt((e.target as HTMLInputElement).value));
+                    onSetEnergy(clickedValue);
+                  } 
+                  // If clicking on the same value that's already set, clear it
+                  else if (trackData.energy === clickedValue) {
+                    onSetEnergy(0);
                   }
                 }}
               />

@@ -236,7 +236,8 @@
 
 .trackItemInfo {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 8px;
 }
 
@@ -252,16 +253,30 @@
   color: var(--spice-subtext);
 }
 
-.trackItemMeta {
+/* MODIFIED: The metadata section is now better structured to handle many tags */
+.trackItemMetaContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Top row with fixed-width elements and action buttons */
+.trackItemMetaTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trackItemFixedMeta {
   display: flex;
   align-items: center;
   font-size: 12px;
   color: var(--spice-subtext);
-  margin-bottom: 10px;
 }
 
 .trackItemRating {
   margin-right: 12px;
+  white-space: nowrap;
 }
 
 .miniStar {
@@ -280,19 +295,26 @@
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
-  margin-right: 12px;
   display: inline-block;
-}
-
-.trackItemTags {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.trackItemTag {
+/* Separate row for tags that can wrap */
+.trackItemTags {
+  font-size: 12px;
   color: var(--spice-subtext);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding-right: 8px; /* Give some space between tags and right edge */
+}
+
+.trackItemTag {
+  display: inline-flex;
+  background: var(--spice-card);
+  border-radius: 12px;
+  padding: 2px 8px;
+  max-width: 100%;
 }
 
 .noTags {
@@ -300,11 +322,17 @@
   font-style: italic;
 }
 
-/* New track action buttons */
+/* Action buttons stay at fixed position */
 .trackItemActions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.trackItemTextInfo {
+  display: flex;
+  flex-direction: column;
 }
 
 .actionButton {
