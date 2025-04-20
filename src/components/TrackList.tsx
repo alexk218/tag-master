@@ -38,6 +38,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
   const [energyMinFilter, setEnergyMinFilter] = useState<number | null>(null);
   const [energyMaxFilter, setEnergyMaxFilter] = useState<number | null>(null);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
+  const [isOrFilterMode, setIsOrFilterMode] = useState(false);
 
   // Fetch track info from Spotify on component mount and when tracks change
   useEffect(() => {
@@ -212,8 +213,15 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
     // Tag filters - track must have ALL selected tags
     const matchesTags =
       activeTagFilters.length === 0 ||
-      activeTagFilters.every(tag =>
-        trackData.tags.some(t => t.tag === tag)
+      (isOrFilterMode
+        // OR logic - track must have ANY of the selected tags
+        ? activeTagFilters.some(tag =>
+          trackData.tags.some(t => t.tag === tag)
+        )
+        // AND logic - track must have ALL of the selected tags
+        : activeTagFilters.every(tag =>
+          trackData.tags.some(t => t.tag === tag)
+        )
       );
 
     // Rating filter - Updated to check if track rating is in the ratingFilters array
@@ -274,12 +282,32 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
         </button>
 
         {activeFilterCount > 0 && (
-          <button
-            className={styles.clearFilters}
-            onClick={clearAllFilters}
-          >
-            Clear All
-          </button>
+          <>
+            <div className={styles.filterModeToggle}>
+              <span className={styles.filterModeLabel}>Match:</span>
+              <button
+                className={`${styles.filterModeButton} ${!isOrFilterMode ? styles.activeFilterMode : ''}`}
+                onClick={() => setIsOrFilterMode(false)}
+                title="Tracks must match ALL selected filters (AND logic)"
+              >
+                ALL
+              </button>
+              <button
+                className={`${styles.filterModeButton} ${isOrFilterMode ? styles.activeFilterMode : ''}`}
+                onClick={() => setIsOrFilterMode(true)}
+                title="Tracks must match ANY selected filter (OR logic)"
+              >
+                ANY
+              </button>
+            </div>
+
+            <button
+              className={styles.clearFilters}
+              onClick={clearAllFilters}
+            >
+              Clear All
+            </button>
+          </>
         )}
       </div>
 
