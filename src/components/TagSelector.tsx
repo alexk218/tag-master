@@ -14,7 +14,6 @@ interface TagSelectorProps {
 }
 
 const TagSelector: React.FC<TagSelectorProps> = ({
-  track,
   categories,
   trackTags,
   onToggleTag,

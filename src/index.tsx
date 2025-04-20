@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import ReactDOM from "react-dom/client";
 import App, { AppRef } from "./app";
 import { initializeContextMenu } from "./contextMenu";
@@ -16,6 +16,7 @@ const TagMaster = () => {
   const root = ReactDOM.createRoot(appContainer);
   
   // Create a ref that we can use to access the app component
+  // Fix: Explicitly define the type to avoid TypeScript error
   const appRef = React.createRef<AppRef>();
   
   // Render the app with the ref
@@ -30,9 +31,11 @@ const TagMaster = () => {
   setTimeout(() => {
     if (appRef.current) {
       console.log("TagMaster: Initializing context menu integration");
-      initializeContextMenu({
-        handleTrackSelected: appRef.current.handleTrackSelected
-      });
+      try {
+        initializeContextMenu(appRef.current);
+      } catch (error) {
+        console.error("TagMaster: Error initializing context menu:", error);
+      }
     } else {
       console.error("TagMaster: Failed to initialize context menu - App ref not available");
     }
@@ -43,21 +46,33 @@ const TagMaster = () => {
 export default async function main() {
   console.log("TagMaster: Starting initialization");
   
-  while (!Spicetify?.Platform) {
-    await new Promise(resolve => setTimeout(resolve, 100));
+  try {
+    // Wait for Spicetify to be available
+    while (!Spicetify?.Platform) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // Important - make sure required Spicetify components are available
+    if (!Spicetify.ContextMenu) {
+      console.error("TagMaster: Spicetify.ContextMenu is not available!");
+      Spicetify.showNotification("TagMaster: Context menu API not available", true);
+    }
+    
+    if (!Spicetify.CosmosAsync) {
+      console.error("TagMaster: Spicetify.CosmosAsync is not available!");
+      Spicetify.showNotification("TagMaster: API access not available", true);
+    }
+    
+    // Initialize our app when Spicetify is ready
+    TagMaster();
+    
+    // Show welcome message
+    console.log("TagMaster loaded. Right-click tracks to tag them.");
+    Spicetify.showNotification("TagMaster loaded! Right-click tracks to tag them.");
+  } catch (error) {
+    console.error("TagMaster: Error during initialization:", error);
+    Spicetify.showNotification("Error initializing TagMaster", true);
   }
-  
-  // Make sure ContextMenu is available
-  if (!Spicetify.ContextMenu) {
-    console.error("TagMaster: Spicetify.ContextMenu is not available!");
-    Spicetify.showNotification("TagMaster: Context menu API not available", true);
-  }
-  
-  // Initialize our app when Spicetify is ready
-  TagMaster();
-  
-  // Show welcome message
-  Spicetify.showNotification("TagMaster loaded! Right-click tracks to tag them.");
 }
 
 // This will be called when the app is unloaded

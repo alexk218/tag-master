@@ -8,37 +8,55 @@ let appReference: any = null;
  * @param app - Reference to the main App component
  */
 export function initializeContextMenu(app: any) {
-  // Store reference to the app
-  appReference = app;
-  
-  // Register context menu items for track contexts
-  registerTrackContextMenu();
+  try {
+    console.log("TagMaster: Initializing context menu with app reference", !!app);
+    
+    // Store reference to the app
+    appReference = app;
+    
+    if (!Spicetify.ContextMenu) {
+      console.error("TagMaster: Spicetify.ContextMenu not available!");
+      return;
+    }
+    
+    // Register context menu item for track contexts
+    registerTrackContextMenu();
+  } catch (error) {
+    console.error("TagMaster: Error initializing context menu:", error);
+  }
 }
 
 /**
  * Register context menu item for track contexts
  */
 function registerTrackContextMenu() {
-  // Create a new context menu item
-  const tagMasterMenuItem = new Spicetify.ContextMenu.Item(
-    "Tag with TagMaster",
-    handleTrackContextMenuClick,
-    shouldAddTrackMenuItem,
-    // Use a Spotify icon that's available - heart icon is a good fallback
-    "heart" 
-  );
-  
-  // Register the menu item
-  tagMasterMenuItem.register();
+  try {
+    // Create a new context menu item using Spicetify.ContextMenu.Item constructor
+    const menuItem = new Spicetify.ContextMenu.Item(
+      "Tag with TagMaster", // Label/name of the menu item
+      (uris) => handleTrackContextMenuClick(uris), // The function to call when item is clicked
+      (uris) => shouldAddTrackMenuItem(uris), // Function to determine when to show item
+      "heart" // Use an existing Spotify icon - the docs show it accepts a string directly
+    );
+    
+    // Register the menu item to add it to the context menu
+    menuItem.register();
+    
+    console.log("TagMaster: Context menu item registered successfully");
+  } catch (error) {
+    console.error("TagMaster: Error registering context menu item:", error);
+  }
 }
 
 /**
  * Determine if the menu item should be shown
  * Show only for track URIs
  */
-function shouldAddTrackMenuItem(uris: string[]) {
+function shouldAddTrackMenuItem(uris: string[]): boolean {
   // Return true if we have at least one track URI
-  return uris.some(uri => uri.startsWith("spotify:track:"));
+  const shouldAdd = uris.some(uri => uri.startsWith("spotify:track:"));
+  console.log("TagMaster: Should add menu item:", shouldAdd, uris);
+  return shouldAdd;
 }
 
 /**
@@ -46,7 +64,12 @@ function shouldAddTrackMenuItem(uris: string[]) {
  * @param uris - Array of Spotify URIs
  */
 async function handleTrackContextMenuClick(uris: string[]) {
-  if (!appReference || !uris.length) return;
+  console.log("TagMaster: Context menu item clicked for URIs:", uris);
+  
+  if (!appReference || !appReference.handleTrackSelected || !uris.length) {
+    console.error("TagMaster: App reference not available or no URIs provided");
+    return;
+  }
   
   try {
     // Take the first URI (in case multiple are selected)
@@ -72,7 +95,7 @@ async function handleTrackContextMenuClick(uris: string[]) {
       Spicetify.showNotification(`TagMaster: Tagging "${trackInfo.name}"`);
     }
   } catch (error) {
-    console.error("Error handling context menu click:", error);
+    console.error("TagMaster: Error handling context menu click:", error);
     Spicetify.showNotification("Error loading track for tagging", true);
   }
 }
@@ -98,7 +121,7 @@ async function fetchTrackInfo(uri: string) {
     
     return response;
   } catch (error) {
-    console.error("Error fetching track info:", error);
+    console.error("TagMaster: Error fetching track info:", error);
     throw error;
   }
 }
