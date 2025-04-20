@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import styles from "./app.module.css";
 // Import components that support hierarchical tags
 import TrackDetails from "./components/TrackDetails";
@@ -18,7 +18,12 @@ interface SpotifyTrack {
   duration_ms: number;
 }
 
-const App: React.FC = () => {
+// Define the ref methods that will be exposed
+export interface AppRef {
+  handleTrackSelected: (track: SpotifyTrack) => void;
+}
+
+const App = forwardRef<AppRef, {}>((_, ref) => {
   // Get tag data management functions from our custom hook
   const {
     tagData,
@@ -43,10 +48,27 @@ const App: React.FC = () => {
 
   // State for current track
   const [currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null);
+  
+  // State for the locked track (the one we're currently editing regardless of what's playing)
+  const [lockedTrack, setLockedTrack] = useState<SpotifyTrack | null>(null);
+  
+  // State to track whether we're locked to a specific track
+  const [isLocked, setIsLocked] = useState(false);
 
   // State for UI
   const [showTagManager, setShowTagManager] = useState(false);
   const [showExport, setShowExport] = useState(false);
+
+  // The active track is either the locked track (if we're locked) or the current playing track
+  const activeTrack = isLocked && lockedTrack ? lockedTrack : currentTrack;
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    handleTrackSelected: (track: SpotifyTrack) => {
+      setLockedTrack(track);
+      setIsLocked(true);
+    }
+  }));
 
   // Listen for track changes
   useEffect(() => {
@@ -55,23 +77,42 @@ const App: React.FC = () => {
       // Check if we have a valid player data
       if (!Spicetify?.Player?.data) return;
 
-      // The actual runtime structure might differ from type definitions
-      // We'll handle both possibilities
-      const item = Spicetify.Player.data.item || Spicetify.Player.data.track;
+      try {
+        // Try to get the track data - different Spicetify versions might have different structures
+        let trackData = null;
+        
+        // First try 'track' property which is the most common
+        if (Spicetify.Player.data.track) {
+          trackData = Spicetify.Player.data.track;
+        } 
+        // Then try 'item' property which might be present in some versions
+        else if ((Spicetify.Player.data as any).item) {
+          trackData = (Spicetify.Player.data as any).item;
+        }
 
-      if (!item) {
-        console.warn("Could not find track data in Spicetify.Player.data");
-        return;
+        if (!trackData) {
+          console.warn("Could not find track data in Spicetify.Player.data");
+          return;
+        }
+
+        // Map the data to our expected format
+        const newTrack: SpotifyTrack = {
+          uri: trackData.uri,
+          name: trackData.name || "Unknown Track",
+          artists: trackData.artists || [{ name: "Unknown Artist" }],
+          album: trackData.album || { name: "Unknown Album" },
+          duration_ms: typeof trackData.duration === 'number' ? trackData.duration : 0
+        };
+        
+        setCurrentTrack(newTrack);
+        
+        // If we're not locked, also update the locked track to match the current track
+        if (!isLocked) {
+          setLockedTrack(newTrack);
+        }
+      } catch (error) {
+        console.error("Error updating current track:", error);
       }
-
-      // Map the data to our expected format
-      setCurrentTrack({
-        uri: item.uri,
-        name: item.name || "Unknown Track",
-        artists: item.artists || [{ name: "Unknown Artist" }],
-        album: item.album || { name: "Unknown Album" },
-        duration_ms: typeof item.duration === 'number' ? item.duration : 0
-      });
     };
 
     // Set up event listener
@@ -84,7 +125,54 @@ const App: React.FC = () => {
     return () => {
       Spicetify.Player.removeEventListener("songchange", updateCurrentTrack);
     };
-  }, []);
+  }, [isLocked]);
+
+  // Function to handle locking/unlocking the track
+  const toggleLock = () => {
+    if (isLocked) {
+      // When unlocking, update the locked track to the current track
+      setLockedTrack(currentTrack);
+    }
+    setIsLocked(!isLocked);
+  };
+
+  // Function to handle a track selected from TracList for tagging
+  const handleTagTrack = async (uri: string) => {
+    try {
+      // Extract the ID from the URI
+      const trackId = uri.split(":").pop();
+      
+      if (!trackId) {
+        throw new Error("Invalid track URI");
+      }
+      
+      // Fetch track info from Spotify API
+      const response = await Spicetify.CosmosAsync.get(
+        `https://api.spotify.com/v1/tracks/${trackId}`
+      );
+      
+      if (response) {
+        // Format the track info to our needed structure
+        const trackInfo: SpotifyTrack = {
+          uri: uri,
+          name: response.name,
+          artists: response.artists.map((artist: any) => ({ name: artist.name })),
+          album: { name: response.album?.name || "Unknown Album" },
+          duration_ms: response.duration_ms
+        };
+        
+        // Lock to this track
+        setLockedTrack(trackInfo);
+        setIsLocked(true);
+        
+        // Show notification to the user
+        Spicetify.showNotification(`TagMaster: Tagging "${trackInfo.name}"`);
+      }
+    } catch (error) {
+      console.error("Error loading track for tagging:", error);
+      Spicetify.showNotification("Error loading track for tagging", true);
+    }
+  };
 
   const getLegacyFormatTracks = () => {
     const result: {
@@ -156,10 +244,6 @@ const App: React.FC = () => {
         });
       });
 
-      // Log the result for debugging
-      console.log("Formatted tracks for TrackList:", result);
-      console.log("Track count:", Object.keys(result).length);
-
       return result;
     } catch (error) {
       console.error("Error formatting track data:", error);
@@ -170,7 +254,40 @@ const App: React.FC = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>TagMaster</h1>
+        <div className={styles.titleArea}>
+          <h1 className={styles.title}>TagMaster</h1>
+          
+          {/* Moved track lock control below the title */}
+          {activeTrack && (
+            <div className={styles.trackLockControl}>
+              <button 
+                className={`${styles.actionButton} ${isLocked ? styles.lockActive : ''}`}
+                onClick={toggleLock}
+                title={isLocked ? "Unlock to follow currently playing track" : "Lock to this track"}
+              >
+                {isLocked ? "🔒 Locked" : "🔓 Unlocked"}
+              </button>
+              {isLocked && currentTrack && currentTrack.uri !== activeTrack.uri && (
+                <button 
+                  className={styles.actionButton}
+                  onClick={() => {
+                    setLockedTrack(currentTrack);
+                  }}
+                  title="Switch to currently playing track"
+                >
+                  Switch to current track
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Track info display when locked */}
+        {isLocked && activeTrack && (
+          <div className={styles.lockedTrackInfo}>
+            Currently tagging: <span className={styles.lockedTrackName}>{activeTrack.name}</span> by <span className={styles.lockedTrackArtist}>{activeTrack.artists.map(a => a.name).join(', ')}</span>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -187,31 +304,29 @@ const App: React.FC = () => {
           />
 
           <div className={styles.content}>
-            {/* Current track details and metadata editor */}
-            {currentTrack && (
-              <TrackDetails
-                track={currentTrack}
-                trackData={tagData.tracks[currentTrack.uri] || { rating: 0, energy: 5, tags: [] }}
-                categories={tagData.categories}
-                onSetRating={(rating) => setRating(currentTrack.uri, rating)}
-                onSetEnergy={(energy) => setEnergy(currentTrack.uri, energy)}
-                onRemoveTag={(categoryId, subcategoryId, tagId) =>
-                  toggleTrackTag(currentTrack.uri, categoryId, subcategoryId, tagId)
-                }
-              />
-            )}
+            {activeTrack && (
+              <>
+                <TrackDetails
+                  track={activeTrack}
+                  trackData={tagData.tracks[activeTrack.uri] || { rating: 0, energy: 0, tags: [] }}
+                  categories={tagData.categories}
+                  onSetRating={(rating) => setRating(activeTrack.uri, rating)}
+                  onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
+                  onRemoveTag={(categoryId, subcategoryId, tagId) =>
+                    toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
+                  }
+                />
 
-            {/* Hierarchical tag selector */}
-            {currentTrack && (
-              <TagSelector
-                track={currentTrack}
-                categories={tagData.categories}
-                trackTags={tagData.tracks[currentTrack.uri]?.tags || []}
-                onToggleTag={(categoryId, subcategoryId, tagId) =>
-                  toggleTrackTag(currentTrack.uri, categoryId, subcategoryId, tagId)
-                }
-                onOpenTagManager={() => setShowTagManager(true)}
-              />
+                <TagSelector
+                  track={activeTrack}
+                  categories={tagData.categories}
+                  trackTags={tagData.tracks[activeTrack.uri]?.tags || []}
+                  onToggleTag={(categoryId, subcategoryId, tagId) =>
+                    toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
+                  }
+                  onOpenTagManager={() => setShowTagManager(true)}
+                />
+              </>
             )}
 
             {/* List of tagged tracks */}
@@ -222,6 +337,7 @@ const App: React.FC = () => {
                   Spicetify.Player.playUri(uri);
                 }
               }}
+              onTagTrack={handleTagTrack}
             />
           </div>
 
@@ -253,6 +369,6 @@ const App: React.FC = () => {
       )}
     </div>
   );
-};
+});
 
 export default App;

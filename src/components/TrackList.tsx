@@ -25,15 +25,15 @@ interface SpotifyTrackInfo {
 interface TrackListProps {
   tracks: TracksObject;
   onSelectTrack: (uri: string) => void;
+  onTagTrack?: (uri: string) => void; // New prop for tagging tracks directly
 }
 
-const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
+const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack }) => {
   const [trackInfo, setTrackInfo] = useState<{[uri: string]: SpotifyTrackInfo}>({});
   const [searchTerm, setSearchTerm] = useState("");
   
   // Advanced filtering states
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
-  // Changed from single rating to array of ratings
   const [ratingFilters, setRatingFilters] = useState<number[]>([]);
   const [energyMinFilter, setEnergyMinFilter] = useState<number | null>(null);
   const [energyMaxFilter, setEnergyMaxFilter] = useState<number | null>(null);
@@ -360,7 +360,6 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
               <div 
                 key={uri} 
                 className={styles.trackItem}
-                onClick={() => onSelectTrack(uri)}
               >
                 <div className={styles.trackItemInfo}>
                   <span className={styles.trackItemTitle}>{info.name}</span>
@@ -393,6 +392,25 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack }) => {
                       : <span className={styles.noTags}>No tags</span>
                     }
                   </div>
+                </div>
+                <div className={styles.trackItemActions}>
+                  <button 
+                    className={styles.actionButton}
+                    onClick={() => onSelectTrack(uri)}
+                    title="Play this track"
+                  >
+                    Play
+                  </button>
+                  
+                  {onTagTrack && (
+                    <button 
+                      className={styles.actionButton}
+                      onClick={() => onTagTrack(uri)}
+                      title="Edit tags for this track"
+                    >
+                      Tag
+                    </button>
+                  )}
                 </div>
               </div>
             );

@@ -227,7 +227,6 @@
   padding: 12px;
   border-radius: 4px;
   background: var(--spice-main);
-  cursor: pointer;
   transition: background 0.2s ease;
 }
 
@@ -258,6 +257,7 @@
   align-items: center;
   font-size: 12px;
   color: var(--spice-subtext);
+  margin-bottom: 10px;
 }
 
 .trackItemRating {
@@ -298,4 +298,27 @@
 .noTags {
   color: var(--spice-button-disabled);
   font-style: italic;
+}
+
+/* New track action buttons */
+.trackItemActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.actionButton {
+  background: var(--spice-button);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.actionButton:hover {
+  background-color: var(--spice-button-active);
 }

@@ -10,11 +10,18 @@
 
 .header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--spice-button-disabled);
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .title {
@@ -48,6 +55,45 @@
 .actionButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Track lock styles */
+.trackLockControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 100; /* Ensure the button is clickable */
+  position: relative; /* Make it appear above other elements */
+}
+
+.lockActive {
+  background-color: var(--spice-notification);
+  color: white;
+}
+
+.lockActive:hover {
+  background-color: var(--spice-notification);
+  opacity: 0.9;
+}
+
+/* Locked track info display */
+.lockedTrackInfo {
+  font-size: 14px;
+  color: var(--spice-subtext);
+  margin-top: 4px;
+  background: var(--spice-card);
+  padding: 8px 12px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.lockedTrackName {
+  font-weight: 700;
+  color: var(--spice-text);
+}
+
+.lockedTrackArtist {
+  font-style: italic;
 }
 
 .content {
