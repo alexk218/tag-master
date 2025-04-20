@@ -306,7 +306,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px 8px;
-  padding-right: 8px; /* Give some space between tags and right edge */
+  padding-right: 8px;
+  /* Give some space between tags and right edge */
 }
 
 .trackItemTag {
@@ -315,6 +316,12 @@
   border-radius: 12px;
   padding: 2px 8px;
   max-width: 100%;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.trackItemTag:hover {
+  background: var(--spice-button);
 }
 
 .noTags {
@@ -349,4 +356,17 @@
 
 .actionButton:hover {
   background-color: var(--spice-button-active);
+}
+
+.activeTagFilter {
+  background: var(--spice-button-active);
+  /* Or any highlight color you prefer */
+  color: var(--spice-text);
+  font-weight: 600;
+  /* Make it a bit bolder */
+}
+
+/* Optional: add even more emphasis on hover for active tags */
+.activeTagFilter:hover {
+  background: var(--spice-notification);
 }

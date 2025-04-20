@@ -150,6 +150,20 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
     );
   };
 
+  const handleTagClick = (tag: string) => {
+    // Toggle the tag in filters
+    setActiveTagFilters(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag) // Remove if already in filters
+        : [...prev, tag]              // Add if not in filters
+    );
+
+    // If filter options are not visible and we're adding a filter, show them
+    if (!showFilterOptions && !activeTagFilters.includes(tag)) {
+      setShowFilterOptions(true);
+    }
+  };
+
   // Handle energy range filtering
   const handleEnergyMinChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value === "" ? null : parseInt(event.target.value);
@@ -413,34 +427,23 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
                         <div className={styles.trackItemEnergy}>{data.energy}</div>
                       )}
                     </div>
-
-                    {/* Action buttons on same line as rating/energy */}
-                    {/* <div className={styles.trackItemActions}>
-                      <button
-                        className={styles.actionButton}
-                        onClick={() => onSelectTrack(uri)}
-                        title="Play this track"
-                      >
-                        Play
-                      </button>
-
-                      {onTagTrack && (
-                        <button
-                          className={styles.actionButton}
-                          onClick={() => onTagTrack(uri)}
-                          title="Edit tags for this track"
-                        >
-                          Tag
-                        </button>
-                      )}
-                    </div> */}
                   </div>
 
                   {/* Bottom row just for tags that can wrap */}
                   {data.tags.length > 0 ? (
                     <div className={styles.trackItemTags}>
                       {data.tags.map(({ tag }, i) => (
-                        <span key={i} className={styles.trackItemTag}>
+                        <span
+                          key={i}
+                          className={`${styles.trackItemTag} ${activeTagFilters.includes(tag) ? styles.activeTagFilter : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent track item click
+                            handleTagClick(tag);
+                          }}
+                          title={activeTagFilters.includes(tag)
+                            ? `Remove "${tag}" filter`
+                            : `Filter by "${tag}"`}
+                        >
                           {tag}
                         </span>
                       ))}
