@@ -540,19 +540,18 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 type="range"
                 min="1"
                 max="10"
-                value={trackData.energy || 1}
-                className={styles.energySlider}
+                value={trackData.energy || 5}
+                data-is-set={trackData.energy > 0 ? "true" : "false"}
+                className={`${styles.energySlider} ${trackData.energy === 0 ? styles.energySliderUnset : ''}`}
                 onChange={(e) => onSetEnergy(parseInt(e.target.value))}
-                disabled={trackData.energy === 0}
+                onClick={(e) => {
+                  // If energy is currently 0, set it when clicked
+                  if (trackData.energy === 0) {
+                    onSetEnergy(parseInt((e.target as HTMLInputElement).value));
+                  }
+                }}
               />
-              {trackData.energy === 0 ? (
-                <button
-                  className={styles.setEnergyButton}
-                  onClick={() => onSetEnergy(5)}
-                >
-                  Set Energy
-                </button>
-              ) : (
+              {trackData.energy > 0 && (
                 <button
                   className={styles.clearButton}
                   onClick={handleRemoveEnergy}

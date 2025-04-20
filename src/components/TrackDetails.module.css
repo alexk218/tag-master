@@ -1,4 +1,8 @@
-.container {
+.ratingContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}.container {
   background: var(--spice-card);
   border-radius: 8px;
   padding: 16px;
@@ -228,11 +232,12 @@
   padding-top: 12px;
 }
 
-.ratingContainer,
 .energyContainer {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 8px;
+  height: 28px; /* Fixed height to prevent shifting */
 }
 
 .stars {
@@ -272,7 +277,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--spice-button-active);
+  background: var(--spice-notification);  /* Using the same color as the active stars */
   cursor: pointer;
 }
 
@@ -280,9 +285,20 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--spice-button-active);
+  background: var(--spice-notification);  /* Using the same color as the active stars */
   cursor: pointer;
   border: none;
+}
+
+/* Styles for when energy is not set */
+.energySliderUnset::-webkit-slider-thumb {
+  background: var(--spice-button-disabled);
+  border: 1px solid var(--spice-subtext);
+}
+
+.energySliderUnset::-moz-range-thumb {
+  background: var(--spice-button-disabled);
+  border: 1px solid var(--spice-subtext);
 }
 
 .energyValue {
