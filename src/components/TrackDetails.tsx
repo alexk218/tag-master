@@ -543,17 +543,16 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 value={trackData.energy || 5}
                 data-is-set={trackData.energy > 0 ? "true" : "false"}
                 className={`${styles.energySlider} ${trackData.energy === 0 ? styles.energySliderUnset : ''}`}
-                onChange={(e) => onSetEnergy(parseInt(e.target.value))}
-                onClick={(e) => {
-                  const clickedValue = parseInt((e.target as HTMLInputElement).value);
-                  // If energy is currently 0, set it when clicked
-                  if (trackData.energy === 0) {
-                    onSetEnergy(clickedValue);
-                  } 
-                  // If clicking on the same value that's already set, clear it
-                  else if (trackData.energy === clickedValue) {
-                    onSetEnergy(0);
+                onChange={(e) => {
+                  const newValue = parseInt(e.target.value);
+                  // Only update if the value is different or energy is not set
+                  if (newValue !== trackData.energy || trackData.energy === 0) {
+                    onSetEnergy(newValue);
                   }
+                }}
+                onDoubleClick={() => {
+                  // Clear on double click
+                  onSetEnergy(0);
                 }}
               />
               {trackData.energy > 0 && (
