@@ -212,8 +212,6 @@ const App: React.FC = () => {
             
             // The useEffect will handle saving to localStorage
 
-            // Show notification
-            Spicetify.showNotification(`TagMaster: Tagging "${trackInfo.name}"`);
           }
         } catch (error) {
           console.error("TagMaster: Error loading track from URI parameter:", error);

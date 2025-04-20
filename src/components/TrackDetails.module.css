@@ -18,7 +18,7 @@
   display: flex;
   flex-direction: row;
   gap: 16px;
-  align-items: center;
+  align-items: flex-start;
   flex: 1;
   min-width: 0; /* Allows proper text truncation */
 }
@@ -43,6 +43,20 @@
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   background-color: var(--spice-main);
+}
+
+.albumCoverClickable {
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s ease;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.albumCoverClickable:hover {
+  transform: scale(1.03);
 }
 
 .albumCover {
@@ -93,6 +107,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.trackTitle:hover {
+  color: var(--spice-button-active);
+  text-decoration: underline;
 }
 
 .trackArtist {
@@ -106,12 +127,86 @@
 
 .trackAlbum {
   font-size: 12px;
-  margin: 0;
+  margin: 0 0 8px 0;
   color: var(--spice-subtext);
   font-style: italic;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* New Track Metadata Styles */
+.trackMetadata {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.metadataLoading {
+  color: var(--spice-subtext);
+  font-style: italic;
+}
+
+.metadataGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 16px;
+  margin-bottom: 6px;
+}
+
+.metadataItem {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.metadataLabel {
+  color: var(--spice-subtext);
+  font-weight: 500;
+}
+
+.metadataValue {
+  color: var(--spice-text);
+}
+
+.contextLink {
+  cursor: pointer;
+  color: var(--spice-text);
+  transition: color 0.2s ease;
+}
+
+.contextLink:hover {
+  color: var(--spice-button-active);
+  text-decoration: underline;
+}
+
+.metadataContext {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metadataGenres {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.genreTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.genreTag {
+  background: var(--spice-button-disabled);
+  color: var(--spice-text);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .label {
