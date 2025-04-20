@@ -15,10 +15,23 @@
   align-items: center;
 }
 
+/* New container for title and count */
+.titleSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .title {
   font-size: 18px;
   margin: 0;
   font-weight: 700;
+}
+
+.trackCount {
+  font-size: 12px;
+  color: var(--spice-subtext);
+  margin-top: -2px;
 }
 
 .searchBox {
