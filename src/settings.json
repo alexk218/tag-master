@@ -1,6 +1,6 @@
 {
   "displayName": "TagMaster",
   "nameId": "tag-master",
-  "icon": "css/icon.svg",
-  "activeIcon": "css/icon.svg"
+  "icon": "assets/icon.svg",
+  "activeIcon": "assets/icon.svg"
 }
