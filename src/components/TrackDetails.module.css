@@ -3,287 +3,134 @@
   border-radius: 8px;
   padding: 16px;
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contentLayout {
+  display: flex;
+  gap: 32px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.trackInfoContainer {
+  display: flex;
   flex-direction: row;
-  gap: 24px;
-}
-
-.trackInfo {
+  gap: 16px;
+  align-items: center;
   flex: 1;
-  min-width: 200px;
+  min-width: 0; /* Allows proper text truncation */
 }
 
-.trackTitle {
-  font-size: 24px;
-  margin: 0 0 8px 0;
-  font-weight: 700;
-  color: var(--spice-text);
-}
-
-.trackArtist {
-  font-size: 16px;
-  margin: 0 0 4px 0;
-  color: var(--spice-subtext);
-}
-
-.trackAlbum {
-  font-size: 14px;
-  margin: 0;
-  color: var(--spice-subtext);
-  font-style: italic;
-}
-
-.metadata {
-  flex: 2;
+.controlsContainer {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1;
+  max-width: 400px;
 }
 
-.label {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  display: block;
-  color: var(--spice-text);
+.controlSection {
+  margin-bottom: 0;
 }
 
-.ratingSection,
-.energySection,
-.tagsSection {
-  margin-bottom: 16px;
+.albumCoverContainer {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  background-color: var(--spice-main);
 }
 
-.ratingContainer,
-.energyContainer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.stars {
-  display: flex;
-  gap: 4px;
-}
-
-.star {
-  background: transparent;
-  border: none;
-  color: var(--spice-button-disabled);
-  font-size: 24px;
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.2s ease;
-}
-
-.star:hover,
-.starActive {
-  color: var(--spice-notification);
-}
-
-.energySlider {
+.albumCover {
   width: 100%;
-  max-width: 300px;
-  height: 4px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: var(--spice-button-disabled);
-  border-radius: 2px;
-  outline: none;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.energySlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--spice-button-active);
-  cursor: pointer;
-}
-
-.energySlider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--spice-button-active);
-  cursor: pointer;
-  border: none;
-}
-
-.energyValue {
-  display: inline-block;
-  margin-left: 8px;
-  font-weight: 700;
-  color: var(--spice-notification);
-}
-
-.clearButton {
-  background: var(--spice-button-disabled);
-  color: var(--spice-text);
-  border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.clearButton:hover {
-  background: var(--spice-button);
-}
-
-.setEnergyButton {
-  background: var(--spice-button-active);
-  color: var(--spice-text);
-  border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.setEnergyButton:hover {
-  opacity: 0.9;
-}
-
-.noTags {
-  color: var(--spice-subtext);
-  font-style: italic;
-  margin: 0;
-}
-
-.tagCategories {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.tagCategory {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--spice-button-disabled);
-}
-
-.tagCategory:last-child {
-  border-bottom: none;
-}
-
-.categoryName {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--spice-text);
-}
-
-.tagSubcategory {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-left: 12px;
-}
-
-.subcategoryName {
-  font-size: 14px;
-  font-weight: 500;
-  margin: 0;
-  color: var(--spice-subtext);
-}
-
-.tagList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-left: 8px;
-}
-
-.tagItem {
-  display: flex;
-  align-items: center;
-  background: var(--spice-button);
-  border-radius: 16px;
-  padding: 4px 8px 4px 12px;
-  font-size: 12px;
-}
-
-.tagName {
-  color: var(--spice-text);
-  margin-right: 4px;
-}
-
-.removeTag {
-  background: transparent;
-  border: none;
-  color: var(--spice-subtext);
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 0 2px;
+.albumCoverPlaceholder {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s ease;
+  background-color: var(--spice-button-disabled);
 }
 
-.removeTag:hover {
-  color: var(--spice-text);
-}.container {
-  background: var(--spice-card);
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  flex-direction: row;
-  gap: 24px;
+.albumCoverIcon {
+  font-size: 32px;
+  color: var(--spice-subtext);
+}
+
+.albumCoverLoading {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--spice-subtext);
+  border-radius: 50%;
+  border-top-color: var(--spice-button-active);
+  animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .trackInfo {
   flex: 1;
-  min-width: 200px;
+  min-width: 0; /* Allows proper text truncation */
 }
 
 .trackTitle {
-  font-size: 24px;
-  margin: 0 0 8px 0;
+  font-size: 20px;
+  margin: 0 0 6px 0;
   font-weight: 700;
   color: var(--spice-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .trackArtist {
-  font-size: 16px;
+  font-size: 14px;
   margin: 0 0 4px 0;
   color: var(--spice-subtext);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .trackAlbum {
-  font-size: 14px;
+  font-size: 12px;
   margin: 0;
   color: var(--spice-subtext);
   font-style: italic;
-}
-
-.metadata {
-  flex: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .label {
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   display: block;
   color: var(--spice-text);
 }
 
 .ratingSection,
-.energySection,
+.energySection {
+  margin-bottom: 0;
+}
+
 .tagsSection {
-  margin-bottom: 16px;
+  margin-bottom: 0;
+  border-top: 1px solid var(--spice-button-disabled);
+  padding-top: 12px;
 }
 
 .ratingContainer,
@@ -315,7 +162,7 @@
 
 .energySlider {
   width: 100%;
-  max-width: 300px;
+  max-width: 250px;
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
@@ -388,40 +235,36 @@
 
 .tagCategories {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-height: 300px;
+  flex-wrap: wrap;
+  gap: 20px;
+  max-height: 150px;
   overflow-y: auto;
 }
 
 .tagCategory {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--spice-button-disabled);
-}
-
-.tagCategory:last-child {
-  border-bottom: none;
+  gap: 6px;
+  flex: 1 0 250px;
 }
 
 .categoryName {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   margin: 0;
   color: var(--spice-text);
+  white-space: nowrap;
 }
 
 .tagSubcategory {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-left: 12px;
+  gap: 4px;
+  margin-left: 8px;
 }
 
 .subcategoryName {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   margin: 0;
   color: var(--spice-subtext);
@@ -430,17 +273,17 @@
 .tagList {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-left: 8px;
+  gap: 6px;
+  margin-left: 6px;
 }
 
 .tagItem {
   display: flex;
   align-items: center;
   background: var(--spice-button);
-  border-radius: 16px;
-  padding: 4px 8px 4px 12px;
-  font-size: 12px;
+  border-radius: 12px;
+  padding: 2px 6px 2px 8px;
+  font-size: 11px;
 }
 
 .tagName {
@@ -452,7 +295,7 @@
   background: transparent;
   border: none;
   color: var(--spice-subtext);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   padding: 0 2px;
