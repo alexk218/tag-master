@@ -342,8 +342,9 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
         <div className={styles.titleSection}>
           <h2 className={styles.title}>Tagged Tracks</h2>
           <span className={styles.trackCount}>
-            {sortedTracks.length} / {Object.keys(tracks).length} tracks
-            {activeFilterCount > 0 && " (filtered)"}
+            {activeFilterCount > 0
+              ? `${sortedTracks.length}/${Object.keys(tracks).length} tracks`
+              : `${Object.keys(tracks).length} tracks`}
           </span>
         </div>
         <div className={styles.searchBox}>
