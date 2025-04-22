@@ -53,12 +53,14 @@
   cursor: not-allowed;
 }
 
-.dangerButton {
-  background-color: var(--spice-notification-error);
+.rekordboxButton {
+  background-color: var(--spice-notification);  /* Same blue as stars and energy slider */
+  color: white;
 }
 
-.dangerButton:hover {
-  opacity: 0.9;
+.rekordboxButton:hover {
+  background-color: var(--spice-notification);  /* Keep the same blue color */
+  opacity: 0.9;  /* Just reduce opacity slightly for visual feedback */
 }
 
 .info {

@@ -71,18 +71,16 @@ const DataManager: React.FC<DataManagerProps> = ({
 		reader.readAsText(file);
 	};
 
-	// Function to reset all data
-	const handleResetData = () => {
-		if (window.confirm("WARNING: This will delete all your tag data and reset to defaults. Continue?")) {
-			localStorage.removeItem("tagmaster:tagData");
-			window.location.reload();
-		}
-	};
-
 	return (
 		<div className={styles.container}>
 			<div className={styles.header}>
 				<h3 className={styles.title}>Data Management</h3>
+				<button
+					className={`${styles.actionButton} ${styles.rekordboxButton}`}
+					onClick={onExportRekordbox}
+				>
+					Export for Rekordbox
+				</button>
 			</div>
 
 			{lastSaved && (
@@ -107,24 +105,6 @@ const DataManager: React.FC<DataManagerProps> = ({
 					{isImporting ? "Importing..." : "Import Backup File"}
 				</button>
 
-				<button
-					className={`${styles.actionButton} ${styles.rekordboxButton}`}
-					onClick={(e) => {
-						e.stopPropagation();
-						console.log("Export for Rekordbox clicked from DataManager");
-						onExportRekordbox();
-					}}
-				>
-					Export for Rekordbox
-				</button>
-
-				<button
-					className={`${styles.actionButton} ${styles.dangerButton}`}
-					onClick={handleResetData}
-				>
-					Reset All Data
-				</button>
-
 				<input
 					ref={fileInputRef}
 					type="file"
@@ -137,7 +117,6 @@ const DataManager: React.FC<DataManagerProps> = ({
 			<div className={styles.info}>
 				<p>Backup your tag data regularly to prevent data loss. Your data is currently stored in the browser's localStorage.</p>
 				<p>Export a backup file to keep your tag data safe. You can import this file later to restore your data.</p>
-				<p>Use the Reset button if you want to completely start over with default tags.</p>
 			</div>
 		</div>
 	);
