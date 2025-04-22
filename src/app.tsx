@@ -64,7 +64,7 @@ const App: React.FC = () => {
     try {
       const savedLockState = localStorage.getItem(LOCK_STATE_KEY);
       const savedLockedTrack = localStorage.getItem(LOCKED_TRACK_KEY);
-      
+
       if (savedLockState === 'true' && savedLockedTrack) {
         setIsLocked(true);
         setLockedTrack(JSON.parse(savedLockedTrack));
@@ -135,7 +135,7 @@ const App: React.FC = () => {
             album: newTrack.album || { name: "Unknown Album" },
             duration_ms: typeof newTrack.duration_ms === 'number' ? newTrack.duration_ms : 0
           };
-          
+
           setLockedTrack(safeTrack);
         }
       } catch (error) {
@@ -196,7 +196,7 @@ const App: React.FC = () => {
           if (trackUri.startsWith('spotify:local:')) {
             // Use our dedicated parser to get better metadata
             const parsedFile = parseLocalFileUri(trackUri);
-            
+
             // Create a track object for local files
             const trackInfo: SpotifyTrack = {
               uri: trackUri,
@@ -205,15 +205,15 @@ const App: React.FC = () => {
               album: { name: parsedFile.album },
               duration_ms: 0
             };
-            
+
             // Lock to this track
             setLockedTrack(trackInfo);
             setIsLocked(true);
-            
+
             console.log("Set locked track to local file:", trackInfo);
             return;
           }
-          
+
           // Extract the track ID from the URI
           const trackId = trackUri.split(':').pop();
 
@@ -241,7 +241,7 @@ const App: React.FC = () => {
             // Set as locked track and enable lock - IMPORTANT!
             setLockedTrack(trackInfo);
             setIsLocked(true);
-            
+
             // The useEffect will handle saving to localStorage
 
           }
@@ -298,7 +298,7 @@ const App: React.FC = () => {
       if (uri.startsWith('spotify:local:')) {
         // Use our dedicated parser to get better metadata
         const parsedFile = parseLocalFileUri(uri);
-        
+
         // Create a track object for local files
         const trackInfo: SpotifyTrack = {
           uri: uri,
@@ -307,15 +307,15 @@ const App: React.FC = () => {
           album: { name: parsedFile.album },
           duration_ms: 0
         };
-        
+
         // Lock to this track
         setLockedTrack(trackInfo);
         setIsLocked(true);
-        
+
         console.log("Set locked track to local file:", trackInfo);
         return;
       }
-      
+
       // For Spotify tracks, extract the ID from the URI
       const trackId = uri.split(":").pop();
 
@@ -341,7 +341,7 @@ const App: React.FC = () => {
         // Lock to this track
         setLockedTrack(trackInfo);
         setIsLocked(true);
-        
+
         // This will trigger the useEffect that saves to localStorage
       }
     } catch (error) {
@@ -509,6 +509,22 @@ const App: React.FC = () => {
             <TrackList
               tracks={getLegacyFormatTracks()}
               onSelectTrack={(uri) => {
+                // Special handling for local files
+                if (uri.startsWith('spotify:local:')) {
+                  // For local files, we should navigate to the Local Files section 
+                  // instead of trying to play directly
+                  Spicetify.Platform.History.push('/collection/local-files');
+
+                  // Show a notification to guide the user
+                  Spicetify.showNotification(
+                    "Local files can only be played from the Local Files section",
+                    false,
+                    3000
+                  );
+                  return;
+                }
+
+                // For regular Spotify tracks, play as usual
                 if (Spicetify.Player && Spicetify.Player.playUri) {
                   Spicetify.Player.playUri(uri);
                 }

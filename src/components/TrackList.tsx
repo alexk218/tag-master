@@ -528,9 +528,9 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
                     <button
                       className={styles.actionButton}
                       onClick={() => onSelectTrack(uri)}
-                      title="Play this track"
+                      title={isLocalFile ? "Navigate to Local Files" : "Play this track"}
                     >
-                      Play
+                      {isLocalFile ? "Go to Local Files" : "Play"}
                     </button>
 
                     {onTagTrack && (
