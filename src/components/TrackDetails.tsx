@@ -47,7 +47,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
     sourceContext: null,
     genres: []
   });
-  
+
   // Track the context URI for navigation
   const [contextUri, setContextUri] = useState<string | null>(null);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
@@ -65,12 +65,12 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   // Format date to YYYY-MM-DD
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return '';
-    
+
     // Check if we only have a year
     if (dateStr.length === 4) {
       return dateStr;
     }
-    
+
     try {
       const date = new Date(dateStr);
       return date.toISOString().split('T')[0];
@@ -83,39 +83,39 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   useEffect(() => {
     const fetchTrackMetadata = async () => {
       setIsLoadingMetadata(true);
-      
+
       try {
         // Extract track ID from URI
         const trackId = track.uri.split(':').pop();
-        
+
         if (!trackId) {
           console.error("Invalid track URI:", track.uri);
           setIsLoadingMetadata(false);
           return;
         }
-        
+
         // Fetch track info
         const trackInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
-        
+
         // Fetch audio features for tempo (BPM)
         const audioFeatures = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/audio-features/${trackId}`);
-        
+
         // Try to get source context from Spicetify
         let sourceContext = null;
         try {
           if (Spicetify.Player && Spicetify.Player.data && Spicetify.Player.data.context) {
             const playerContextUri = Spicetify.Player.data.context.uri;
-            
+
             if (playerContextUri) {
               // Store the context URI for navigation
               setContextUri(playerContextUri);
-              
+
               // Parse the context URI
               const parts = playerContextUri.split(':');
               if (parts.length >= 3) {
                 const contextType = parts[1];
                 let contextName = '';
-                
+
                 // Special case for Liked Songs (collection)
                 if (contextType === 'collection' && parts.includes('tracks')) {
                   contextName = 'Liked Songs';
@@ -133,7 +133,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 } else if (contextType === 'user') {
                   contextName = 'Liked Songs'; // Default for user context is often Liked Songs
                 }
-                
+
                 // Simply use the context name without the type prefix
                 sourceContext = contextName;
               }
@@ -142,11 +142,11 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         } catch (e) {
           console.error("Error getting source context:", e);
         }
-        
+
         // Try to get artist genres
         const artistId = trackInfo.artists[0]?.id;
         let genres: string[] = [];
-        
+
         if (artistId) {
           try {
             const artistInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/artists/${artistId}`);
@@ -155,7 +155,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
             console.error("Error fetching artist info:", e);
           }
         }
-        
+
         setTrackMetadata({
           releaseDate: formatDate(trackInfo.album?.release_date || ''),
           trackLength: formatDuration(trackInfo.duration_ms || 0),
@@ -164,9 +164,19 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
           sourceContext,
           genres: genres.slice(0, 3) // Limit to top 3 genres
         });
-        
+
       } catch (error) {
         console.error("Error fetching track metadata:", error);
+
+        // Set minimal metadata for error cases
+        setTrackMetadata({
+          releaseDate: '',
+          trackLength: '',
+          bpm: null,
+          playCount: null,
+          sourceContext: null,
+          genres: []
+        });
       } finally {
         setIsLoadingMetadata(false);
       }
@@ -181,20 +191,29 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   useEffect(() => {
     const fetchAlbumCover = async () => {
       setIsLoadingCover(true);
-      
+
       try {
-        // Extract track ID from URI
+        // Check if this is a local file
+        if (track.uri.startsWith('spotify:local:')) {
+          // For local files, we don't have album art from Spotify
+          // Set a null album cover to show the placeholder
+          setAlbumCover(null);
+          setIsLoadingCover(false);
+          return;
+        }
+
+        // Extract track ID from URI for Spotify tracks
         const trackId = track.uri.split(':').pop();
-        
+
         if (!trackId) {
           console.error("Invalid track URI:", track.uri);
           setIsLoadingCover(false);
           return;
         }
-        
+
         // Fetch track info to get album ID and cover
         const trackInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
-        
+
         if (trackInfo && trackInfo.album && trackInfo.album.images && trackInfo.album.images.length > 0) {
           // Get medium size image (or the first available if medium doesn't exist)
           const image = trackInfo.album.images.find((img: any) => img.height === 300) || trackInfo.album.images[0];
@@ -213,7 +232,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
     if (track.uri) {
       fetchAlbumCover();
     }
-  }, [track.uri]);
+  }, [track.uri]);;
 
   // Helper function to find tag name by ids
   const findTagInfo = (categoryId: string, subcategoryId: string, tagId: string) => {
@@ -291,13 +310,20 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   const handleRemoveEnergy = () => {
     onSetEnergy(0);
   };
-  
+
   // Navigation functions
   const navigateToAlbum = () => {
     try {
+      // Check if this is a local file first
+      if (track.uri.startsWith('spotify:local:')) {
+        // For local files, try to navigate to Local Files section
+        Spicetify.Platform.History.push('/collection/local-files');
+        return;
+      }
+
       // Extract album URI from track data or try to build it
       let albumUri = '';
-      
+
       // Try to extract from track info if available
       if (Spicetify.Player && Spicetify.Player.data && Spicetify.Player.data.track && Spicetify.Player.data.track.album && Spicetify.Player.data.track.album.uri) {
         albumUri = Spicetify.Player.data.track.album.uri;
@@ -311,7 +337,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
               if (response && response.album && response.album.id) {
                 const albumId = response.album.id;
                 albumUri = `spotify:album:${albumId}`;
-                
+
                 // Navigate to album page
                 Spicetify.Platform.History.push(`/album/${albumId}`);
               }
@@ -323,7 +349,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
           return; // Exit early as we're using async approach
         }
       }
-      
+
       if (albumUri) {
         // Extract album ID from URI
         const albumId = albumUri.split(':').pop();
@@ -340,14 +366,14 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
       Spicetify.showNotification("Error navigating to album", true);
     }
   };
-  
+
   // Navigate to context (playlist, album, etc.)
   const navigateToContext = () => {
     if (!contextUri) {
       Spicetify.showNotification("No context available to navigate to", true);
       return;
     }
-    
+
     try {
       // Parse context URI
       const parts = contextUri.split(':');
@@ -355,10 +381,10 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         Spicetify.showNotification("Invalid context URI", true);
         return;
       }
-      
+
       const contextType = parts[1];
       const contextId = parts[2];
-      
+
       // Navigate based on context type
       switch (contextType) {
         case 'playlist':
@@ -399,7 +425,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         {/* Left side - Track info with album art */}
         <div className={styles.trackInfoContainer}>
           <div className={styles.albumCoverContainer}>
-            <div 
+            <div
               className={styles.albumCoverClickable}
               onClick={() => navigateToAlbum()}
               title="Go to album"
@@ -409,9 +435,9 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                   <div className={styles.albumCoverLoading}></div>
                 </div>
               ) : albumCover ? (
-                <img 
-                  src={albumCover} 
-                  alt={`${track.album.name} cover`} 
+                <img
+                  src={albumCover}
+                  alt={`${track.album.name} cover`}
                   className={styles.albumCover}
                 />
               ) : (
@@ -422,16 +448,17 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
             </div>
           </div>
           <div className={styles.trackInfo}>
-            <h2 
-              className={styles.trackTitle} 
+            <h2
+              className={styles.trackTitle}
               onClick={() => navigateToAlbum()}
-              title="Go to album"
+              title={track.uri.startsWith('spotify:local:') ? "Go to Local Files" : "Go to album"}
             >
               {track.name}
+              {track.uri.startsWith('spotify:local:') && <span style={{ fontSize: '0.8em', opacity: 0.7, marginLeft: '6px' }}>(Local)</span>}
             </h2>
             <p className={styles.trackArtist}>{artistNames}</p>
             <p className={styles.trackAlbum}>{track.album.name}</p>
-            
+
             {/* New Track Metadata Section */}
             <div className={styles.trackMetadata}>
               {isLoadingMetadata ? (
@@ -445,21 +472,21 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                         <span className={styles.metadataValue}>{trackMetadata.releaseDate}</span>
                       </div>
                     )}
-                    
+
                     {trackMetadata.trackLength && (
                       <div className={styles.metadataItem}>
                         <span className={styles.metadataLabel}>Length:</span>
                         <span className={styles.metadataValue}>{trackMetadata.trackLength}</span>
                       </div>
                     )}
-                    
+
                     {trackMetadata.bpm && (
                       <div className={styles.metadataItem}>
                         <span className={styles.metadataLabel}>BPM:</span>
                         <span className={styles.metadataValue}>{trackMetadata.bpm}</span>
                       </div>
                     )}
-                    
+
                     {trackMetadata.playCount && (
                       <div className={styles.metadataItem}>
                         <span className={styles.metadataLabel}>Plays:</span>
@@ -467,11 +494,11 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                       </div>
                     )}
                   </div>
-                  
+
                   {trackMetadata.sourceContext && (
                     <div className={styles.metadataContext}>
                       <span className={styles.metadataLabel}>Playing from:</span>{' '}
-                      <span 
+                      <span
                         className={`${styles.metadataValue} ${styles.contextLink}`}
                         onClick={() => navigateToContext()}
                         title="Go to source"
@@ -480,7 +507,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                       </span>
                     </div>
                   )}
-                  
+
                   {trackMetadata.genres.length > 0 && (
                     <div className={styles.metadataGenres}>
                       <span className={styles.metadataLabel}>Genres:</span>{' '}

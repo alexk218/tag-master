@@ -28,6 +28,22 @@ interface TrackListProps {
   onTagTrack?: (uri: string) => void; // New prop for tagging tracks directly
 }
 
+// Helper function to extract artist from local file URI
+const extractLocalFileArtist = (uri: string): string => {
+  try {
+    const parts = uri.split(':');
+    if (parts.length >= 5) {
+      // Format is typically spotify:local:artist:album:title:duration
+      // or spotify:local:::artist:title
+      const artist = decodeURIComponent(parts[parts.length - 2]);
+      return artist.replace(/\+/g, ' ').trim() || "Local Artist";
+    }
+  } catch (e) {
+    console.error("Error extracting artist from local URI:", e);
+  }
+  return "Local Artist";
+};
+
 const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack }) => {
   const [trackInfo, setTrackInfo] = useState<{ [uri: string]: SpotifyTrackInfo }>({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,6 +57,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
   const [isOrFilterMode, setIsOrFilterMode] = useState(false);
 
   // Fetch track info from Spotify on component mount and when tracks change
+  // Fetch track info from Spotify on component mount and when tracks change
   useEffect(() => {
     const fetchTrackInfo = async () => {
       const trackUris = Object.keys(tracks);
@@ -53,9 +70,72 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
 
       const newTrackInfo: { [uri: string]: SpotifyTrackInfo } = {};
 
-      // Process tracks in batches of 20
-      for (let i = 0; i < trackUris.length; i += 20) {
-        const batch = trackUris.slice(i, i + 20);
+      // Separate local files from Spotify tracks
+      const localFileUris: string[] = [];
+      const spotifyTrackUris: string[] = [];
+
+      trackUris.forEach(uri => {
+        if (uri.startsWith('spotify:local:')) {
+          localFileUris.push(uri);
+        } else if (uri.startsWith('spotify:track:')) {
+          spotifyTrackUris.push(uri);
+        }
+      });
+
+      console.log(`Found ${localFileUris.length} local files and ${spotifyTrackUris.length} Spotify tracks`);
+
+      // Handle local files first
+      localFileUris.forEach(uri => {
+        // Parse local file URI to extract metadata
+        // Format: spotify:local:::artist:title
+        // or spotify:local:artist:album:title:duration
+        try {
+          const parts = uri.split(':');
+          if (parts.length >= 5) {
+            // Extract artist and title from the URI
+            let artist = decodeURIComponent(parts[parts.length - 2]);
+            let title = decodeURIComponent(parts[parts.length - 1]);
+
+            // Clean up artist and title (remove file extensions, etc)
+            artist = artist.replace(/\+/g, ' ').trim();
+            title = title.replace(/\.[^/.]+$/, '').replace(/\+/g, ' ').trim();
+
+            // If we have a duration as last part, it might be in the title
+            if (!isNaN(Number(title))) {
+              title = "Unknown Track";
+            }
+
+            // If artist still has plus signs or looks like part of a path, clean it up
+            if (artist.includes('+') || artist.includes('/') || artist.includes('\\')) {
+              artist = "Local Artist";
+            }
+
+            newTrackInfo[uri] = {
+              name: title || "Unknown Track",
+              artists: artist || "Local Artist",
+              albumName: "Local File"
+            };
+          } else {
+            // Fallback for unknown format
+            newTrackInfo[uri] = {
+              name: "Local Track",
+              artists: "Local Artist",
+              albumName: "Local File"
+            };
+          }
+        } catch (error) {
+          console.error("Error parsing local file URI:", uri, error);
+          newTrackInfo[uri] = {
+            name: "Local Track",
+            artists: "Local Artist",
+            albumName: "Local File"
+          };
+        }
+      });
+
+      // Process Spotify tracks in batches of 20
+      for (let i = 0; i < spotifyTrackUris.length; i += 20) {
+        const batch = spotifyTrackUris.slice(i, i + 20);
         console.log(`Processing batch ${i / 20 + 1}, size ${batch.length}`);
 
         try {
@@ -107,7 +187,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
     } else {
       console.log("No tracks available to fetch info for");
     }
-  }, [tracks]);
+  }, [tracks]);;
 
   // Extract all unique tags from all tracks
   const allTags = new Set<string>();
@@ -196,14 +276,55 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
   };
 
   // Filter tracks based on all applied filters
+  // Filter tracks based on all applied filters
   const filteredTracks = Object.entries(tracks).filter(([uri, trackData]) => {
     const info = trackInfo[uri];
 
-    // Skip if we don't have info for this track yet
-    if (!info) {
+    // Skip if we don't have info for this track
+    // But KEEP local files even if we have no info yet
+    if (!info && !uri.startsWith('spotify:local:')) {
       return false;
     }
 
+    // If it's a local file that we don't have info for yet, keep it visible
+    // This ensures local files appear while metadata is still loading
+    if (!info && uri.startsWith('spotify:local:')) {
+      // Only apply tag/rating/energy filters since we can't search without metadata
+
+      // Tag filters
+      const matchesTags =
+        activeTagFilters.length === 0 ||
+        (isOrFilterMode
+          // OR logic - track must have ANY of the selected tags
+          ? activeTagFilters.some(tag =>
+            trackData.tags.some(t => t.tag === tag)
+          )
+          // AND logic - track must have ALL of the selected tags
+          : activeTagFilters.every(tag =>
+            trackData.tags.some(t => t.tag === tag)
+          )
+        );
+
+      // Rating filter
+      const matchesRating =
+        ratingFilters.length === 0 ||
+        (trackData.rating > 0 && ratingFilters.includes(trackData.rating));
+
+      // Energy range filter
+      const matchesEnergyMin =
+        energyMinFilter === null ||
+        trackData.energy >= energyMinFilter;
+
+      const matchesEnergyMax =
+        energyMaxFilter === null ||
+        trackData.energy <= energyMaxFilter;
+
+      // If search term is empty, then return based on other filters
+      // Otherwise, hide it since we can't search on local files without metadata yet
+      return searchTerm === "" && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax;
+    }
+
+    // For tracks with info (both Spotify and loaded local files)
     // Search term filter
     const matchesSearch =
       searchTerm === "" ||
@@ -241,6 +362,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
     return matchesSearch && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax;
   });
 
+
   // Sort filtered tracks by track name
   const sortedTracks = [...filteredTracks].sort((a, b) => {
     const infoA = trackInfo[a[0]];
@@ -269,7 +391,13 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
           </span>
         </div>
         <div className={styles.searchBox}>
-          {/* Search input stays the same */}
+          <input
+            type="text"
+            placeholder="Search tracks..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={styles.searchInput}
+          />
         </div>
       </div>
 
@@ -396,7 +524,18 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
         ) : (
           sortedTracks.map(([uri, data]) => {
             const info = trackInfo[uri];
-            if (!info) return null;
+            // Handle case when info isn't available yet (especially for local files)
+            const isLocalFile = uri.startsWith('spotify:local:');
+
+            // If no info and not a local file, skip this track
+            if (!info && !isLocalFile) return null;
+
+            // For local files without info yet, create temporary display info
+            const displayInfo = info || {
+              name: isLocalFile ? "Local File" : "Unknown Track",
+              artists: isLocalFile ? extractLocalFileArtist(uri) : "Unknown Artist",
+              albumName: "Local File"
+            };
 
             return (
               <div
@@ -407,8 +546,11 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
                 <div className={styles.trackItemInfo}>
                   {/* Track title and artist on left */}
                   <div className={styles.trackItemTextInfo}>
-                    <span className={styles.trackItemTitle}>{info.name}</span>
-                    <span className={styles.trackItemArtist}>{info.artists}</span>
+                    <span className={styles.trackItemTitle}>
+                      {displayInfo.name}
+                      {isLocalFile && !info && " (Local File)"}
+                    </span>
+                    <span className={styles.trackItemArtist}>{displayInfo.artists}</span>
                   </div>
 
                   {/* Action buttons now positioned at top right */}
