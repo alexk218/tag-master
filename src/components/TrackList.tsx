@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styles from "./TrackList.module.css";
+import { parseLocalFileUri } from "../utils/LocalFileParser";
 
 interface Tag {
   tag: string;
@@ -8,7 +9,7 @@ interface Tag {
 
 interface TrackData {
   rating: number; // 0 means no rating
-  energy: number; // 0 means no energy level
+  energy: number; // 0 means no energy rating
   tags: Tag[];
 }
 
@@ -28,22 +29,6 @@ interface TrackListProps {
   onTagTrack?: (uri: string) => void; // New prop for tagging tracks directly
 }
 
-// Helper function to extract artist from local file URI
-const extractLocalFileArtist = (uri: string): string => {
-  try {
-    const parts = uri.split(':');
-    if (parts.length >= 5) {
-      // Format is typically spotify:local:artist:album:title:duration
-      // or spotify:local:::artist:title
-      const artist = decodeURIComponent(parts[parts.length - 2]);
-      return artist.replace(/\+/g, ' ').trim() || "Local Artist";
-    }
-  } catch (e) {
-    console.error("Error extracting artist from local URI:", e);
-  }
-  return "Local Artist";
-};
-
 const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack }) => {
   const [trackInfo, setTrackInfo] = useState<{ [uri: string]: SpotifyTrackInfo }>({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,7 +41,6 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [isOrFilterMode, setIsOrFilterMode] = useState(false);
 
-  // Fetch track info from Spotify on component mount and when tracks change
   // Fetch track info from Spotify on component mount and when tracks change
   useEffect(() => {
     const fetchTrackInfo = async () => {
@@ -86,43 +70,17 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
 
       // Handle local files first
       localFileUris.forEach(uri => {
-        // Parse local file URI to extract metadata
-        // Format: spotify:local:::artist:title
-        // or spotify:local:artist:album:title:duration
         try {
-          const parts = uri.split(':');
-          if (parts.length >= 5) {
-            // Extract artist and title from the URI
-            let artist = decodeURIComponent(parts[parts.length - 2]);
-            let title = decodeURIComponent(parts[parts.length - 1]);
+          // Use our dedicated parser to extract meaningful metadata
+          const parsedLocalFile = parseLocalFileUri(uri);
 
-            // Clean up artist and title (remove file extensions, etc)
-            artist = artist.replace(/\+/g, ' ').trim();
-            title = title.replace(/\.[^/.]+$/, '').replace(/\+/g, ' ').trim();
+          newTrackInfo[uri] = {
+            name: parsedLocalFile.title,
+            artists: parsedLocalFile.artist,
+            albumName: parsedLocalFile.album
+          };
 
-            // If we have a duration as last part, it might be in the title
-            if (!isNaN(Number(title))) {
-              title = "Unknown Track";
-            }
-
-            // If artist still has plus signs or looks like part of a path, clean it up
-            if (artist.includes('+') || artist.includes('/') || artist.includes('\\')) {
-              artist = "Local Artist";
-            }
-
-            newTrackInfo[uri] = {
-              name: title || "Unknown Track",
-              artists: artist || "Local Artist",
-              albumName: "Local File"
-            };
-          } else {
-            // Fallback for unknown format
-            newTrackInfo[uri] = {
-              name: "Local Track",
-              artists: "Local Artist",
-              albumName: "Local File"
-            };
-          }
+          console.log(`Parsed local file: ${uri} -> ${parsedLocalFile.title} by ${parsedLocalFile.artist}`);
         } catch (error) {
           console.error("Error parsing local file URI:", uri, error);
           newTrackInfo[uri] = {
@@ -187,7 +145,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
     } else {
       console.log("No tracks available to fetch info for");
     }
-  }, [tracks]);;
+  }, [tracks]);
 
   // Extract all unique tags from all tracks
   const allTags = new Set<string>();
@@ -276,7 +234,6 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
   };
 
   // Filter tracks based on all applied filters
-  // Filter tracks based on all applied filters
   const filteredTracks = Object.entries(tracks).filter(([uri, trackData]) => {
     const info = trackInfo[uri];
 
@@ -361,7 +318,6 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
 
     return matchesSearch && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax;
   });
-
 
   // Sort filtered tracks by track name
   const sortedTracks = [...filteredTracks].sort((a, b) => {
@@ -531,11 +487,23 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
             if (!info && !isLocalFile) return null;
 
             // For local files without info yet, create temporary display info
-            const displayInfo = info || {
-              name: isLocalFile ? "Local File" : "Unknown Track",
-              artists: isLocalFile ? extractLocalFileArtist(uri) : "Unknown Artist",
-              albumName: "Local File"
-            };
+            let displayInfo;
+            if (!info && isLocalFile) {
+              // Use our parser to get better display information
+              const parsedLocalFile = parseLocalFileUri(uri);
+              displayInfo = {
+                name: parsedLocalFile.title,
+                artists: parsedLocalFile.artist,
+                albumName: parsedLocalFile.album
+              };
+            } else {
+              // Use info as is (for Spotify tracks or already parsed local files)
+              displayInfo = info || {
+                name: "Unknown Track",
+                artists: "Unknown Artist",
+                albumName: "Unknown Album"
+              };
+            }
 
             return (
               <div
@@ -548,9 +516,11 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
                   <div className={styles.trackItemTextInfo}>
                     <span className={styles.trackItemTitle}>
                       {displayInfo.name}
-                      {isLocalFile && !info && " (Local File)"}
+                      {isLocalFile && <span style={{ fontSize: '0.8em', marginLeft: '6px', opacity: 0.7 }}>(Local)</span>}
                     </span>
-                    <span className={styles.trackItemArtist}>{displayInfo.artists}</span>
+                    {displayInfo.artists && displayInfo.artists !== "Local Artist" && (
+                      <span className={styles.trackItemArtist}>{displayInfo.artists}</span>
+                    )}
                   </div>
 
                   {/* Action buttons now positioned at top right */}

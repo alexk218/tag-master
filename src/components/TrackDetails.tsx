@@ -53,7 +53,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
 
   // Get track artist names as a string
-  const artistNames = track.artists.map(artist => artist.name).join(", ");
+  const artistNames = track.artists ? track.artists.map(artist => artist.name).join(", ") : "";
 
   // Format milliseconds to mm:ss
   const formatDuration = (ms: number): string => {
@@ -85,7 +85,22 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
       setIsLoadingMetadata(true);
 
       try {
-        // Extract track ID from URI
+        // Check if this is a local file
+        if (track.uri.startsWith('spotify:local:')) {
+          // For local files, we set limited metadata
+          setTrackMetadata({
+            releaseDate: '',
+            trackLength: '',
+            bpm: null,
+            playCount: null,
+            sourceContext: 'Local Files',
+            genres: []
+          });
+          setIsLoadingMetadata(false);
+          return;
+        }
+
+        // Extract track ID from URI for Spotify tracks
         const trackId = track.uri.split(':').pop();
 
         if (!trackId) {
@@ -129,7 +144,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 } else if (contextType === 'album') {
                   contextName = track.album.name;
                 } else if (contextType === 'artist') {
-                  contextName = artistNames.split(',')[0];
+                  contextName = artistNames ? artistNames.split(',')[0] : 'Artist';
                 } else if (contextType === 'user') {
                   contextName = 'Liked Songs'; // Default for user context is often Liked Songs
                 }
@@ -144,10 +159,10 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         }
 
         // Try to get artist genres
-        const artistId = trackInfo.artists[0]?.id;
         let genres: string[] = [];
 
-        if (artistId) {
+        if (trackInfo?.artists && trackInfo.artists.length > 0 && trackInfo.artists[0]?.id) {
+          const artistId = trackInfo.artists[0].id;
           try {
             const artistInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/artists/${artistId}`);
             genres = artistInfo.genres || [];
@@ -232,7 +247,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
     if (track.uri) {
       fetchAlbumCover();
     }
-  }, [track.uri]);;
+  }, [track.uri]);
 
   // Helper function to find tag name by ids
   const findTagInfo = (categoryId: string, subcategoryId: string, tagId: string) => {
@@ -428,7 +443,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
             <div
               className={styles.albumCoverClickable}
               onClick={() => navigateToAlbum()}
-              title="Go to album"
+              title={track.uri?.startsWith('spotify:local:') ? "Go to Local Files" : "Go to album"}
             >
               {isLoadingCover ? (
                 <div className={styles.albumCoverPlaceholder}>
@@ -437,7 +452,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
               ) : albumCover ? (
                 <img
                   src={albumCover}
-                  alt={`${track.album.name} cover`}
+                  alt={`${track.album?.name || 'Album'} cover`}
                   className={styles.albumCover}
                 />
               ) : (
@@ -451,13 +466,13 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
             <h2
               className={styles.trackTitle}
               onClick={() => navigateToAlbum()}
-              title={track.uri.startsWith('spotify:local:') ? "Go to Local Files" : "Go to album"}
+              title={track.uri?.startsWith('spotify:local:') ? "Go to Local Files" : "Go to album"}
             >
-              {track.name}
-              {track.uri.startsWith('spotify:local:') && <span style={{ fontSize: '0.8em', opacity: 0.7, marginLeft: '6px' }}>(Local)</span>}
+              {track.name || "Unknown Track"}
+              {track.uri?.startsWith('spotify:local:') && <span style={{ fontSize: '0.8em', opacity: 0.7, marginLeft: '6px' }}>(Local)</span>}
             </h2>
             <p className={styles.trackArtist}>{artistNames}</p>
-            <p className={styles.trackAlbum}>{track.album.name}</p>
+            <p className={styles.trackAlbum}>{track.album?.name || "Unknown Album"}</p>
 
             {/* New Track Metadata Section */}
             <div className={styles.trackMetadata}>

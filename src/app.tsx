@@ -9,6 +9,7 @@ import ExportPanel from "./components/ExportPanel";
 import DataManager from "./components/DataManager";
 // Use the tag data hook for hierarchical structure
 import { useTagData } from "./hooks/useTagData";
+import { parseLocalFileUri } from "./utils/LocalFileParser";
 
 interface SpotifyTrack {
   uri: string;
@@ -63,7 +64,7 @@ const App: React.FC = () => {
     try {
       const savedLockState = localStorage.getItem(LOCK_STATE_KEY);
       const savedLockedTrack = localStorage.getItem(LOCKED_TRACK_KEY);
-
+      
       if (savedLockState === 'true' && savedLockedTrack) {
         setIsLocked(true);
         setLockedTrack(JSON.parse(savedLockedTrack));
@@ -124,9 +125,18 @@ const App: React.FC = () => {
 
         setCurrentTrack(newTrack);
 
-        // If we're not locked, also update the locked track to match the current track
+        // Check if we're not locked, also update the locked track to match the current track
         if (!isLocked) {
-          setLockedTrack(newTrack);
+          // Make sure to set both track objects to valid state
+          // Sometimes track might not have all required properties
+          const safeTrack = {
+            ...newTrack,
+            artists: newTrack.artists || [{ name: "Unknown Artist" }],
+            album: newTrack.album || { name: "Unknown Album" },
+            duration_ms: typeof newTrack.duration_ms === 'number' ? newTrack.duration_ms : 0
+          };
+          
+          setLockedTrack(safeTrack);
         }
       } catch (error) {
         console.error("Error updating current track:", error);
@@ -182,6 +192,28 @@ const App: React.FC = () => {
         console.log("TagMaster: Processing track URI:", trackUri);
 
         try {
+          // Check if this is a local file
+          if (trackUri.startsWith('spotify:local:')) {
+            // Use our dedicated parser to get better metadata
+            const parsedFile = parseLocalFileUri(trackUri);
+            
+            // Create a track object for local files
+            const trackInfo: SpotifyTrack = {
+              uri: trackUri,
+              name: parsedFile.title,
+              artists: [{ name: parsedFile.artist }],
+              album: { name: parsedFile.album },
+              duration_ms: 0
+            };
+            
+            // Lock to this track
+            setLockedTrack(trackInfo);
+            setIsLocked(true);
+            
+            console.log("Set locked track to local file:", trackInfo);
+            return;
+          }
+          
           // Extract the track ID from the URI
           const trackId = trackUri.split(':').pop();
 
@@ -209,7 +241,7 @@ const App: React.FC = () => {
             // Set as locked track and enable lock - IMPORTANT!
             setLockedTrack(trackInfo);
             setIsLocked(true);
-
+            
             // The useEffect will handle saving to localStorage
 
           }
@@ -259,42 +291,20 @@ const App: React.FC = () => {
     }
   };
 
-  // Function to handle a track selected from TrackList for tagging
+  // Function to handle a track selected from TracList for tagging
   const handleTagTrack = async (uri: string) => {
     try {
       // Check if this is a local file
       if (uri.startsWith('spotify:local:')) {
-        // Parse local file URI to extract metadata
-        let artistName = "Local Artist";
-        let trackName = "Local Track";
-        
-        try {
-          const parts = uri.split(':');
-          if (parts.length >= 5) {
-            // Format is typically spotify:local:artist:album:title:duration
-            // or spotify:local:::artist:title
-            const artist = decodeURIComponent(parts[parts.length - 2]);
-            const title = decodeURIComponent(parts[parts.length - 1]);
-            
-            // Clean up artist and title
-            artistName = artist.replace(/\+/g, ' ').trim() || "Local Artist";
-            trackName = title.replace(/\.[^/.]+$/, '').replace(/\+/g, ' ').trim() || "Local Track";
-            
-            // If we have a duration as last part, it might be in the title
-            if (!isNaN(Number(trackName))) {
-              trackName = "Local Track";
-            }
-          }
-        } catch (e) {
-          console.error("Error parsing local file URI:", e);
-        }
+        // Use our dedicated parser to get better metadata
+        const parsedFile = parseLocalFileUri(uri);
         
         // Create a track object for local files
         const trackInfo: SpotifyTrack = {
           uri: uri,
-          name: trackName,
-          artists: [{ name: artistName }],
-          album: { name: "Local File" },
+          name: parsedFile.title,
+          artists: [{ name: parsedFile.artist }],
+          album: { name: parsedFile.album },
           duration_ms: 0
         };
         
