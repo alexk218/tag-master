@@ -15,7 +15,7 @@
     background: var(--spice-card);
     border-radius: 8px;
     width: 90%;
-    max-width: 500px;
+    max-width: 600px;
     max-height: 90vh;
     overflow: hidden;
     display: flex;
@@ -55,122 +55,129 @@
     max-height: calc(90vh - 70px);
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
   }
   
-  .trackStats {
+  .messageSection {
     margin-bottom: 8px;
   }
   
-  .trackStats p {
-    margin: 0;
+  .message {
+    margin: 0 0 16px 0;
     color: var(--spice-text);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  
+  .instructionsToggle {
+    background: transparent;
+    color:  rgba(255, 255, 255, 0.1);
+    border: none;
+    padding: 4px 0;
     font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
   }
   
-  .warning {
-    color: var(--spice-notification-error);
-    font-style: italic;
+  .instructions {
+    margin-top: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
   }
   
-  .playlistForm {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .formField {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  
-  .label {
-    font-size: 14px;
+  .instructions h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
     font-weight: 600;
     color: var(--spice-text);
   }
   
-  .input, .textarea {
-    padding: 10px 12px;
-    border-radius: 4px;
-    background: var(--spice-main);
-    border: 1px solid var(--spice-button-disabled);
+  .instructions ol {
+    margin: 0;
+    padding-left: 24px;
+  }
+  
+  .instructions li {
+    margin-bottom: 8px;
     color: var(--spice-text);
     font-size: 14px;
-    width: 100%;
   }
   
-  .input:focus, .textarea:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.3);
+  .instructions li:last-child {
+    margin-bottom: 0;
   }
   
-  .textarea {
-    min-height: 80px;
-    resize: vertical;
-  }
-  
-  .checkboxLabel {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: var(--spice-text);
-    cursor: pointer;
-  }
-  
-  .checkbox {
-    width: 16px;
-    height: 16px;
-    accent-color: rgba(0, 0, 0, 0.2);
-  }
-  
-  .tagsSection {
+  .tracksSection {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-  }
-  
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  
-  .tag {
-    background: rgba(0, 0, 0, 0.2);
-    color: var(--spice-text);
-    border-radius: 16px;
-    padding: 4px 12px;
-    font-size: 12px;
-    display: inline-block;
-  }
-  
-  .formActions {
-    display: flex;
-    justify-content: flex-end;
     gap: 12px;
-    margin-top: 8px;
   }
   
-  .cancelButton {
+  .sectionTitle {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--spice-text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .copyButton {
     background: rgba(0, 0, 0, 0.3);
     color: var(--spice-text);
     border: none;
     border-radius: 4px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 600;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s ease;
   }
   
-  .cancelButton:hover {
+  .copyButton:hover {
     background: rgba(255, 255, 255, 0.1);
   }
   
-  .createButton {
+  .tracksList {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  
+  .trackItem {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  
+  .trackName {
+    font-weight: 600;
+    color: var(--spice-text);
+    font-size: 14px;
+  }
+  
+  .trackArtist {
+    color: var(--spice-subtext);
+    font-size: 14px;
+  }
+  
+  .actionButtons {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  
+  .actionButton {
     background: rgba(0, 0, 0, 0.3);
     color: white;
     border: none;
@@ -180,8 +187,25 @@
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    flex: 1;
   }
   
-  .createButton:hover {
+  .actionButton:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .closeAction {
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--spice-text);
+    border: none;
+    border-radius: 4px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .closeAction:hover {
     background: rgba(255, 255, 255, 0.1);
   }

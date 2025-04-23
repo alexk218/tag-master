@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
 import styles from "./app.module.css";
-// Import components that support hierarchical tags
 import TrackDetails from "./components/TrackDetails";
 import TagSelector from "./components/TagSelector";
 import TrackList from "./components/TrackList";
 import TagManager from "./components/TagManager";
 import ExportPanel from "./components/ExportPanel";
 import DataManager from "./components/DataManager";
-// Use the tag data hook for hierarchical structure
 import { useTagData } from "./hooks/useTagData";
 import { parseLocalFileUri } from "./utils/LocalFileParser";
+import LocalTracksModal from "./components/LocalTracksModal";
 
 interface SpotifyTrack {
   uri: string;
@@ -61,6 +60,14 @@ const App: React.FC = () => {
 
   // State for active tag filters
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
+
+  const [showLocalTracksModal, setShowLocalTracksModal] = useState(false);
+  const [localTracksForPlaylist, setLocalTracksForPlaylist] = useState<string[]>([]);
+  const [createdPlaylistInfo, setCreatedPlaylistInfo] = useState<{
+    name: string;
+    id: string | null;
+  }>({ name: "", id: null });
+
 
   // Load saved lock state and locked track on initial render
   useEffect(() => {
@@ -440,7 +447,7 @@ const App: React.FC = () => {
     playlistDescription: string,
     isPublic: boolean
   ) => {
-    if (!trackUris.length) {
+    if (trackUris.length === 0) {
       Spicetify.showNotification("No tracks to add to playlist", true);
       return;
     }
@@ -454,7 +461,41 @@ const App: React.FC = () => {
         throw new Error("Could not get user ID");
       }
 
-      // Create the playlist
+      // Split tracks into Spotify tracks and local tracks
+      const spotifyTrackUris = trackUris.filter(uri => !uri.startsWith('spotify:local:'));
+      const localTrackUris = trackUris.filter(uri => uri.startsWith('spotify:local:'));
+
+      // Check if we have any Spotify tracks to add
+      if (spotifyTrackUris.length === 0 && localTrackUris.length > 0) {
+        // If we only have local tracks, we need a different approach
+        // First create an empty playlist
+        const playlistResponse = await Spicetify.CosmosAsync.post(
+          `https://api.spotify.com/v1/users/${userId}/playlists`,
+          {
+            name: playlistName,
+            description: playlistDescription,
+            public: isPublic
+          }
+        );
+
+        const playlistId = playlistResponse.id;
+
+        if (!playlistId) {
+          throw new Error("Failed to create playlist");
+        }
+
+        // Store the created playlist info and local tracks for the modal
+        setCreatedPlaylistInfo({
+          name: playlistName,
+          id: playlistId
+        });
+        setLocalTracksForPlaylist(localTrackUris);
+        setShowLocalTracksModal(true);
+
+        return;
+      }
+
+      // Create the playlist if we have Spotify tracks
       const playlistResponse = await Spicetify.CosmosAsync.post(
         `https://api.spotify.com/v1/users/${userId}/playlists`,
         {
@@ -470,15 +511,6 @@ const App: React.FC = () => {
         throw new Error("Failed to create playlist");
       }
 
-      // Filter out local tracks, as they can't be added to playlists via API
-      const spotifyTrackUris = trackUris.filter(uri => !uri.startsWith('spotify:local:'));
-      const localTrackCount = trackUris.length - spotifyTrackUris.length;
-
-      if (spotifyTrackUris.length === 0) {
-        Spicetify.showNotification("Cannot add local tracks to playlist via API", true);
-        return;
-      }
-
       // Add tracks to the playlist in batches of 100 (API limit)
       for (let i = 0; i < spotifyTrackUris.length; i += 100) {
         const batch = spotifyTrackUris.slice(i, Math.min(i + 100, spotifyTrackUris.length));
@@ -490,18 +522,31 @@ const App: React.FC = () => {
         );
       }
 
-      // Show success notification with count of tracks added
-      let message = `Created playlist "${playlistName}" with ${spotifyTrackUris.length} tracks`;
+      // Show different notifications based on whether we have local tracks or not
+      if (localTrackUris.length > 0) {
+        // Store the created playlist info and local tracks for the modal
+        setCreatedPlaylistInfo({
+          name: playlistName,
+          id: playlistId
+        });
+        setLocalTracksForPlaylist(localTrackUris);
 
-      if (localTrackCount > 0) {
-        message += ` (${localTrackCount} local tracks couldn't be added)`;
+        // Show notification about playlist creation success
+        Spicetify.showNotification(
+          `Created playlist "${playlistName}" with ${spotifyTrackUris.length} tracks. Local tracks need to be added manually.`,
+          false,
+          4000
+        );
+
+        // Show the modal with instructions for adding local tracks
+        setShowLocalTracksModal(true);
+      } else {
+        // Simple success notification for Spotify-only playlists
+        Spicetify.showNotification(`Created playlist "${playlistName}" with ${spotifyTrackUris.length} tracks.`);
+
+        // Navigate to the newly created playlist
+        Spicetify.Platform.History.push(`/playlist/${playlistId}`);
       }
-
-      Spicetify.showNotification(message);
-
-      // Navigate to the newly created playlist
-      Spicetify.Platform.History.push(`/playlist/${playlistId}`);
-
     } catch (error) {
       console.error("Error creating playlist:", error);
       Spicetify.showNotification("Failed to create playlist. Please try again.", true);
@@ -586,7 +631,6 @@ const App: React.FC = () => {
                     }}
                   />
 
-
                   <TagSelector
                     track={activeTrack}
                     categories={tagData.categories}
@@ -667,6 +711,14 @@ const App: React.FC = () => {
           </>
         )
       }
+      {showLocalTracksModal && (
+        <LocalTracksModal
+          localTracks={localTracksForPlaylist}
+          playlistName={createdPlaylistInfo.name}
+          playlistId={createdPlaylistInfo.id}
+          onClose={() => setShowLocalTracksModal(false)}
+        />
+      )}
     </div >
   );
 };
