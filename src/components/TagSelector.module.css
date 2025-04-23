@@ -32,8 +32,8 @@
   width: 100%;
   padding: 8px 12px;
   border-radius: 4px;
-  border: 1px solid var(--spice-button-disabled);
-  background: var(--spice-main);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
   color: var(--spice-text);
   font-size: 14px;
 }
@@ -51,14 +51,14 @@
 }
 
 .category {
-  border: 1px solid var(--spice-button-disabled);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   overflow: hidden;
   width: 100%;
 }
 
 .categoryHeader {
-  background: var(--spice-button-disabled);
+  background: rgba(0, 0, 0, 0.2);
   padding: 10px 12px;
   cursor: pointer;
   display: flex;
@@ -67,7 +67,7 @@
 }
 
 .categoryHeader:hover {
-  background: var(--spice-button);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .categoryToggle {
@@ -96,7 +96,7 @@
 }
 
 .subcategory {
-  border: 1px solid var(--spice-button-disabled);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   overflow: hidden;
   width: 100%;
@@ -107,12 +107,12 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  background: var(--spice-card);
+  background: rgba(0, 0, 0, 0.2);
   transition: background 0.2s ease;
 }
 
 .subcategoryHeader:hover {
-  background: var(--spice-highlight);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .subcategoryToggle {
@@ -141,7 +141,7 @@
 }
 
 .tagButton {
-  background: var(--spice-button-disabled);
+  background: rgba(0, 0, 0, 0.2);
   color: var(--spice-text);
   border: none;
   border-radius: 4px;
@@ -156,12 +156,17 @@
 }
 
 .tagButton:hover {
-  background: var(--spice-button);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .tagApplied {
   background: var(--spice-button-active);
   font-weight: 600;
+}
+
+.tagApplied:hover {
+  background: var(--spice-button-active);
+  opacity: 0.9;
 }
 
 .controls {
@@ -171,7 +176,7 @@
 }
 
 .manageButton {
-  background-color: var(--spice-button);
+  background-color: rgba(0, 0, 0, 0.2);
   color: var(--spice-text);
   border: none;
   border-radius: 4px;
@@ -183,27 +188,26 @@
 }
 
 .manageButton:hover {
-  background-color: var(--spice-button-active);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .expandCollapseButton {
-  background-color: transparent;
+  background-color: rgba(0, 0, 0, 0.2);
   color: var(--spice-text);
-  border: 1px solid var(--spice-button-disabled);
+  border: none;
   border-radius: 4px;
   padding: 6px 12px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .expandCollapseButton:hover {
-  background-color: var(--spice-button-disabled);
-  border-color: var(--spice-button);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .expandCollapseIcon {
