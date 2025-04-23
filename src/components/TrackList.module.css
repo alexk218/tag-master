@@ -425,3 +425,20 @@
   background: #1e90ff;
   color: var(--spice-text);
 }
+
+.createPlaylistButton {
+  background: #1db954; /* Spotify green */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-left: auto;
+}
+
+.createPlaylistButton:hover {
+  background: #1ed760; /* Lighter Spotify green */
+}

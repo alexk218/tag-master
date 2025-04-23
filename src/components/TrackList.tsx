@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import styles from "./TrackList.module.css";
 import { parseLocalFileUri } from "../utils/LocalFileParser";
 import { Category } from "../hooks/useTagData";
+import CreatePlaylistModal from "./CreatePlaylistModal";
 
 interface Tag {
   tag: string;
@@ -26,12 +27,13 @@ interface SpotifyTrackInfo {
 
 interface TrackListProps {
   tracks: TracksObject;
-  categories: Category[]; // Add categories prop to access the hierarchy
+  categories: Category[];
   activeTagFilters: string[];
   onFilterByTag: (tag: string) => void;
   onSelectTrack: (uri: string) => void;
   onTagTrack?: (uri: string) => void;
   onClearTagFilters?: () => void;
+  onCreatePlaylist?: (trackUris: string[], name: string, description: string, isPublic: boolean) => void;
 }
 
 const TrackList: React.FC<TrackListProps> = ({
@@ -41,10 +43,12 @@ const TrackList: React.FC<TrackListProps> = ({
   onFilterByTag,
   onSelectTrack,
   onTagTrack,
-  onClearTagFilters
+  onClearTagFilters,
+  onCreatePlaylist
 }) => {
   const [trackInfo, setTrackInfo] = useState<{ [uri: string]: SpotifyTrackInfo }>({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
 
   // Advanced filtering states
   const [ratingFilters, setRatingFilters] = useState<number[]>([]);
@@ -58,7 +62,7 @@ const TrackList: React.FC<TrackListProps> = ({
   const sortTags = (tags: Tag[]) => {
     // First build an index of tag positions in the category hierarchy
     const tagPositions: { [tagName: string]: string } = {};
-    
+
     // Iterate through all categories to build position mapping
     categories.forEach((category, categoryIndex) => {
       category.subcategories.forEach((subcategory, subcategoryIndex) => {
@@ -69,7 +73,7 @@ const TrackList: React.FC<TrackListProps> = ({
         });
       });
     });
-    
+
     // Sort the tags by their positions
     return [...tags].sort((a, b) => {
       const posA = tagPositions[a.tag] || "999-999-999"; // Default to end if not found
@@ -362,6 +366,25 @@ const TrackList: React.FC<TrackListProps> = ({
     (ratingFilters.length > 0 ? 1 : 0) +
     (energyMinFilter !== null || energyMaxFilter !== null ? 1 : 0);
 
+  const handleCreatePlaylist = (name: string, description: string, isPublic: boolean) => {
+    if (sortedTracks.length === 0) return;
+
+    // Extract URIs from the filtered tracks
+    const trackUris = sortedTracks.map(([uri]) => uri);
+
+    if (onCreatePlaylist) {
+      onCreatePlaylist(trackUris, name, description, isPublic);
+    }
+
+    setShowCreatePlaylistModal(false);
+  };
+
+  const handleCreatePlaylistClick = () => {
+    if (sortedTracks.length > 0) {
+      setShowCreatePlaylistModal(true);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -419,6 +442,17 @@ const TrackList: React.FC<TrackListProps> = ({
               Clear All
             </button>
           </>
+        )}
+
+        {/* Add Create Playlist button - always visible when there are tracks */}
+        {sortedTracks.length > 0 && (
+          <button
+            className={styles.createPlaylistButton}
+            onClick={handleCreatePlaylistClick}
+            title={`Create playlist with ${sortedTracks.length} tracks`}
+          >
+            Create Playlist
+          </button>
         )}
       </div>
 
@@ -533,7 +567,7 @@ const TrackList: React.FC<TrackListProps> = ({
             }
 
             // Sort tags based on their position in the category hierarchy
-            const sortedTagsArray = categories && categories.length > 0 
+            const sortedTagsArray = categories && categories.length > 0
               ? sortTags(data.tags)
               : data.tags;
 
@@ -631,6 +665,15 @@ const TrackList: React.FC<TrackListProps> = ({
           })
         )}
       </div>
+      {showCreatePlaylistModal && (
+        <CreatePlaylistModal
+          trackCount={sortedTracks.length}
+          localTrackCount={sortedTracks.filter(([uri]) => uri.startsWith('spotify:local:')).length}
+          tags={activeTagFilters}
+          onClose={() => setShowCreatePlaylistModal(false)}
+          onCreatePlaylist={handleCreatePlaylist}
+        />
+      )}
     </div>
   );
 };

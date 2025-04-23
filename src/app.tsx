@@ -434,6 +434,80 @@ const App: React.FC = () => {
     }
   };
 
+  const createPlaylistFromFilters = async (
+    trackUris: string[],
+    playlistName: string,
+    playlistDescription: string,
+    isPublic: boolean
+  ) => {
+    if (!trackUris.length) {
+      Spicetify.showNotification("No tracks to add to playlist", true);
+      return;
+    }
+
+    try {
+      // First, get the current user's profile to get the user ID
+      const userProfile = await Spicetify.CosmosAsync.get('https://api.spotify.com/v1/me');
+      const userId = userProfile.id;
+
+      if (!userId) {
+        throw new Error("Could not get user ID");
+      }
+
+      // Create the playlist
+      const playlistResponse = await Spicetify.CosmosAsync.post(
+        `https://api.spotify.com/v1/users/${userId}/playlists`,
+        {
+          name: playlistName,
+          description: playlistDescription,
+          public: isPublic
+        }
+      );
+
+      const playlistId = playlistResponse.id;
+
+      if (!playlistId) {
+        throw new Error("Failed to create playlist");
+      }
+
+      // Filter out local tracks, as they can't be added to playlists via API
+      const spotifyTrackUris = trackUris.filter(uri => !uri.startsWith('spotify:local:'));
+      const localTrackCount = trackUris.length - spotifyTrackUris.length;
+
+      if (spotifyTrackUris.length === 0) {
+        Spicetify.showNotification("Cannot add local tracks to playlist via API", true);
+        return;
+      }
+
+      // Add tracks to the playlist in batches of 100 (API limit)
+      for (let i = 0; i < spotifyTrackUris.length; i += 100) {
+        const batch = spotifyTrackUris.slice(i, Math.min(i + 100, spotifyTrackUris.length));
+        await Spicetify.CosmosAsync.post(
+          `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
+          {
+            uris: batch
+          }
+        );
+      }
+
+      // Show success notification with count of tracks added
+      let message = `Created playlist "${playlistName}" with ${spotifyTrackUris.length} tracks`;
+
+      if (localTrackCount > 0) {
+        message += ` (${localTrackCount} local tracks couldn't be added)`;
+      }
+
+      Spicetify.showNotification(message);
+
+      // Navigate to the newly created playlist
+      Spicetify.Platform.History.push(`/playlist/${playlistId}`);
+
+    } catch (error) {
+      console.error("Error creating playlist:", error);
+      Spicetify.showNotification("Failed to create playlist. Please try again.", true);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -562,6 +636,7 @@ const App: React.FC = () => {
                   }
                 }}
                 onTagTrack={handleTagTrack}
+                onCreatePlaylist={createPlaylistFromFilters}
               />
             </div>
 
