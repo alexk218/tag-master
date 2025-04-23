@@ -23,6 +23,8 @@ interface SpotifyTrackInfo {
   name: string;
   artists: string;
   albumName: string;
+  albumUri?: string | null;
+  artistsData?: Array<{ name: string, uri: string }>;
 }
 
 interface TrackListProps {
@@ -164,7 +166,13 @@ const TrackList: React.FC<TrackListProps> = ({
                   newTrackInfo[uri] = {
                     name: track.name,
                     artists: track.artists.map((a: any) => a.name).join(", "),
-                    albumName: track.album?.name || "Unknown Album"
+                    albumName: track.album?.name || "Unknown Album",
+                    albumUri: track.album?.uri || null,
+                    // Store full artist data for navigation
+                    artistsData: track.artists.map((a: any) => ({
+                      name: a.name,
+                      uri: a.uri
+                    }))
                   };
                 }
               }
@@ -385,6 +393,80 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   };
 
+  const navigateToAlbum = (uri: string) => {
+    try {
+      // Check if this is a local file
+      if (uri.startsWith('spotify:local:')) {
+        // For local files, navigate to Local Files section
+        Spicetify.Platform.History.push('/collection/local-files');
+        return;
+      }
+
+      // For Spotify tracks, get the album URI
+      const info = trackInfo[uri];
+      if (!info) return;
+
+      // If we have a complete trackInfo object with album ID already, use it
+      if (info.albumUri) {
+        const albumId = info.albumUri.split(':').pop();
+        if (albumId) {
+          Spicetify.Platform.History.push(`/album/${albumId}`);
+          return;
+        }
+      }
+
+      // Otherwise extract track ID and get album info
+      const trackId = uri.split(':').pop();
+      if (!trackId) return;
+
+      // Fetch track to get album
+      Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`)
+        .then(response => {
+          if (response && response.album && response.album.id) {
+            Spicetify.Platform.History.push(`/album/${response.album.id}`);
+          }
+        })
+        .catch(error => {
+          console.error("Error navigating to album:", error);
+        });
+    } catch (error) {
+      console.error("Error navigating to album:", error);
+    }
+  };
+
+  // Navigate to artist
+  const navigateToArtist = (artistName: string, trackUri: string) => {
+    try {
+      // Check if this is a local file
+      if (trackUri.startsWith('spotify:local:')) {
+        // For local files, we can't navigate to an artist
+        Spicetify.showNotification("Cannot navigate to artist for local files", true);
+        return;
+      }
+
+      // Get track info to find artist
+      const info = trackInfo[trackUri];
+      if (!info) return;
+
+      // If the info has an artistsData array with URIs, use it
+      if (info.artistsData) {
+        const artist = info.artistsData.find(a => a.name === artistName);
+        if (artist && artist.uri) {
+          const artistId = artist.uri.split(':').pop();
+          if (artistId) {
+            Spicetify.Platform.History.push(`/artist/${artistId}`);
+            return;
+          }
+        }
+      }
+
+      // Fallback - search for the artist
+      Spicetify.Platform.History.push(`/search/${encodeURIComponent(artistName)}/artists`);
+    } catch (error) {
+      console.error("Error navigating to artist:", error);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -580,12 +662,36 @@ const TrackList: React.FC<TrackListProps> = ({
                 <div className={styles.trackItemInfo}>
                   {/* Track title and artist on left */}
                   <div className={styles.trackItemTextInfo}>
-                    <span className={styles.trackItemTitle}>
+                    <span
+                      className={`${styles.trackItemTitle} ${!isLocalFile ? styles.clickable : ''}`}
+                      onClick={() => !isLocalFile && navigateToAlbum(uri)}
+                      title={!isLocalFile ? "Go to album" : undefined}
+                    >
                       {displayInfo.name}
                       {isLocalFile && <span style={{ fontSize: '0.8em', marginLeft: '6px', opacity: 0.7 }}>(Local)</span>}
                     </span>
                     {displayInfo.artists && displayInfo.artists !== "Local Artist" && (
-                      <span className={styles.trackItemArtist}>{displayInfo.artists}</span>
+                      <span className={styles.trackItemArtist}>
+                        {/* Split artists and make each clickable */}
+                        {!isLocalFile
+                          ? displayInfo.artists.split(', ').map((artist, idx, arr) => (
+                            <React.Fragment key={idx}>
+                              <span
+                                className={styles.clickableArtist}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigateToArtist(artist, uri);
+                                }}
+                                title={`Go to ${artist}`}
+                              >
+                                {artist}
+                              </span>
+                              {idx < arr.length - 1 && ', '}
+                            </React.Fragment>
+                          ))
+                          : displayInfo.artists
+                        }
+                      </span>
                     )}
                   </div>
 

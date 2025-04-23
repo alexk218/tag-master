@@ -440,5 +440,25 @@
 }
 
 .createPlaylistButton:hover {
-  background:  rgba(255, 255, 255, 0.1); /* Lighter Spotify green */
+  background:  rgba(255, 255, 255, 0.1);
+}
+
+.clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.clickable:hover {
+  color: rgba(255, 255, 255, 0.977);
+  text-decoration: underline;
+}
+
+.clickableArtist {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.clickableArtist:hover {
+  color: rgba(255, 255, 255, 0.977);
+  text-decoration: underline;
 }
