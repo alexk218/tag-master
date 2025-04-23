@@ -40,7 +40,7 @@
 
 .searchInput:focus {
   outline: none;
-  border-color: var(--spice-button-active);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .categoryList {
@@ -141,9 +141,9 @@
 }
 
 .tagButton {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
   color: var(--spice-text);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 4px;
   padding: 6px 10px;
   font-size: 12px;
@@ -157,16 +157,18 @@
 
 .tagButton:hover {
   background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .tagApplied {
-  background: var(--spice-button-active);
+  background: #1e90ff;
+  border-color: #1e90ff;
   font-weight: 600;
 }
 
 .tagApplied:hover {
-  background: var(--spice-button-active);
-  opacity: 0.9;
+  background: #1a7ee0;
+  border-color: #1a7ee0;
 }
 
 .controls {

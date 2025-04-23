@@ -37,7 +37,7 @@
 }
 
 .actionButton {
-  background-color: var(--spice-button);
+  background-color: rgba(0, 0, 0, 0.2);
   color: var(--spice-text);
   border: none;
   border-radius: 4px;
@@ -49,7 +49,7 @@
 }
 
 .actionButton:hover {
-  background-color: var(--spice-button-active);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .actionButton:disabled {
@@ -62,29 +62,68 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  z-index: 100; /* Ensure the button is clickable */
-  position: relative; /* Make it appear above other elements */
+  z-index: 100;
+  /* Ensure the button is clickable */
+  position: relative;
+  /* Make it appear above other elements */
 }
 
-/* When not locked (Lock button), make it blue/active */
-.actionButton:not(.lockActive) {
-  background-color: var(--spice-button-active);
+/* Lock button styles */
+.lockButton {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 16px;
+}
+
+/* When not locked (Lock button), make it blue */
+.lockButton.unlocked {
+  background-color: #1e90ff;
   color: white;
 }
 
-.actionButton:not(.lockActive):hover {
-  background-color: var(--spice-button-active);
-  opacity: 0.9;
+.lockButton.unlocked:hover {
+  background-color: #1a7ee0;
 }
 
-/* When locked (Unlock button), make it less prominent */
-.lockActive {
-  background-color: var(--spice-button-disabled);
+/* When locked (Unlock button), make it dark grey with lighter hover */
+.lockButton.locked {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.lockButton.locked:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Switch track button */
+.switchTrackButton {
+  background-color: rgba(0, 0, 0, 0.3);
   color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-.lockActive:hover {
-  background-color: var(--spice-button);
+.switchTrackButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.buttonIcon {
+  font-size: 16px;
 }
 
 /* Locked track info display */

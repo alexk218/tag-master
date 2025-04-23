@@ -18,6 +18,8 @@ interface TrackDetailsProps {
   onSetRating: (rating: number) => void;
   onSetEnergy: (energy: number) => void;
   onRemoveTag: (categoryId: string, subcategoryId: string, tagId: string) => void;
+  activeTagFilters: string[];
+  onFilterByTag?: (tag: string) => void;
 }
 
 interface TrackMetadata {
@@ -33,9 +35,11 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   track,
   trackData,
   categories,
+  activeTagFilters,
   onSetRating,
   onSetEnergy,
-  onRemoveTag
+  onRemoveTag,
+  onFilterByTag
 }) => {
   const [albumCover, setAlbumCover] = useState<string | null>(null);
   const [isLoadingCover, setIsLoadingCover] = useState(true);
@@ -263,51 +267,66 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
     return {
       categoryName: category.name,
       subcategoryName: subcategory.name,
-      tagName: tag.name
+      tagName: tag.name,
+      tagOrder: subcategory.tags.findIndex(t => t.id === tagId) // Add order information
     };
   };
 
-  // Group tags by category for better organization in the UI
+  // Group tags by category and maintain original order
   const organizeTagsByCategory = () => {
     const groupedTags: {
       [categoryId: string]: {
         categoryName: string;
+        categoryOrder: number; // Add category order
         subcategories: {
           [subcategoryId: string]: {
             subcategoryName: string;
+            subcategoryOrder: number; // Add subcategory order
             tags: {
               id: string;
               name: string;
+              order: number; // Add tag order
             }[];
           };
         };
       };
     } = {};
 
+    // First get all categories with their order in the original array
+    categories.forEach((category, categoryIndex) => {
+      groupedTags[category.id] = {
+        categoryName: category.name,
+        categoryOrder: categoryIndex,
+        subcategories: {}
+      };
+
+      // Initialize subcategories with their order
+      category.subcategories.forEach((subcategory, subcategoryIndex) => {
+        groupedTags[category.id].subcategories[subcategory.id] = {
+          subcategoryName: subcategory.name,
+          subcategoryOrder: subcategoryIndex,
+          tags: []
+        };
+      });
+    });
+
+    // Now add the tags from the track data
     trackData.tags.forEach(tag => {
       const tagInfo = findTagInfo(tag.categoryId, tag.subcategoryId, tag.tagId);
       if (!tagInfo) return;
 
-      // Initialize category if not exists
-      if (!groupedTags[tag.categoryId]) {
-        groupedTags[tag.categoryId] = {
-          categoryName: tagInfo.categoryName,
-          subcategories: {}
-        };
-      }
-
-      // Initialize subcategory if not exists
-      if (!groupedTags[tag.categoryId].subcategories[tag.subcategoryId]) {
-        groupedTags[tag.categoryId].subcategories[tag.subcategoryId] = {
-          subcategoryName: tagInfo.subcategoryName,
-          tags: []
-        };
-      }
-
-      // Add tag
+      // Add the tag with its original order to ensure proper sorting later
       groupedTags[tag.categoryId].subcategories[tag.subcategoryId].tags.push({
         id: tag.tagId,
-        name: tagInfo.tagName
+        name: tagInfo.tagName,
+        order: tagInfo.tagOrder
+      });
+    });
+
+    // For each subcategory, sort tags by their original order
+    Object.values(groupedTags).forEach(category => {
+      Object.values(category.subcategories).forEach(subcategory => {
+        subcategory.tags.sort((a, b) => a.order - b.order);
       });
     });
 
@@ -324,6 +343,13 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   // Handle removing energy rating
   const handleRemoveEnergy = () => {
     onSetEnergy(0);
+  };
+
+  // Handle tag filtering
+  const handleTagFilter = (tagName: string) => {
+    if (onFilterByTag) {
+      onFilterByTag(tagName);
+    }
   };
 
   // Navigation functions
@@ -432,6 +458,34 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
       console.error("Error navigating to context:", error);
       Spicetify.showNotification("Error navigating to context", true);
     }
+  };
+
+  // Handle energy level input value
+  const handleEnergyInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    // Always update energy value, even if it's already 5
+    onSetEnergy(value);
+  };
+
+  // Handle click on the energy slider
+  const handleEnergyClick = (e: React.MouseEvent<HTMLInputElement>) => {
+    // Get the clicked position and calculate the corresponding energy value
+    const sliderElement = e.currentTarget;
+    const rect = sliderElement.getBoundingClientRect();
+    const clickPosition = e.clientX - rect.left;
+    const sliderWidth = rect.width;
+    const percentage = clickPosition / sliderWidth;
+
+    // Calculate energy value (1-10)
+    const min = 1;
+    const max = 10;
+    let energy = Math.round(min + percentage * (max - min));
+
+    // Ensure we stay within bounds
+    energy = Math.max(min, Math.min(max, energy));
+
+    // Always update, even if the value is the same as the current energy level
+    onSetEnergy(energy);
   };
 
   return (
@@ -585,13 +639,8 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 value={trackData.energy || 5}
                 data-is-set={trackData.energy > 0 ? "true" : "false"}
                 className={`${styles.energySlider} ${trackData.energy === 0 ? styles.energySliderUnset : ''}`}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value);
-                  // Only update if the value is different or energy is not set
-                  if (newValue !== trackData.energy || trackData.energy === 0) {
-                    onSetEnergy(newValue);
-                  }
-                }}
+                onChange={handleEnergyInput}
+                onClick={handleEnergyClick}
                 onDoubleClick={() => {
                   // Clear on double click
                   onSetEnergy(0);
@@ -613,37 +662,60 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
       {/* Tags section - Moved below in a horizontal layout */}
       <div className={styles.tagsSection}>
-        <label className={styles.label}>Applied Tags:</label>
         {Object.keys(groupedTags).length === 0 ? (
           <p className={styles.noTags}>No tags applied</p>
         ) : (
           <div className={styles.tagCategories}>
-            {Object.entries(groupedTags).map(([categoryId, category]) => (
-              <div key={categoryId} className={styles.tagCategory}>
-                <h4 className={styles.categoryName}>{category.categoryName}</h4>
+            {/* Filter categories to only show those with tags */}
+            {Object.entries(groupedTags)
+              .filter(([, categoryData]) => {
+                // Check if this category has any subcategories with tags
+                return Object.values(categoryData.subcategories).some(
+                  subcategory => subcategory.tags.length > 0
+                );
+              })
+              .sort(([, a], [, b]) => a.categoryOrder - b.categoryOrder)
+              .map(([categoryId, category]) => (
+                <div key={categoryId} className={styles.tagCategory}>
+                  <h4 className={styles.categoryName}>{category.categoryName}</h4>
 
-                {Object.entries(category.subcategories).map(([subcategoryId, subcategory]) => (
-                  <div key={subcategoryId} className={styles.tagSubcategory}>
-                    <h5 className={styles.subcategoryName}>{subcategory.subcategoryName}</h5>
+                  {/* Only show subcategories that have tags */}
+                  {Object.entries(category.subcategories)
+                    .filter(([, subcategory]) => subcategory.tags.length > 0)
+                    .sort(([, a], [, b]) => a.subcategoryOrder - b.subcategoryOrder)
+                    .map(([subcategoryId, subcategory]) => (
+                      <div key={subcategoryId} className={styles.tagSubcategory}>
+                        <h5 className={styles.subcategoryName}>{subcategory.subcategoryName}</h5>
 
-                    <div className={styles.tagList}>
-                      {subcategory.tags.map(tag => (
-                        <div key={tag.id} className={styles.tagItem}>
-                          <span className={styles.tagName}>{tag.name}</span>
-                          <button
-                            className={styles.removeTag}
-                            onClick={() => onRemoveTag(categoryId, subcategoryId, tag.id)}
-                            aria-label={`Remove tag ${tag.name}`}
-                          >
-                            ×
-                          </button>
+                        <div className={styles.tagList}>
+                          {subcategory.tags.map(tag => {
+                            const isFiltered = activeTagFilters.includes(tag.name);
+
+                            return (
+                              <div
+                                key={tag.id}
+                                className={`${styles.tagItem} ${isFiltered ? styles.tagFilter : ''}`}
+                                onClick={() => handleTagFilter(tag.name)}
+                              >
+                                <span className={styles.tagName}>{tag.name}</span>
+                                <button
+                                  className={styles.removeTag}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemoveTag(categoryId, subcategoryId, tag.id);
+                                  }}
+                                  aria-label={`Remove tag ${tag.name}`}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
+                      </div>
+                    ))}
+                </div>
+              ))}
           </div>
         )}
       </div>

@@ -33,7 +33,7 @@
 }
 
 .actionButton {
-  background-color: var(--spice-button);
+  background-color: rgba(0, 0, 0, 0.2);
   color: var(--spice-text);
   border: none;
   border-radius: 4px;
@@ -45,7 +45,7 @@
 }
 
 .actionButton:hover {
-  background-color: var(--spice-button-active);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .actionButton:disabled {
@@ -54,13 +54,13 @@
 }
 
 .rekordboxButton {
-  background-color: var(--spice-notification);  /* Same blue as stars and energy slider */
+  background-color: #1e90ff;  /* Dodger blue, consistent with other blue elements */
   color: white;
 }
 
 .rekordboxButton:hover {
-  background-color: var(--spice-notification);  /* Keep the same blue color */
-  opacity: 0.9;  /* Just reduce opacity slightly for visual feedback */
+  background-color: #1a7ee0;  /* Slightly darker blue on hover */
+  opacity: 0.95;
 }
 
 .info {

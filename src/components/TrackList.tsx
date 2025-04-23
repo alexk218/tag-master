@@ -25,16 +25,25 @@ interface SpotifyTrackInfo {
 
 interface TrackListProps {
   tracks: TracksObject;
+  activeTagFilters: string[];
+  onFilterByTag: (tag: string) => void;
   onSelectTrack: (uri: string) => void;
-  onTagTrack?: (uri: string) => void; // New prop for tagging tracks directly
+  onTagTrack?: (uri: string) => void;
+  onClearTagFilters?: () => void;
 }
 
-const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack }) => {
+const TrackList: React.FC<TrackListProps> = ({
+  tracks,
+  activeTagFilters,
+  onFilterByTag,
+  onSelectTrack,
+  onTagTrack,
+  onClearTagFilters
+}) => {
   const [trackInfo, setTrackInfo] = useState<{ [uri: string]: SpotifyTrackInfo }>({});
   const [searchTerm, setSearchTerm] = useState("");
 
   // Advanced filtering states
-  const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
   const [ratingFilters, setRatingFilters] = useState<number[]>([]);
   const [energyMinFilter, setEnergyMinFilter] = useState<number | null>(null);
   const [energyMaxFilter, setEnergyMaxFilter] = useState<number | null>(null);
@@ -173,11 +182,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
 
   // Toggle a tag filter
   const toggleTagFilter = (tag: string) => {
-    setActiveTagFilters(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
+    onFilterByTag(tag);
   };
 
   // Toggle a rating filter - now adds/removes from array
@@ -190,18 +195,22 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
   };
 
   const handleTagClick = (tag: string) => {
-    // Toggle the tag in filters
-    setActiveTagFilters(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag) // Remove if already in filters
-        : [...prev, tag]              // Add if not in filters
-    );
-
-    // If filter options are not visible and we're adding a filter, show them
-    if (!showFilterOptions && !activeTagFilters.includes(tag)) {
-      setShowFilterOptions(true);
-    }
+    // Call the parent handler to toggle the filter
+    onFilterByTag(tag);
   };
+  // const handleTagClick = (tag: string) => {
+  //   // Toggle the tag in filters
+  //   setActiveTagFilters(prev =>
+  //     prev.includes(tag)
+  //       ? prev.filter(t => t !== tag) // Remove if already in filters
+  //       : [...prev, tag]              // Add if not in filters
+  //   );
+
+  //   // If filter options are not visible and we're adding a filter, show them
+  //   if (!showFilterOptions && !activeTagFilters.includes(tag)) {
+  //     setShowFilterOptions(true);
+  //   }
+  // };
 
   // Handle energy range filtering
   const handleEnergyMinChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -227,7 +236,9 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
   // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm("");
-    setActiveTagFilters([]);
+    if (onClearTagFilters) {
+      onClearTagFilters();
+    }
     setRatingFilters([]);
     setEnergyMinFilter(null);
     setEnergyMaxFilter(null);
@@ -360,7 +371,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onSelectTrack, onTagTrack
 
       <div className={styles.filterControls}>
         <button
-          className={styles.filterToggle}
+          className={`${styles.filterToggle} ${showFilterOptions ? styles.filterToggleActive : ''}`}
           onClick={() => setShowFilterOptions(!showFilterOptions)}
         >
           Filters {activeFilterCount > 0 && <span className={styles.filterBadge}>{activeFilterCount}</span>}

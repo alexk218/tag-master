@@ -52,7 +52,7 @@
 
 .searchInput:focus {
   outline: none;
-  border-color: var(--spice-button-active);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Filter controls */
@@ -81,8 +81,13 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Active filter toggle style */
+.filterToggleActive {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .filterBadge {
-  background: var(--spice-notification);
+  background: #1e90ff;
   color: white;
   border-radius: 50%;
   width: 20px;
@@ -157,11 +162,11 @@
 }
 
 .ratingFilter.active {
-  background: var(--spice-button-active);
+  background: #1e90ff;
 }
 
 .filterStar {
-  color: var(--spice-notification);
+  color: #ffd700; /* Gold color for stars */
   font-size: 14px;
 }
 
@@ -217,8 +222,6 @@
 
 .tagFilter.active {
   background-color: #1e90ff;
-  /* blue, e.g., dodgerblue */
-  /* background: var(--spice-button-active); */
   font-weight: 600;
 }
 
@@ -303,7 +306,7 @@
 }
 
 .miniStar.active {
-  color: var(--spice-notification);
+  color: #ffd700; /* Gold color for stars */
 }
 
 .trackItemEnergy {
@@ -377,15 +380,15 @@
 }
 
 .activeTagFilter {
-  background: var(--spice-button-active);
-  color: var(--spice-text);
+  background: #1e90ff;
+  color: white;
   font-weight: 600;
 }
 
 /* Optional: add even more emphasis on hover for active tags */
 .activeTagFilter:hover {
-  background: var(--spice-notification);
-  opacity: 0.9;
+  background: #1a7ee0;
+  opacity: 0.95;
 }
 
 /* Filter mode toggle styles */

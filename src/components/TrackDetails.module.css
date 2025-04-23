@@ -1,8 +1,4 @@
-.ratingContainer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}.container {
+.container {
   background: var(--spice-card);
   border-radius: 8px;
   padding: 16px;
@@ -89,7 +85,7 @@
   height: 30px;
   border: 3px solid var(--spice-subtext);
   border-radius: 50%;
-  border-top-color: var(--spice-button-active);
+  border-top-color: #1e90ff;
   animation: spin 1s infinite linear;
 }
 
@@ -116,7 +112,7 @@
 }
 
 .trackTitle:hover {
-  color: var(--spice-button-active);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: underline;
 }
 
@@ -179,7 +175,7 @@
 }
 
 .contextLink:hover {
-  color: var(--spice-button-active);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: underline;
 }
 
@@ -205,7 +201,7 @@
 }
 
 .genreTag {
-  background: var(--spice-button-disabled);
+  background: rgba(0, 0, 0, 0.2);
   color: var(--spice-text);
   border-radius: 12px;
   padding: 2px 8px;
@@ -257,7 +253,7 @@
 
 .star:hover,
 .starActive {
-  color: var(--spice-notification);
+  color: #1e90ff;
 }
 
 .energySlider {
@@ -277,7 +273,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--spice-notification);  /* Using the same color as the active stars */
+  background: #1e90ff;  /* Match the blue used for stars */
   cursor: pointer;
 }
 
@@ -285,7 +281,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--spice-notification);  /* Using the same color as the active stars */
+  background: #1e90ff;  /* Match the blue used for stars */
   cursor: pointer;
   border: none;
 }
@@ -305,11 +301,11 @@
   display: inline-block;
   margin-left: 8px;
   font-weight: 700;
-  color: var(--spice-notification);
+  color: #1e90ff;
 }
 
 .clearButton {
-  background: var(--spice-button-disabled);
+  background: rgba(0, 0, 0, 0.2);
   color: var(--spice-text);
   border: none;
   border-radius: 4px;
@@ -320,11 +316,11 @@
 }
 
 .clearButton:hover {
-  background: var(--spice-button);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .setEnergyButton {
-  background: var(--spice-button-active);
+  background: rgba(0, 0, 0, 0.2);
   color: var(--spice-text);
   border: none;
   border-radius: 4px;
@@ -335,7 +331,7 @@
 }
 
 .setEnergyButton:hover {
-  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .noTags {
@@ -391,10 +387,16 @@
 .tagItem {
   display: flex;
   align-items: center;
-  background: var(--spice-button);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 2px 6px 2px 8px;
   font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.tagItem:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .tagName {
@@ -418,4 +420,12 @@
 
 .removeTag:hover {
   color: var(--spice-text);
+}
+
+.tagFilter {
+  background: #1e90ff;
+}
+
+.tagFilter:hover {
+  background: #1a7ee0;
 }

@@ -59,6 +59,9 @@ const App: React.FC = () => {
   const [showTagManager, setShowTagManager] = useState(false);
   const [showExport, setShowExport] = useState(false);
 
+  // State for active tag filters
+  const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
+
   // Load saved lock state and locked track on initial render
   useEffect(() => {
     try {
@@ -291,6 +294,10 @@ const App: React.FC = () => {
     }
   };
 
+  const clearTagFilters = () => {
+    setActiveTagFilters([]);
+  };
+
   // Function to handle a track selected from TracList for tagging
   const handleTagTrack = async (uri: string) => {
     try {
@@ -437,21 +444,22 @@ const App: React.FC = () => {
           {activeTrack && (
             <div className={styles.trackLockControl}>
               <button
-                className={`${styles.actionButton} ${isLocked ? styles.lockActive : ''}`}
+                className={`${styles.lockButton} ${isLocked ? styles.locked : styles.unlocked}`}
                 onClick={toggleLock}
                 title={isLocked ? "Unlock to follow currently playing track" : "Lock to this track"}
               >
-                {isLocked ? "Unlock" : "Lock"}
+                {isLocked ? "🔓" : "🔒"}
               </button>
+
               {isLocked && currentTrack && currentTrack.uri !== activeTrack.uri && (
                 <button
-                  className={styles.actionButton}
+                  className={styles.switchTrackButton}
                   onClick={() => {
                     setLockedTrack(currentTrack);
                   }}
                   title="Switch to currently playing track"
                 >
-                  Switch to current track
+                  <span className={styles.buttonIcon}>↺</span> Switch to current
                 </button>
               )}
             </div>
@@ -466,100 +474,124 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {isLoading ? (
-        <div className={styles.loadingContainer}>
-          <p className={styles.loadingText}>Loading tag data...</p>
-        </div>
-      ) : (
-        <>
-          <DataManager
-            onExportBackup={exportBackup}
-            onImportBackup={importBackup}
-            onExportRekordbox={() => setShowExport(true)}
-            lastSaved={lastSaved}
-          />
+      {
+        isLoading ? (
+          <div className={styles.loadingContainer}>
+            <p className={styles.loadingText}>Loading tag data...</p>
+          </div>
+        ) : (
+          <>
+            <DataManager
+              onExportBackup={exportBackup}
+              onImportBackup={importBackup}
+              onExportRekordbox={() => setShowExport(true)}
+              lastSaved={lastSaved}
+            />
 
-          <div className={styles.content}>
-            {activeTrack && (
-              <>
-                <TrackDetails
-                  track={activeTrack}
-                  trackData={tagData.tracks[activeTrack.uri] || { rating: 0, energy: 0, tags: [] }}
-                  categories={tagData.categories}
-                  onSetRating={(rating) => setRating(activeTrack.uri, rating)}
-                  onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
-                  onRemoveTag={(categoryId, subcategoryId, tagId) =>
-                    toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
-                  }
-                />
+            <div className={styles.content}>
+              {activeTrack && (
+                <>
+                  <TrackDetails
+                    track={activeTrack}
+                    trackData={tagData.tracks[activeTrack.uri] || { rating: 0, energy: 0, tags: [] }}
+                    categories={tagData.categories}
+                    activeTagFilters={activeTagFilters} // Add this prop
+                    onSetRating={(rating) => setRating(activeTrack.uri, rating)}
+                    onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
+                    onRemoveTag={(categoryId, subcategoryId, tagId) =>
+                      toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
+                    }
+                    onFilterByTag={(tagName) => {
+                      setActiveTagFilters(prev => {
+                        if (prev.includes(tagName)) {
+                          return prev.filter(t => t !== tagName);
+                        } else {
+                          return [...prev, tagName];
+                        }
+                      });
+                    }}
+                  />
 
-                <TagSelector
-                  track={activeTrack}
-                  categories={tagData.categories}
-                  trackTags={tagData.tracks[activeTrack.uri]?.tags || []}
-                  onToggleTag={(categoryId, subcategoryId, tagId) =>
-                    toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
+
+                  <TagSelector
+                    track={activeTrack}
+                    categories={tagData.categories}
+                    trackTags={tagData.tracks[activeTrack.uri]?.tags || []}
+                    onToggleTag={(categoryId, subcategoryId, tagId) =>
+                      toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
+                    }
+                    onOpenTagManager={() => setShowTagManager(true)}
+                  />
+                </>
+              )}
+
+              {/* List of tagged tracks */}
+              <TrackList
+                tracks={getLegacyFormatTracks()}
+                activeTagFilters={activeTagFilters}
+                onFilterByTag={(tag) => {
+                  setActiveTagFilters(prev => {
+                    if (prev.includes(tag)) {
+                      return prev.filter(t => t !== tag);
+                    } else {
+                      return [...prev, tag];
+                    }
+                  });
+                }}
+                onClearTagFilters={clearTagFilters}
+                onSelectTrack={(uri) => {
+                  // Special handling for local files
+                  if (uri.startsWith('spotify:local:')) {
+                    // For local files, we should navigate to the Local Files section 
+                    // instead of trying to play directly
+                    Spicetify.Platform.History.push('/collection/local-files');
+
+                    // Show a notification to guide the user
+                    Spicetify.showNotification(
+                      "Local files can only be played from the Local Files section",
+                      false,
+                      3000
+                    );
+                    return;
                   }
-                  onOpenTagManager={() => setShowTagManager(true)}
-                />
-              </>
+
+                  // For regular Spotify tracks, play as usual
+                  if (Spicetify.Player && Spicetify.Player.playUri) {
+                    Spicetify.Player.playUri(uri);
+                  }
+                }}
+                onTagTrack={handleTagTrack}
+              />
+            </div>
+
+            {/* Hierarchical tag manager modal */}
+            {showTagManager && (
+              <TagManager
+                categories={tagData.categories}
+                onClose={() => setShowTagManager(false)}
+                onAddCategory={addCategory}
+                onRemoveCategory={removeCategory}
+                onRenameCategory={renameCategory}
+                onAddSubcategory={addSubcategory}
+                onRemoveSubcategory={removeSubcategory}
+                onRenameSubcategory={renameSubcategory}
+                onAddTag={addTag}
+                onRemoveTag={removeTag}
+                onRenameTag={renameTag}
+              />
             )}
 
-            {/* List of tagged tracks */}
-            <TrackList
-              tracks={getLegacyFormatTracks()}
-              onSelectTrack={(uri) => {
-                // Special handling for local files
-                if (uri.startsWith('spotify:local:')) {
-                  // For local files, we should navigate to the Local Files section 
-                  // instead of trying to play directly
-                  Spicetify.Platform.History.push('/collection/local-files');
-
-                  // Show a notification to guide the user
-                  Spicetify.showNotification(
-                    "Local files can only be played from the Local Files section",
-                    false,
-                    3000
-                  );
-                  return;
-                }
-
-                // For regular Spotify tracks, play as usual
-                if (Spicetify.Player && Spicetify.Player.playUri) {
-                  Spicetify.Player.playUri(uri);
-                }
-              }}
-              onTagTrack={handleTagTrack}
-            />
-          </div>
-
-          {/* Hierarchical tag manager modal */}
-          {showTagManager && (
-            <TagManager
-              categories={tagData.categories}
-              onClose={() => setShowTagManager(false)}
-              onAddCategory={addCategory}
-              onRemoveCategory={removeCategory}
-              onRenameCategory={renameCategory}
-              onAddSubcategory={addSubcategory}
-              onRemoveSubcategory={removeSubcategory}
-              onRenameSubcategory={renameSubcategory}
-              onAddTag={addTag}
-              onRemoveTag={removeTag}
-              onRenameTag={renameTag}
-            />
-          )}
-
-          {/* Export panel for Rekordbox */}
-          {showExport && (
-            <ExportPanel
-              data={exportData()}
-              onClose={() => setShowExport(false)}
-            />
-          )}
-        </>
-      )}
-    </div>
+            {/* Export panel for Rekordbox */}
+            {showExport && (
+              <ExportPanel
+                data={exportData()}
+                onClose={() => setShowExport(false)}
+              />
+            )}
+          </>
+        )
+      }
+    </div >
   );
 };
 
