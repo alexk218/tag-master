@@ -613,15 +613,6 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                   </button>
                 ))}
               </div>
-              {trackData.rating > 0 && (
-                <button
-                  className={styles.clearButton}
-                  onClick={handleRemoveRating}
-                  aria-label="Clear rating"
-                >
-                  Clear
-                </button>
-              )}
             </div>
           </div>
 
