@@ -528,6 +528,7 @@ const App: React.FC = () => {
               {/* List of tagged tracks */}
               <TrackList
                 tracks={getLegacyFormatTracks()}
+                categories={tagData.categories}
                 activeTagFilters={activeTagFilters}
                 onFilterByTag={(tag) => {
                   setActiveTagFilters(prev => {

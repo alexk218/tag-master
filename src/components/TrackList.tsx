@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "./TrackList.module.css";
 import { parseLocalFileUri } from "../utils/LocalFileParser";
+import { Category } from "../hooks/useTagData";
 
 interface Tag {
   tag: string;
@@ -25,6 +26,7 @@ interface SpotifyTrackInfo {
 
 interface TrackListProps {
   tracks: TracksObject;
+  categories: Category[]; // Add categories prop to access the hierarchy
   activeTagFilters: string[];
   onFilterByTag: (tag: string) => void;
   onSelectTrack: (uri: string) => void;
@@ -34,6 +36,7 @@ interface TrackListProps {
 
 const TrackList: React.FC<TrackListProps> = ({
   tracks,
+  categories, // New categories prop
   activeTagFilters,
   onFilterByTag,
   onSelectTrack,
@@ -49,6 +52,31 @@ const TrackList: React.FC<TrackListProps> = ({
   const [energyMaxFilter, setEnergyMaxFilter] = useState<number | null>(null);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [isOrFilterMode, setIsOrFilterMode] = useState(false);
+
+  // Sort tags based on their position in the hierarchy
+  // Using the same approach as in TrackDetails.tsx
+  const sortTags = (tags: Tag[]) => {
+    // First build an index of tag positions in the category hierarchy
+    const tagPositions: { [tagName: string]: string } = {};
+    
+    // Iterate through all categories to build position mapping
+    categories.forEach((category, categoryIndex) => {
+      category.subcategories.forEach((subcategory, subcategoryIndex) => {
+        subcategory.tags.forEach((tag, tagIndex) => {
+          // Create a sortable position string (pad with zeros for correct string sorting)
+          const positionKey = `${String(categoryIndex).padStart(3, '0')}-${String(subcategoryIndex).padStart(3, '0')}-${String(tagIndex).padStart(3, '0')}`;
+          tagPositions[tag.name] = positionKey;
+        });
+      });
+    });
+    
+    // Sort the tags by their positions
+    return [...tags].sort((a, b) => {
+      const posA = tagPositions[a.tag] || "999-999-999"; // Default to end if not found
+      const posB = tagPositions[b.tag] || "999-999-999";
+      return posA.localeCompare(posB);
+    });
+  };
 
   // Fetch track info from Spotify on component mount and when tracks change
   useEffect(() => {
@@ -198,19 +226,6 @@ const TrackList: React.FC<TrackListProps> = ({
     // Call the parent handler to toggle the filter
     onFilterByTag(tag);
   };
-  // const handleTagClick = (tag: string) => {
-  //   // Toggle the tag in filters
-  //   setActiveTagFilters(prev =>
-  //     prev.includes(tag)
-  //       ? prev.filter(t => t !== tag) // Remove if already in filters
-  //       : [...prev, tag]              // Add if not in filters
-  //   );
-
-  //   // If filter options are not visible and we're adding a filter, show them
-  //   if (!showFilterOptions && !activeTagFilters.includes(tag)) {
-  //     setShowFilterOptions(true);
-  //   }
-  // };
 
   // Handle energy range filtering
   const handleEnergyMinChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -517,6 +532,11 @@ const TrackList: React.FC<TrackListProps> = ({
               };
             }
 
+            // Sort tags based on their position in the category hierarchy
+            const sortedTagsArray = categories && categories.length > 0 
+              ? sortTags(data.tags)
+              : data.tags;
+
             return (
               <div
                 key={uri}
@@ -582,9 +602,9 @@ const TrackList: React.FC<TrackListProps> = ({
                   </div>
 
                   {/* Bottom row just for tags that can wrap */}
-                  {data.tags.length > 0 ? (
+                  {sortedTagsArray.length > 0 ? (
                     <div className={styles.trackItemTags}>
-                      {data.tags.map(({ tag }, i) => (
+                      {sortedTagsArray.map(({ tag }, i) => (
                         <span
                           key={i}
                           className={`${styles.trackItemTag} ${activeTagFilters.includes(tag) ? styles.activeTagFilter : ''}`}
