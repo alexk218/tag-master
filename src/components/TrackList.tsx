@@ -10,7 +10,7 @@ interface Tag {
 }
 
 interface TrackData {
-  rating: number; // 0 means no rating
+  rating: number; // 0 means no rating // ! fix this - shouldn't store data for trakcs with 0 ratings/energy
   energy: number; // 0 means no energy rating
   tags: Tag[];
 }
@@ -31,6 +31,7 @@ interface TrackListProps {
   tracks: TracksObject;
   categories: Category[];
   activeTagFilters: string[];
+  activeTrackUri: string | null;
   onFilterByTag: (tag: string) => void;
   onSelectTrack: (uri: string) => void;
   onTagTrack?: (uri: string) => void;
@@ -40,8 +41,9 @@ interface TrackListProps {
 
 const TrackList: React.FC<TrackListProps> = ({
   tracks,
-  categories, // New categories prop
+  categories,
   activeTagFilters,
+  activeTrackUri,
   onFilterByTag,
   onSelectTrack,
   onTagTrack,
@@ -626,6 +628,8 @@ const TrackList: React.FC<TrackListProps> = ({
             // Handle case when info isn't available yet (especially for local files)
             const isLocalFile = uri.startsWith('spotify:local:');
 
+            const isActiveTrack = activeTrackUri === uri;
+
             // If no info and not a local file, skip this track
             if (!info && !isLocalFile) return null;
 
@@ -656,14 +660,18 @@ const TrackList: React.FC<TrackListProps> = ({
             return (
               <div
                 key={uri}
-                className={styles.trackItem}
+                id={`track-item-${uri}`}
+                className={`${styles.trackItem} ${isActiveTrack ? styles.activeTrackItem : ''}`}
               >
+                {isActiveTrack && <div className={styles.activeTrackIndicator} title="Currently tagging this track">
+                  <span className={styles.tagIcon}>🏷️</span>
+                </div>}
                 {/* Track info section - title and artist + buttons at top */}
                 <div className={styles.trackItemInfo}>
                   {/* Track title and artist on left */}
                   <div className={styles.trackItemTextInfo}>
                     <span
-                      className={`${styles.trackItemTitle} ${!isLocalFile ? styles.clickable : ''}`}
+                      className={`${styles.trackItemTitle} ${!isLocalFile ? styles.clickable : ''} ${isActiveTrack ? styles.activeTrackTitle : ''}`}
                       onClick={() => !isLocalFile && navigateToAlbum(uri)}
                       title={!isLocalFile ? "Go to album" : undefined}
                     >
@@ -707,11 +715,12 @@ const TrackList: React.FC<TrackListProps> = ({
 
                     {onTagTrack && (
                       <button
-                        className={styles.actionButton}
+                        className={`${styles.actionButton} ${isActiveTrack ? styles.activeTagButton : ''}`}
                         onClick={() => onTagTrack(uri)}
-                        title="Edit tags for this track"
+                        title={isActiveTrack ? "Currently tagging this track" : "Edit tags for this track"}
+                        disabled={isActiveTrack}
                       >
-                        Tag
+                        {isActiveTrack ? "Tagging" : "Tag"}
                       </button>
                     )}
                   </div>

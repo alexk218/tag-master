@@ -648,6 +648,7 @@ const App: React.FC = () => {
                 tracks={getLegacyFormatTracks()}
                 categories={tagData.categories}
                 activeTagFilters={activeTagFilters}
+                activeTrackUri={activeTrack?.uri || null} // Pass the active track URI to highlight it
                 onFilterByTag={(tag) => {
                   setActiveTagFilters(prev => {
                     if (prev.includes(tag)) {
