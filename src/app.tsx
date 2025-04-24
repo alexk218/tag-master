@@ -69,7 +69,6 @@ const App: React.FC = () => {
   }>({ name: "", id: null });
 
   useEffect(() => {
-    // Add Font Awesome if not already present
     if (!document.getElementById('font-awesome-css')) {
       const link = document.createElement('link');
       link.id = 'font-awesome-css';
