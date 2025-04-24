@@ -184,13 +184,23 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
           }
         }
 
+        let playCount = null;
+        try {
+          if (!track.uri.startsWith("spotify:local:")) {
+            // Only try to get play count for Spotify tracks (not local files)
+            playCount = await getTrackPlayCount(track.uri);
+          }
+        } catch (error) {
+          console.error("Error fetching play count:", error);
+        }
+
         setTrackMetadata({
           releaseDate: formatDate(trackInfo.album?.release_date || ""),
           trackLength: formatDuration(trackInfo.duration_ms || 0),
           bpm: audioFeatures?.tempo ? Math.round(audioFeatures.tempo) : null,
-          playCount: null, // Not directly available from Spotify API
+          playCount, // Add the play count here
           sourceContext,
-          genres: genres.slice(0, 3), // Limit to top 3 genres
+          genres: genres.slice(0, 3),
         });
       } catch (error) {
         console.error("Error fetching track metadata:", error);
@@ -269,6 +279,62 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
       fetchAlbumCover();
     }
   }, [track.uri]);
+
+  async function getTrackPlayCount(trackUri: string): Promise<number | null> {
+    try {
+      // Extract track ID and album ID
+      const trackId = trackUri.split(":").pop();
+      if (!trackId) return null;
+
+      // First, get the track info to get the album ID
+      const trackInfo = await Spicetify.CosmosAsync.get(
+        `https://api.spotify.com/v1/tracks/${trackId}`
+      );
+
+      if (!trackInfo || !trackInfo.album || !trackInfo.album.id) {
+        console.error("Could not get album ID for track:", trackUri);
+        return null;
+      }
+
+      const albumId = trackInfo.album.id;
+
+      // Use GraphQL to get album data with play counts
+      const { Locale, GraphQL } = Spicetify;
+      const res = await GraphQL.Request(GraphQL.Definitions.getAlbum, {
+        uri: `spotify:album:${albumId}`,
+        locale: Locale.getLocale(),
+        offset: 0,
+        limit: 500,
+      });
+
+      if (!res.data?.albumUnion) {
+        console.error("No albumUnion in response for album:", albumId);
+        return null;
+      }
+
+      // Get tracks from the response
+      const tracks = res.data.albumUnion.tracksV2 || res.data.albumUnion.tracks;
+      if (!tracks?.items) {
+        console.error("No track items found in album data");
+        return null;
+      }
+
+      // Find our track in the album and get its play count
+      const trackItem = tracks.items.find((item: { track: { uri: string; }; }) => item.track && item.track.uri === trackUri);
+
+      if (!trackItem || !trackItem.track) {
+        console.error("Track not found in album data");
+        return null;
+      }
+
+      // Parse the play count
+      const playcount = parseInt(trackItem.track.playcount, 10) || 0;
+      return playcount;
+    } catch (error) {
+      console.error("Error fetching track play count:", error);
+      return null;
+    }
+  }
 
   // Helper function to find tag name by ids
   const findTagInfo = (categoryId: string, subcategoryId: string, tagId: string) => {
@@ -351,11 +417,6 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   };
 
   const groupedTags = organizeTagsByCategory();
-
-  // Handle removing rating
-  const handleRemoveRating = () => {
-    onSetRating(0);
-  };
 
   // Handle removing energy rating
   const handleRemoveEnergy = () => {
@@ -581,7 +642,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                       </div>
                     )}
 
-                    {trackMetadata.playCount && (
+                    {trackMetadata.playCount !== null && (
                       <div className={styles.metadataItem}>
                         <span className={styles.metadataLabel}>Plays:</span>
                         <span className={styles.metadataValue}>
