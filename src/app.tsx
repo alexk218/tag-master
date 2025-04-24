@@ -280,14 +280,33 @@ const App: React.FC = () => {
     // Set up better history listener
     let unlisten: (() => void) | null = null;
 
-    if (Spicetify.Platform && Spicetify.Platform.History) {
-      console.log("TagMaster: Setting up history listener");
-
-      unlisten = Spicetify.Platform.History.listen((location: any) => {
-        console.log("TagMaster: History changed:", location);
-        checkForTrackUri();
-      });
+// Before setting up the listener, check if there's a proper listen method available
+if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platform.History.listen === 'function') {
+  console.log("TagMaster: Setting up history listener");
+  
+  try {
+    // Try to set up the listener and get the unlisten function
+    const unlistenFunc = Spicetify.Platform.History.listen((location: any) => {
+      console.log("TagMaster: History changed:", location);
+      checkForTrackUri();
+    });
+    
+    // Check if the returned value is a function (as it should be)
+    if (typeof unlistenFunc === 'function') {
+      unlisten = unlistenFunc;
+    } else {
+      console.warn("TagMaster: History.listen did not return a cleanup function");
+      // Create a fallback cleanup function if needed
+      unlisten = () => {
+        // Try to remove the listener using an alternative method if available
+        // This is a placeholder - you might need specific logic based on Spicetify's API
+        console.log("TagMaster: Using fallback cleanup for history listener");
+      };
     }
+  } catch (error) {
+    console.error("TagMaster: Error setting up history listener:", error);
+  }
+}
 
     // Cleanup listener on unmount
     return () => {
