@@ -1,10 +1,11 @@
-# TagMaster - Spicetify Custom App
+# TagMaster
 
 Organize your music by adding ratings, energy levels, and custom tags to your tracks. 
+
 Filter through your tags, and generate playlists for tracks that satisfy those filters.
+
 Intended for DJs and music curators.
 
-Future: Will integrate with rekordbox. Sync your custom tags with "My Tags". Export your star ratings to rekordbox, etc.
 
 ## Features
 
@@ -27,7 +28,7 @@ Future: Will integrate with rekordbox. Sync your custom tags with "My Tags". Exp
 
 1. Clone the repository:
    ```
-   git clone https://github.com/alexk218/tagmaster.git
+   git clone https://github.com/alexk218/tag-master.git
    cd tagmaster
    ```
 
