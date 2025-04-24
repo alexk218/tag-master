@@ -54,12 +54,12 @@
 }
 
 .rekordboxButton {
-  background-color: #1e90ff;  /* Dodger blue, consistent with other blue elements */
+  background-color: #1e90ff; /* Dodger blue, consistent with other blue elements */
   color: white;
 }
 
 .rekordboxButton:hover {
-  background-color: #1a7ee0;  /* Slightly darker blue on hover */
+  background-color: #1a7ee0; /* Slightly darker blue on hover */
   opacity: 0.95;
 }
 

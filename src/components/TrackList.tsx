@@ -25,7 +25,7 @@ interface SpotifyTrackInfo {
   artists: string;
   albumName: string;
   albumUri?: string | null;
-  artistsData?: Array<{ name: string, uri: string }>;
+  artistsData?: Array<{ name: string; uri: string }>;
 }
 
 interface TrackListProps {
@@ -37,7 +37,12 @@ interface TrackListProps {
   onSelectTrack: (uri: string) => void;
   onTagTrack?: (uri: string) => void;
   onClearTagFilters?: () => void;
-  onCreatePlaylist?: (trackUris: string[], name: string, description: string, isPublic: boolean) => void;
+  onCreatePlaylist?: (
+    trackUris: string[],
+    name: string,
+    description: string,
+    isPublic: boolean
+  ) => void;
 }
 
 const TrackList: React.FC<TrackListProps> = ({
@@ -49,7 +54,7 @@ const TrackList: React.FC<TrackListProps> = ({
   onSelectTrack,
   onTagTrack,
   onClearTagFilters,
-  onCreatePlaylist
+  onCreatePlaylist,
 }) => {
   const [trackInfo, setTrackInfo] = useState<{ [uri: string]: SpotifyTrackInfo }>({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,7 +78,9 @@ const TrackList: React.FC<TrackListProps> = ({
       category.subcategories.forEach((subcategory, subcategoryIndex) => {
         subcategory.tags.forEach((tag, tagIndex) => {
           // Create a sortable position string (pad with zeros for correct string sorting)
-          const positionKey = `${String(categoryIndex).padStart(3, '0')}-${String(subcategoryIndex).padStart(3, '0')}-${String(tagIndex).padStart(3, '0')}`;
+          const positionKey = `${String(categoryIndex).padStart(3, "0")}-${String(
+            subcategoryIndex
+          ).padStart(3, "0")}-${String(tagIndex).padStart(3, "0")}`;
           tagPositions[tag.name] = positionKey;
         });
       });
@@ -104,18 +111,20 @@ const TrackList: React.FC<TrackListProps> = ({
       const localFileUris: string[] = [];
       const spotifyTrackUris: string[] = [];
 
-      trackUris.forEach(uri => {
-        if (uri.startsWith('spotify:local:')) {
+      trackUris.forEach((uri) => {
+        if (uri.startsWith("spotify:local:")) {
           localFileUris.push(uri);
-        } else if (uri.startsWith('spotify:track:')) {
+        } else if (uri.startsWith("spotify:track:")) {
           spotifyTrackUris.push(uri);
         }
       });
 
-      console.log(`Found ${localFileUris.length} local files and ${spotifyTrackUris.length} Spotify tracks`);
+      console.log(
+        `Found ${localFileUris.length} local files and ${spotifyTrackUris.length} Spotify tracks`
+      );
 
       // Handle local files first
-      localFileUris.forEach(uri => {
+      localFileUris.forEach((uri) => {
         try {
           // Use our dedicated parser to extract meaningful metadata
           const parsedLocalFile = parseLocalFileUri(uri);
@@ -123,16 +132,18 @@ const TrackList: React.FC<TrackListProps> = ({
           newTrackInfo[uri] = {
             name: parsedLocalFile.title,
             artists: parsedLocalFile.artist,
-            albumName: parsedLocalFile.album
+            albumName: parsedLocalFile.album,
           };
 
-          console.log(`Parsed local file: ${uri} -> ${parsedLocalFile.title} by ${parsedLocalFile.artist}`);
+          console.log(
+            `Parsed local file: ${uri} -> ${parsedLocalFile.title} by ${parsedLocalFile.artist}`
+          );
         } catch (error) {
           console.error("Error parsing local file URI:", uri, error);
           newTrackInfo[uri] = {
             name: "Local Track",
             artists: "Local Artist",
-            albumName: "Local File"
+            albumName: "Local File",
           };
         }
       });
@@ -144,10 +155,12 @@ const TrackList: React.FC<TrackListProps> = ({
 
         try {
           // Extract track IDs from URIs
-          const trackIds = batch.map(uri => {
-            const parts = uri.split(':');
-            return parts.length >= 3 && parts[1] === 'track' ? parts[2] : null;
-          }).filter(Boolean);
+          const trackIds = batch
+            .map((uri) => {
+              const parts = uri.split(":");
+              return parts.length >= 3 && parts[1] === "track" ? parts[2] : null;
+            })
+            .filter(Boolean);
 
           if (trackIds.length === 0) {
             console.log("No valid track IDs in this batch");
@@ -156,7 +169,7 @@ const TrackList: React.FC<TrackListProps> = ({
 
           // Fetch track info
           const response = await Spicetify.CosmosAsync.get(
-            `https://api.spotify.com/v1/tracks?ids=${trackIds.join(',')}`
+            `https://api.spotify.com/v1/tracks?ids=${trackIds.join(",")}`
           );
 
           if (response && response.tracks) {
@@ -164,7 +177,7 @@ const TrackList: React.FC<TrackListProps> = ({
             response.tracks.forEach((track: any) => {
               if (track && track.id) {
                 // Find the original URI for this track
-                const uri = batch.find(u => u.includes(track.id));
+                const uri = batch.find((u) => u.includes(track.id));
                 if (uri) {
                   newTrackInfo[uri] = {
                     name: track.name,
@@ -174,8 +187,8 @@ const TrackList: React.FC<TrackListProps> = ({
                     // Store full artist data for navigation
                     artistsData: track.artists.map((a: any) => ({
                       name: a.name,
-                      uri: a.uri
-                    }))
+                      uri: a.uri,
+                    })),
                   };
                 }
               }
@@ -201,7 +214,7 @@ const TrackList: React.FC<TrackListProps> = ({
 
   // Extract all unique tags from all tracks
   const allTags = new Set<string>();
-  Object.values(tracks).forEach(track => {
+  Object.values(tracks).forEach((track) => {
     track.tags.forEach(({ tag }) => {
       allTags.add(tag);
     });
@@ -209,7 +222,7 @@ const TrackList: React.FC<TrackListProps> = ({
 
   // Extract all possible rating values
   const allRatings = new Set<number>();
-  Object.values(tracks).forEach(track => {
+  Object.values(tracks).forEach((track) => {
     if (track.rating > 0) {
       allRatings.add(track.rating);
     }
@@ -217,7 +230,7 @@ const TrackList: React.FC<TrackListProps> = ({
 
   // Extract all possible energy values
   const allEnergyLevels = new Set<number>();
-  Object.values(tracks).forEach(track => {
+  Object.values(tracks).forEach((track) => {
     if (track.energy > 0) {
       allEnergyLevels.add(track.energy);
     }
@@ -230,10 +243,8 @@ const TrackList: React.FC<TrackListProps> = ({
 
   // Toggle a rating filter - now adds/removes from array
   const toggleRatingFilter = (rating: number) => {
-    setRatingFilters(prev =>
-      prev.includes(rating)
-        ? prev.filter(r => r !== rating)
-        : [...prev, rating]
+    setRatingFilters((prev) =>
+      prev.includes(rating) ? prev.filter((r) => r !== rating) : [...prev, rating]
     );
   };
 
@@ -280,28 +291,23 @@ const TrackList: React.FC<TrackListProps> = ({
 
     // Skip if we don't have info for this track
     // But KEEP local files even if we have no info yet
-    if (!info && !uri.startsWith('spotify:local:')) {
+    if (!info && !uri.startsWith("spotify:local:")) {
       return false;
     }
 
     // If it's a local file that we don't have info for yet, keep it visible
     // This ensures local files appear while metadata is still loading
-    if (!info && uri.startsWith('spotify:local:')) {
+    if (!info && uri.startsWith("spotify:local:")) {
       // Only apply tag/rating/energy filters since we can't search without metadata
 
       // Tag filters
       const matchesTags =
         activeTagFilters.length === 0 ||
         (isOrFilterMode
-          // OR logic - track must have ANY of the selected tags
-          ? activeTagFilters.some(tag =>
-            trackData.tags.some(t => t.tag === tag)
-          )
-          // AND logic - track must have ALL of the selected tags
-          : activeTagFilters.every(tag =>
-            trackData.tags.some(t => t.tag === tag)
-          )
-        );
+          ? // OR logic - track must have ANY of the selected tags
+            activeTagFilters.some((tag) => trackData.tags.some((t) => t.tag === tag))
+          : // AND logic - track must have ALL of the selected tags
+            activeTagFilters.every((tag) => trackData.tags.some((t) => t.tag === tag)));
 
       // Rating filter
       const matchesRating =
@@ -309,17 +315,15 @@ const TrackList: React.FC<TrackListProps> = ({
         (trackData.rating > 0 && ratingFilters.includes(trackData.rating));
 
       // Energy range filter
-      const matchesEnergyMin =
-        energyMinFilter === null ||
-        trackData.energy >= energyMinFilter;
+      const matchesEnergyMin = energyMinFilter === null || trackData.energy >= energyMinFilter;
 
-      const matchesEnergyMax =
-        energyMaxFilter === null ||
-        trackData.energy <= energyMaxFilter;
+      const matchesEnergyMax = energyMaxFilter === null || trackData.energy <= energyMaxFilter;
 
       // If search term is empty, then return based on other filters
       // Otherwise, hide it since we can't search on local files without metadata yet
-      return searchTerm === "" && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax;
+      return (
+        searchTerm === "" && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax
+      );
     }
 
     // For tracks with info (both Spotify and loaded local files)
@@ -333,15 +337,10 @@ const TrackList: React.FC<TrackListProps> = ({
     const matchesTags =
       activeTagFilters.length === 0 ||
       (isOrFilterMode
-        // OR logic - track must have ANY of the selected tags
-        ? activeTagFilters.some(tag =>
-          trackData.tags.some(t => t.tag === tag)
-        )
-        // AND logic - track must have ALL of the selected tags
-        : activeTagFilters.every(tag =>
-          trackData.tags.some(t => t.tag === tag)
-        )
-      );
+        ? // OR logic - track must have ANY of the selected tags
+          activeTagFilters.some((tag) => trackData.tags.some((t) => t.tag === tag))
+        : // AND logic - track must have ALL of the selected tags
+          activeTagFilters.every((tag) => trackData.tags.some((t) => t.tag === tag)));
 
     // Rating filter - Updated to check if track rating is in the ratingFilters array
     const matchesRating =
@@ -349,13 +348,9 @@ const TrackList: React.FC<TrackListProps> = ({
       (trackData.rating > 0 && ratingFilters.includes(trackData.rating));
 
     // Energy range filter
-    const matchesEnergyMin =
-      energyMinFilter === null ||
-      trackData.energy >= energyMinFilter;
+    const matchesEnergyMin = energyMinFilter === null || trackData.energy >= energyMinFilter;
 
-    const matchesEnergyMax =
-      energyMaxFilter === null ||
-      trackData.energy <= energyMaxFilter;
+    const matchesEnergyMax = energyMaxFilter === null || trackData.energy <= energyMaxFilter;
 
     return matchesSearch && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax;
   });
@@ -399,9 +394,9 @@ const TrackList: React.FC<TrackListProps> = ({
   const navigateToAlbum = (uri: string) => {
     try {
       // Check if this is a local file
-      if (uri.startsWith('spotify:local:')) {
+      if (uri.startsWith("spotify:local:")) {
         // For local files, navigate to Local Files section
-        Spicetify.Platform.History.push('/collection/local-files');
+        Spicetify.Platform.History.push("/collection/local-files");
         return;
       }
 
@@ -411,7 +406,7 @@ const TrackList: React.FC<TrackListProps> = ({
 
       // If we have a complete trackInfo object with album ID already, use it
       if (info.albumUri) {
-        const albumId = info.albumUri.split(':').pop();
+        const albumId = info.albumUri.split(":").pop();
         if (albumId) {
           Spicetify.Platform.History.push(`/album/${albumId}`);
           return;
@@ -419,17 +414,17 @@ const TrackList: React.FC<TrackListProps> = ({
       }
 
       // Otherwise extract track ID and get album info
-      const trackId = uri.split(':').pop();
+      const trackId = uri.split(":").pop();
       if (!trackId) return;
 
       // Fetch track to get album
       Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`)
-        .then(response => {
+        .then((response) => {
           if (response && response.album && response.album.id) {
             Spicetify.Platform.History.push(`/album/${response.album.id}`);
           }
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error navigating to album:", error);
         });
     } catch (error) {
@@ -441,7 +436,7 @@ const TrackList: React.FC<TrackListProps> = ({
   const navigateToArtist = (artistName: string, trackUri: string) => {
     try {
       // Check if this is a local file
-      if (trackUri.startsWith('spotify:local:')) {
+      if (trackUri.startsWith("spotify:local:")) {
         // For local files, we can't navigate to an artist
         Spicetify.showNotification("Cannot navigate to artist for local files", true);
         return;
@@ -453,9 +448,9 @@ const TrackList: React.FC<TrackListProps> = ({
 
       // If the info has an artistsData array with URIs, use it
       if (info.artistsData) {
-        const artist = info.artistsData.find(a => a.name === artistName);
+        const artist = info.artistsData.find((a) => a.name === artistName);
         if (artist && artist.uri) {
-          const artistId = artist.uri.split(':').pop();
+          const artistId = artist.uri.split(":").pop();
           if (artistId) {
             Spicetify.Platform.History.push(`/artist/${artistId}`);
             return;
@@ -494,10 +489,11 @@ const TrackList: React.FC<TrackListProps> = ({
 
       <div className={styles.filterControls}>
         <button
-          className={`${styles.filterToggle} ${showFilterOptions ? styles.filterToggleActive : ''}`}
+          className={`${styles.filterToggle} ${showFilterOptions ? styles.filterToggleActive : ""}`}
           onClick={() => setShowFilterOptions(!showFilterOptions)}
         >
-          Filters {activeFilterCount > 0 && <span className={styles.filterBadge}>{activeFilterCount}</span>}
+          Filters{" "}
+          {activeFilterCount > 0 && <span className={styles.filterBadge}>{activeFilterCount}</span>}
         </button>
 
         {activeFilterCount > 0 && (
@@ -505,14 +501,18 @@ const TrackList: React.FC<TrackListProps> = ({
             <div className={styles.filterModeToggle}>
               <span className={styles.filterModeLabel}>Match:</span>
               <button
-                className={`${styles.filterModeButton} ${!isOrFilterMode ? styles.activeFilterMode : ''}`}
+                className={`${styles.filterModeButton} ${
+                  !isOrFilterMode ? styles.activeFilterMode : ""
+                }`}
                 onClick={() => setIsOrFilterMode(false)}
                 title="Tracks must match ALL selected filters (AND logic)"
               >
                 ALL
               </button>
               <button
-                className={`${styles.filterModeButton} ${isOrFilterMode ? styles.activeFilterMode : ''}`}
+                className={`${styles.filterModeButton} ${
+                  isOrFilterMode ? styles.activeFilterMode : ""
+                }`}
                 onClick={() => setIsOrFilterMode(true)}
                 title="Tracks must match ANY selected filter (OR logic)"
               >
@@ -520,10 +520,7 @@ const TrackList: React.FC<TrackListProps> = ({
               </button>
             </div>
 
-            <button
-              className={styles.clearFilters}
-              onClick={clearAllFilters}
-            >
+            <button className={styles.clearFilters} onClick={clearAllFilters}>
               Clear All
             </button>
           </>
@@ -547,26 +544,30 @@ const TrackList: React.FC<TrackListProps> = ({
             <div className={styles.filterSection}>
               <h3 className={styles.filterSectionTitle}>Rating</h3>
               <div className={styles.ratingFilters}>
-                {Array.from(allRatings).sort((a, b) => b - a).map(rating => (
-                  <button
-                    key={`rating-${rating}`}
-                    className={`${styles.ratingFilter} ${ratingFilters.includes(rating) ? styles.active : ''}`}
-                    onClick={() => toggleRatingFilter(rating)}
-                  >
-                    <ReactStars
-                      count={5}
-                      value={rating}
-                      edit={false}
-                      size={14}
-                      isHalf={true}
-                      emptyIcon={<i className="far fa-star"></i>}
-                      halfIcon={<i className="fa fa-star-half-alt"></i>}
-                      fullIcon={<i className="fa fa-star"></i>}
-                      activeColor="#ffd700"
-                      color="rgba(255, 255, 255, 0.2)"
-                    />
-                  </button>
-                ))}
+                {Array.from(allRatings)
+                  .sort((a, b) => b - a)
+                  .map((rating) => (
+                    <button
+                      key={`rating-${rating}`}
+                      className={`${styles.ratingFilter} ${
+                        ratingFilters.includes(rating) ? styles.active : ""
+                      }`}
+                      onClick={() => toggleRatingFilter(rating)}
+                    >
+                      <ReactStars
+                        count={5}
+                        value={rating}
+                        edit={false}
+                        size={14}
+                        isHalf={true}
+                        emptyIcon={<i className="far fa-star"></i>}
+                        halfIcon={<i className="fa fa-star-half-alt"></i>}
+                        fullIcon={<i className="fa fa-star"></i>}
+                        activeColor="#ffd700"
+                        color="rgba(255, 255, 255, 0.2)"
+                      />
+                    </button>
+                  ))}
               </div>
             </div>
           )}
@@ -583,9 +584,13 @@ const TrackList: React.FC<TrackListProps> = ({
                     className={styles.rangeSelect}
                   >
                     <option value="">Any</option>
-                    {Array.from(allEnergyLevels).sort((a, b) => a - b).map(energy => (
-                      <option key={`min-${energy}`} value={energy}>{energy}</option>
-                    ))}
+                    {Array.from(allEnergyLevels)
+                      .sort((a, b) => a - b)
+                      .map((energy) => (
+                        <option key={`min-${energy}`} value={energy}>
+                          {energy}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -597,9 +602,13 @@ const TrackList: React.FC<TrackListProps> = ({
                     className={styles.rangeSelect}
                   >
                     <option value="">Any</option>
-                    {Array.from(allEnergyLevels).sort((a, b) => a - b).map(energy => (
-                      <option key={`max-${energy}`} value={energy}>{energy}</option>
-                    ))}
+                    {Array.from(allEnergyLevels)
+                      .sort((a, b) => a - b)
+                      .map((energy) => (
+                        <option key={`max-${energy}`} value={energy}>
+                          {energy}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -610,15 +619,19 @@ const TrackList: React.FC<TrackListProps> = ({
             <div className={styles.filterSection}>
               <h3 className={styles.filterSectionTitle}>Tags</h3>
               <div className={styles.tagFilters}>
-                {Array.from(allTags).sort().map(tag => (
-                  <button
-                    key={tag}
-                    className={`${styles.tagFilter} ${activeTagFilters.includes(tag) ? styles.active : ''}`}
-                    onClick={() => toggleTagFilter(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
+                {Array.from(allTags)
+                  .sort()
+                  .map((tag) => (
+                    <button
+                      key={tag}
+                      className={`${styles.tagFilter} ${
+                        activeTagFilters.includes(tag) ? styles.active : ""
+                      }`}
+                      onClick={() => toggleTagFilter(tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
               </div>
             </div>
           )}
@@ -636,7 +649,7 @@ const TrackList: React.FC<TrackListProps> = ({
           sortedTracks.map(([uri, data]) => {
             const info = trackInfo[uri];
             // Handle case when info isn't available yet (especially for local files)
-            const isLocalFile = uri.startsWith('spotify:local:');
+            const isLocalFile = uri.startsWith("spotify:local:");
 
             const isActiveTrack = activeTrackUri === uri;
 
@@ -651,61 +664,65 @@ const TrackList: React.FC<TrackListProps> = ({
               displayInfo = {
                 name: parsedLocalFile.title,
                 artists: parsedLocalFile.artist,
-                albumName: parsedLocalFile.album
+                albumName: parsedLocalFile.album,
               };
             } else {
               // Use info as is (for Spotify tracks or already parsed local files)
               displayInfo = info || {
                 name: "Unknown Track",
                 artists: "Unknown Artist",
-                albumName: "Unknown Album"
+                albumName: "Unknown Album",
               };
             }
 
             // Sort tags based on their position in the category hierarchy
-            const sortedTagsArray = categories && categories.length > 0
-              ? sortTags(data.tags)
-              : data.tags;
+            const sortedTagsArray =
+              categories && categories.length > 0 ? sortTags(data.tags) : data.tags;
 
             return (
               <div
                 key={uri}
                 id={`track-item-${uri}`}
-                className={`${styles.trackItem} ${isActiveTrack ? styles.activeTrackItem : ''}`}
+                className={`${styles.trackItem} ${isActiveTrack ? styles.activeTrackItem : ""}`}
               >
                 {/* Track info section - title and artist + buttons at top */}
                 <div className={styles.trackItemInfo}>
                   {/* Track title and artist on left */}
                   <div className={styles.trackItemTextInfo}>
                     <span
-                      className={`${styles.trackItemTitle} ${!isLocalFile ? styles.clickable : ''} ${isActiveTrack ? styles.activeTrackTitle : ''}`}
+                      className={`${styles.trackItemTitle} ${
+                        !isLocalFile ? styles.clickable : ""
+                      } ${isActiveTrack ? styles.activeTrackTitle : ""}`}
                       onClick={() => !isLocalFile && navigateToAlbum(uri)}
                       title={!isLocalFile ? "Go to album" : undefined}
                     >
                       {displayInfo.name}
-                      {isLocalFile && <span style={{ fontSize: '0.8em', marginLeft: '6px', opacity: 0.7 }}>(Local)</span>}
+                      {isLocalFile && (
+                        <span style={{ fontSize: "0.8em", marginLeft: "6px", opacity: 0.7 }}>
+                          (Local)
+                        </span>
+                      )}
                     </span>
                     {displayInfo.artists && displayInfo.artists !== "Local Artist" && (
                       <span className={styles.trackItemArtist}>
                         {/* Split artists and make each clickable */}
                         {!isLocalFile
-                          ? displayInfo.artists.split(', ').map((artist, idx, arr) => (
-                            <React.Fragment key={idx}>
-                              <span
-                                className={styles.clickableArtist}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigateToArtist(artist, uri);
-                                }}
-                                title={`Go to ${artist}`}
-                              >
-                                {artist}
-                              </span>
-                              {idx < arr.length - 1 && ', '}
-                            </React.Fragment>
-                          ))
-                          : displayInfo.artists
-                        }
+                          ? displayInfo.artists.split(", ").map((artist, idx, arr) => (
+                              <React.Fragment key={idx}>
+                                <span
+                                  className={styles.clickableArtist}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigateToArtist(artist, uri);
+                                  }}
+                                  title={`Go to ${artist}`}
+                                >
+                                  {artist}
+                                </span>
+                                {idx < arr.length - 1 && ", "}
+                              </React.Fragment>
+                            ))
+                          : displayInfo.artists}
                       </span>
                     )}
                   </div>
@@ -722,9 +739,15 @@ const TrackList: React.FC<TrackListProps> = ({
 
                     {onTagTrack && (
                       <button
-                        className={`${styles.actionButton} ${isActiveTrack ? styles.activeTagButton : ''}`}
+                        className={`${styles.actionButton} ${
+                          isActiveTrack ? styles.activeTagButton : ""
+                        }`}
                         onClick={() => onTagTrack(uri)}
-                        title={isActiveTrack ? "Currently tagging this track" : "Edit tags for this track"}
+                        title={
+                          isActiveTrack
+                            ? "Currently tagging this track"
+                            : "Edit tags for this track"
+                        }
                         disabled={isActiveTrack}
                       >
                         {isActiveTrack ? "Tagging" : "Tag"}
@@ -744,7 +767,7 @@ const TrackList: React.FC<TrackListProps> = ({
                             count={5}
                             value={data.rating}
                             edit={false} // Make it read-only in the list view
-                            size={16}    // Smaller size for the list
+                            size={16} // Smaller size for the list
                             isHalf={true}
                             emptyIcon={<i className="far fa-star"></i>}
                             halfIcon={<i className="fa fa-star-half-alt"></i>}
@@ -767,14 +790,18 @@ const TrackList: React.FC<TrackListProps> = ({
                       {sortedTagsArray.map(({ tag }, i) => (
                         <span
                           key={i}
-                          className={`${styles.trackItemTag} ${activeTagFilters.includes(tag) ? styles.activeTagFilter : ''}`}
+                          className={`${styles.trackItemTag} ${
+                            activeTagFilters.includes(tag) ? styles.activeTagFilter : ""
+                          }`}
                           onClick={(e) => {
                             e.stopPropagation(); // Prevent track item click
                             handleTagClick(tag);
                           }}
-                          title={activeTagFilters.includes(tag)
-                            ? `Remove "${tag}" filter`
-                            : `Filter by "${tag}"`}
+                          title={
+                            activeTagFilters.includes(tag)
+                              ? `Remove "${tag}" filter`
+                              : `Filter by "${tag}"`
+                          }
                         >
                           {tag}
                         </span>
@@ -794,7 +821,7 @@ const TrackList: React.FC<TrackListProps> = ({
       {showCreatePlaylistModal && (
         <CreatePlaylistModal
           trackCount={sortedTracks.length}
-          localTrackCount={sortedTracks.filter(([uri]) => uri.startsWith('spotify:local:')).length}
+          localTrackCount={sortedTracks.filter(([uri]) => uri.startsWith("spotify:local:")).length}
           tags={activeTagFilters}
           onClose={() => setShowCreatePlaylistModal(false)}
           onCreatePlaylist={handleCreatePlaylist}

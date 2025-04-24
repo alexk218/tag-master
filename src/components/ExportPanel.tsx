@@ -43,13 +43,15 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
 
   // Calculate export statistics
   const trackCount = Object.keys(data.tracks).length;
-  const ratedTrackCount = Object.values(data.tracks).filter(track => track.rating > 0).length;
-  const taggedTrackCount = Object.values(data.tracks).filter(track => track.tags.length > 0).length;
+  const ratedTrackCount = Object.values(data.tracks).filter((track) => track.rating > 0).length;
+  const taggedTrackCount = Object.values(data.tracks).filter(
+    (track) => track.tags.length > 0
+  ).length;
 
   // Calculate tag distribution
   const tagDistribution: { [tagName: string]: number } = {};
-  Object.values(data.tracks).forEach(track => {
-    track.tags.forEach(tag => {
+  Object.values(data.tracks).forEach((track) => {
+    track.tags.forEach((tag) => {
       if (!tagDistribution[tag.name]) {
         tagDistribution[tag.name] = 0;
       }
@@ -64,10 +66,12 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>Export for Rekordbox</h2>
-          <button className={styles.closeButton} onClick={onClose}>×</button>
+          <button className={styles.closeButton} onClick={onClose}>
+            ×
+          </button>
         </div>
 
         <div className={styles.modalBody}>
@@ -130,8 +134,9 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
               <li>Import your tracks into Rekordbox to see the updated metadata</li>
             </ol>
             <p className={styles.note}>
-              <strong>Note:</strong> To use this data, you'll need to run the separate integration script
-              that will write this metadata to your music files before importing them into Rekordbox.
+              <strong>Note:</strong> To use this data, you'll need to run the separate integration
+              script that will write this metadata to your music files before importing them into
+              Rekordbox.
             </p>
           </div>
 

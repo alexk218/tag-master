@@ -90,8 +90,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .trackInfo {
@@ -302,7 +306,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #1e90ff;  /* Match the blue used for stars */
+  background: #1e90ff; /* Match the blue used for stars */
   cursor: pointer;
 }
 
@@ -310,7 +314,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #1e90ff;  /* Match the blue used for stars */
+  background: #1e90ff; /* Match the blue used for stars */
   cursor: pointer;
   border: none;
 }

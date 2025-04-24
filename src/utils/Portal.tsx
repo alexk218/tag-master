@@ -1,6 +1,6 @@
 // src/utils/Portal.tsx
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface PortalProps {
   children: React.ReactNode;
@@ -11,8 +11,8 @@ const Portal: React.FC<PortalProps> = ({ children }) => {
 
   useEffect(() => {
     // Create a div element that will be our portal
-    const element = document.createElement('div');
-    element.className = 'tagmaster-portal';
+    const element = document.createElement("div");
+    element.className = "tagmaster-portal";
     document.body.appendChild(element);
     setPortalElement(element);
 

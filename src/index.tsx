@@ -13,7 +13,7 @@ const TagMaster = () => {
 
   // Create root and render our React app into the container
   const root = ReactDOM.createRoot(appContainer);
-  
+
   // Render the app
   root.render(
     <React.StrictMode>
@@ -25,22 +25,22 @@ const TagMaster = () => {
 // Wait for Spicetify to load before initializing our app
 export default async function main() {
   console.log("TagMaster: Starting initialization");
-  
+
   try {
     // Wait for Spicetify to be available
     while (!Spicetify?.Platform) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    
+
     // Important - make sure required Spicetify components are available
     if (!Spicetify.CosmosAsync) {
       console.error("TagMaster: Spicetify.CosmosAsync is not available!");
       Spicetify.showNotification("TagMaster: API access not available", true);
     }
-    
+
     // Initialize our app when Spicetify is ready
     TagMaster();
-    
+
     // Show welcome message
     console.log("TagMaster loaded. Right-click tracks to tag them.");
     Spicetify.showNotification("TagMaster loaded! Right-click tracks to tag them.");

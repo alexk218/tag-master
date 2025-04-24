@@ -40,17 +40,17 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   onSetRating,
   onSetEnergy,
   onRemoveTag,
-  onFilterByTag
+  onFilterByTag,
 }) => {
   const [albumCover, setAlbumCover] = useState<string | null>(null);
   const [isLoadingCover, setIsLoadingCover] = useState(true);
   const [trackMetadata, setTrackMetadata] = useState<TrackMetadata>({
-    releaseDate: '',
-    trackLength: '',
+    releaseDate: "",
+    trackLength: "",
     bpm: null,
     playCount: null,
     sourceContext: null,
-    genres: []
+    genres: [],
   });
 
   // Track the context URI for navigation
@@ -58,18 +58,18 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
 
   // Get track artist names as a string
-  const artistNames = track.artists ? track.artists.map(artist => artist.name).join(", ") : "";
+  const artistNames = track.artists ? track.artists.map((artist) => artist.name).join(", ") : "";
 
   // Format milliseconds to mm:ss
   const formatDuration = (ms: number): string => {
     const minutes = Math.floor(ms / 60000);
     const seconds = Math.floor((ms % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
   // Format date to YYYY-MM-DD
   const formatDate = (dateStr: string): string => {
-    if (!dateStr) return '';
+    if (!dateStr) return "";
 
     // Check if we only have a year
     if (dateStr.length === 4) {
@@ -78,7 +78,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
     try {
       const date = new Date(dateStr);
-      return date.toISOString().split('T')[0];
+      return date.toISOString().split("T")[0];
     } catch (e) {
       return dateStr;
     }
@@ -91,22 +91,22 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
       try {
         // Check if this is a local file
-        if (track.uri.startsWith('spotify:local:')) {
+        if (track.uri.startsWith("spotify:local:")) {
           // For local files, we set limited metadata
           setTrackMetadata({
-            releaseDate: '',
-            trackLength: '',
+            releaseDate: "",
+            trackLength: "",
             bpm: null,
             playCount: null,
-            sourceContext: 'Local Files',
-            genres: []
+            sourceContext: "Local Files",
+            genres: [],
           });
           setIsLoadingMetadata(false);
           return;
         }
 
         // Extract track ID from URI for Spotify tracks
-        const trackId = track.uri.split(':').pop();
+        const trackId = track.uri.split(":").pop();
 
         if (!trackId) {
           console.error("Invalid track URI:", track.uri);
@@ -115,10 +115,14 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         }
 
         // Fetch track info
-        const trackInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
+        const trackInfo = await Spicetify.CosmosAsync.get(
+          `https://api.spotify.com/v1/tracks/${trackId}`
+        );
 
         // Fetch audio features for tempo (BPM)
-        const audioFeatures = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/audio-features/${trackId}`);
+        const audioFeatures = await Spicetify.CosmosAsync.get(
+          `https://api.spotify.com/v1/audio-features/${trackId}`
+        );
 
         // Try to get source context from Spicetify
         let sourceContext = null;
@@ -131,27 +135,29 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
               setContextUri(playerContextUri);
 
               // Parse the context URI
-              const parts = playerContextUri.split(':');
+              const parts = playerContextUri.split(":");
               if (parts.length >= 3) {
                 const contextType = parts[1];
-                let contextName = '';
+                let contextName = "";
 
                 // Special case for Liked Songs (collection)
-                if (contextType === 'collection' && parts.includes('tracks')) {
-                  contextName = 'Liked Songs';
-                } else if (contextType === 'playlist') {
+                if (contextType === "collection" && parts.includes("tracks")) {
+                  contextName = "Liked Songs";
+                } else if (contextType === "playlist") {
                   try {
-                    const playlistData = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/playlists/${parts[2]}`);
-                    contextName = playlistData.name || '';
+                    const playlistData = await Spicetify.CosmosAsync.get(
+                      `https://api.spotify.com/v1/playlists/${parts[2]}`
+                    );
+                    contextName = playlistData.name || "";
                   } catch (e) {
-                    contextName = 'Playlist';
+                    contextName = "Playlist";
                   }
-                } else if (contextType === 'album') {
+                } else if (contextType === "album") {
                   contextName = track.album.name;
-                } else if (contextType === 'artist') {
-                  contextName = artistNames ? artistNames.split(',')[0] : 'Artist';
-                } else if (contextType === 'user') {
-                  contextName = 'Liked Songs'; // Default for user context is often Liked Songs
+                } else if (contextType === "artist") {
+                  contextName = artistNames ? artistNames.split(",")[0] : "Artist";
+                } else if (contextType === "user") {
+                  contextName = "Liked Songs"; // Default for user context is often Liked Songs
                 }
 
                 // Simply use the context name without the type prefix
@@ -169,7 +175,9 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         if (trackInfo?.artists && trackInfo.artists.length > 0 && trackInfo.artists[0]?.id) {
           const artistId = trackInfo.artists[0].id;
           try {
-            const artistInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/artists/${artistId}`);
+            const artistInfo = await Spicetify.CosmosAsync.get(
+              `https://api.spotify.com/v1/artists/${artistId}`
+            );
             genres = artistInfo.genres || [];
           } catch (e) {
             console.error("Error fetching artist info:", e);
@@ -177,25 +185,24 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         }
 
         setTrackMetadata({
-          releaseDate: formatDate(trackInfo.album?.release_date || ''),
+          releaseDate: formatDate(trackInfo.album?.release_date || ""),
           trackLength: formatDuration(trackInfo.duration_ms || 0),
           bpm: audioFeatures?.tempo ? Math.round(audioFeatures.tempo) : null,
           playCount: null, // Not directly available from Spotify API
           sourceContext,
-          genres: genres.slice(0, 3) // Limit to top 3 genres
+          genres: genres.slice(0, 3), // Limit to top 3 genres
         });
-
       } catch (error) {
         console.error("Error fetching track metadata:", error);
 
         // Set minimal metadata for error cases
         setTrackMetadata({
-          releaseDate: '',
-          trackLength: '',
+          releaseDate: "",
+          trackLength: "",
           bpm: null,
           playCount: null,
           sourceContext: null,
-          genres: []
+          genres: [],
         });
       } finally {
         setIsLoadingMetadata(false);
@@ -214,7 +221,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
       try {
         // Check if this is a local file
-        if (track.uri.startsWith('spotify:local:')) {
+        if (track.uri.startsWith("spotify:local:")) {
           // For local files, we don't have album art from Spotify
           // Set a null album cover to show the placeholder
           setAlbumCover(null);
@@ -223,7 +230,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         }
 
         // Extract track ID from URI for Spotify tracks
-        const trackId = track.uri.split(':').pop();
+        const trackId = track.uri.split(":").pop();
 
         if (!trackId) {
           console.error("Invalid track URI:", track.uri);
@@ -232,11 +239,20 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         }
 
         // Fetch track info to get album ID and cover
-        const trackInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
+        const trackInfo = await Spicetify.CosmosAsync.get(
+          `https://api.spotify.com/v1/tracks/${trackId}`
+        );
 
-        if (trackInfo && trackInfo.album && trackInfo.album.images && trackInfo.album.images.length > 0) {
+        if (
+          trackInfo &&
+          trackInfo.album &&
+          trackInfo.album.images &&
+          trackInfo.album.images.length > 0
+        ) {
           // Get medium size image (or the first available if medium doesn't exist)
-          const image = trackInfo.album.images.find((img: any) => img.height === 300) || trackInfo.album.images[0];
+          const image =
+            trackInfo.album.images.find((img: any) => img.height === 300) ||
+            trackInfo.album.images[0];
           setAlbumCover(image.url);
         } else {
           setAlbumCover(null);
@@ -256,20 +272,20 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
   // Helper function to find tag name by ids
   const findTagInfo = (categoryId: string, subcategoryId: string, tagId: string) => {
-    const category = categories.find(c => c.id === categoryId);
+    const category = categories.find((c) => c.id === categoryId);
     if (!category) return null;
 
-    const subcategory = category.subcategories.find(s => s.id === subcategoryId);
+    const subcategory = category.subcategories.find((s) => s.id === subcategoryId);
     if (!subcategory) return null;
 
-    const tag = subcategory.tags.find(t => t.id === tagId);
+    const tag = subcategory.tags.find((t) => t.id === tagId);
     if (!tag) return null;
 
     return {
       categoryName: category.name,
       subcategoryName: subcategory.name,
       tagName: tag.name,
-      tagOrder: subcategory.tags.findIndex(t => t.id === tagId) // Add order information
+      tagOrder: subcategory.tags.findIndex((t) => t.id === tagId), // Add order information
     };
   };
 
@@ -298,7 +314,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
       groupedTags[category.id] = {
         categoryName: category.name,
         categoryOrder: categoryIndex,
-        subcategories: {}
+        subcategories: {},
       };
 
       // Initialize subcategories with their order
@@ -306,13 +322,13 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         groupedTags[category.id].subcategories[subcategory.id] = {
           subcategoryName: subcategory.name,
           subcategoryOrder: subcategoryIndex,
-          tags: []
+          tags: [],
         };
       });
     });
 
     // Now add the tags from the track data
-    trackData.tags.forEach(tag => {
+    trackData.tags.forEach((tag) => {
       const tagInfo = findTagInfo(tag.categoryId, tag.subcategoryId, tag.tagId);
       if (!tagInfo) return;
 
@@ -320,13 +336,13 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
       groupedTags[tag.categoryId].subcategories[tag.subcategoryId].tags.push({
         id: tag.tagId,
         name: tagInfo.tagName,
-        order: tagInfo.tagOrder
+        order: tagInfo.tagOrder,
       });
     });
 
     // For each subcategory, sort tags by their original order
-    Object.values(groupedTags).forEach(category => {
-      Object.values(category.subcategories).forEach(subcategory => {
+    Object.values(groupedTags).forEach((category) => {
+      Object.values(category.subcategories).forEach((subcategory) => {
         subcategory.tags.sort((a, b) => a.order - b.order);
       });
     });
@@ -357,25 +373,31 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   const navigateToAlbum = () => {
     try {
       // Check if this is a local file first
-      if (track.uri.startsWith('spotify:local:')) {
+      if (track.uri.startsWith("spotify:local:")) {
         // For local files, try to navigate to Local Files section
-        Spicetify.Platform.History.push('/collection/local-files');
+        Spicetify.Platform.History.push("/collection/local-files");
         return;
       }
 
       // Extract album URI from track data or try to build it
-      let albumUri = '';
+      let albumUri = "";
 
       // Try to extract from track info if available
-      if (Spicetify.Player && Spicetify.Player.data && Spicetify.Player.data.track && Spicetify.Player.data.track.album && Spicetify.Player.data.track.album.uri) {
+      if (
+        Spicetify.Player &&
+        Spicetify.Player.data &&
+        Spicetify.Player.data.track &&
+        Spicetify.Player.data.track.album &&
+        Spicetify.Player.data.track.album.uri
+      ) {
         albumUri = Spicetify.Player.data.track.album.uri;
       } else {
         // Try to extract album ID from track URI and build album URI
-        const trackId = track.uri.split(':').pop();
+        const trackId = track.uri.split(":").pop();
         if (trackId) {
           // We'll need to use Spotify API to get the album ID
           Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`)
-            .then(response => {
+            .then((response) => {
               if (response && response.album && response.album.id) {
                 const albumId = response.album.id;
                 albumUri = `spotify:album:${albumId}`;
@@ -384,7 +406,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 Spicetify.Platform.History.push(`/album/${albumId}`);
               }
             })
-            .catch(error => {
+            .catch((error) => {
               console.error("Error fetching album info:", error);
               Spicetify.showNotification("Couldn't navigate to album", true);
             });
@@ -394,7 +416,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
       if (albumUri) {
         // Extract album ID from URI
-        const albumId = albumUri.split(':').pop();
+        const albumId = albumUri.split(":").pop();
         if (albumId) {
           // Navigate to album page
           Spicetify.Platform.History.push(`/album/${albumId}`);
@@ -418,7 +440,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
     try {
       // Parse context URI
-      const parts = contextUri.split(':');
+      const parts = contextUri.split(":");
       if (parts.length < 3) {
         Spicetify.showNotification("Invalid context URI", true);
         return;
@@ -429,27 +451,27 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
       // Navigate based on context type
       switch (contextType) {
-        case 'playlist':
+        case "playlist":
           Spicetify.Platform.History.push(`/playlist/${contextId}`);
           break;
-        case 'album':
+        case "album":
           Spicetify.Platform.History.push(`/album/${contextId}`);
           break;
-        case 'artist':
+        case "artist":
           Spicetify.Platform.History.push(`/artist/${contextId}`);
           break;
-        case 'show':
+        case "show":
           Spicetify.Platform.History.push(`/show/${contextId}`);
           break;
-        case 'collection':
+        case "collection":
           // Special case for Liked Songs
-          if (parts.includes('tracks')) {
-            Spicetify.Platform.History.push('/collection/tracks');
+          if (parts.includes("tracks")) {
+            Spicetify.Platform.History.push("/collection/tracks");
           }
           break;
-        case 'user':
+        case "user":
           // For user context, likely Liked Songs
-          Spicetify.Platform.History.push('/collection/tracks');
+          Spicetify.Platform.History.push("/collection/tracks");
           break;
         default:
           console.log(`Unsupported context type: ${contextType}`);
@@ -498,7 +520,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
             <div
               className={styles.albumCoverClickable}
               onClick={() => navigateToAlbum()}
-              title={track.uri?.startsWith('spotify:local:') ? "Go to Local Files" : "Go to album"}
+              title={track.uri?.startsWith("spotify:local:") ? "Go to Local Files" : "Go to album"}
             >
               {isLoadingCover ? (
                 <div className={styles.albumCoverPlaceholder}>
@@ -507,7 +529,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
               ) : albumCover ? (
                 <img
                   src={albumCover}
-                  alt={`${track.album?.name || 'Album'} cover`}
+                  alt={`${track.album?.name || "Album"} cover`}
                   className={styles.albumCover}
                 />
               ) : (
@@ -521,10 +543,12 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
             <h2
               className={styles.trackTitle}
               onClick={() => navigateToAlbum()}
-              title={track.uri?.startsWith('spotify:local:') ? "Go to Local Files" : "Go to album"}
+              title={track.uri?.startsWith("spotify:local:") ? "Go to Local Files" : "Go to album"}
             >
               {track.name || "Unknown Track"}
-              {track.uri?.startsWith('spotify:local:') && <span style={{ fontSize: '0.8em', opacity: 0.7, marginLeft: '6px' }}>(Local)</span>}
+              {track.uri?.startsWith("spotify:local:") && (
+                <span style={{ fontSize: "0.8em", opacity: 0.7, marginLeft: "6px" }}>(Local)</span>
+              )}
             </h2>
             <p className={styles.trackArtist}>{artistNames}</p>
             <p className={styles.trackAlbum}>{track.album?.name || "Unknown Album"}</p>
@@ -560,14 +584,16 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                     {trackMetadata.playCount && (
                       <div className={styles.metadataItem}>
                         <span className={styles.metadataLabel}>Plays:</span>
-                        <span className={styles.metadataValue}>{trackMetadata.playCount.toLocaleString()}</span>
+                        <span className={styles.metadataValue}>
+                          {trackMetadata.playCount.toLocaleString()}
+                        </span>
                       </div>
                     )}
                   </div>
 
                   {trackMetadata.sourceContext && (
                     <div className={styles.metadataContext}>
-                      <span className={styles.metadataLabel}>Playing from:</span>{' '}
+                      <span className={styles.metadataLabel}>Playing from:</span>{" "}
                       <span
                         className={`${styles.metadataValue} ${styles.contextLink}`}
                         onClick={() => navigateToContext()}
@@ -580,7 +606,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
                   {trackMetadata.genres.length > 0 && (
                     <div className={styles.metadataGenres}>
-                      <span className={styles.metadataLabel}>Genres:</span>{' '}
+                      <span className={styles.metadataLabel}>Genres:</span>{" "}
                       <div className={styles.genreTags}>
                         {trackMetadata.genres.map((genre, index) => (
                           <span key={index} className={styles.genreTag}>
@@ -600,7 +626,9 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         <div className={styles.controlsContainer}>
           {/* Rating */}
           <div className={styles.controlSection}>
-            <label className={styles.label}>Rating: {trackData.rating > 0 ? trackData.rating : ''}</label>
+            <label className={styles.label}>
+              Rating: {trackData.rating > 0 ? trackData.rating : ""}
+            </label>
             <div className={styles.ratingContainer}>
               <div className={styles.stars} key={`stars-${trackData.rating}`}>
                 <ReactStars
@@ -633,7 +661,9 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
           <div className={styles.controlSection}>
             <label className={styles.label}>
               Energy Level:
-              {trackData.energy > 0 && <span className={styles.energyValue}>{trackData.energy}</span>}
+              {trackData.energy > 0 && (
+                <span className={styles.energyValue}>{trackData.energy}</span>
+              )}
             </label>
             <div className={styles.energyContainer}>
               <input
@@ -642,7 +672,9 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 max="10"
                 value={trackData.energy || 5}
                 data-is-set={trackData.energy > 0 ? "true" : "false"}
-                className={`${styles.energySlider} ${trackData.energy === 0 ? styles.energySliderUnset : ''}`}
+                className={`${styles.energySlider} ${
+                  trackData.energy === 0 ? styles.energySliderUnset : ""
+                }`}
                 onChange={handleEnergyInput}
                 onClick={handleEnergyClick}
                 onDoubleClick={() => {
@@ -675,7 +707,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
               .filter(([, categoryData]) => {
                 // Check if this category has any subcategories with tags
                 return Object.values(categoryData.subcategories).some(
-                  subcategory => subcategory.tags.length > 0
+                  (subcategory) => subcategory.tags.length > 0
                 );
               })
               .sort(([, a], [, b]) => a.categoryOrder - b.categoryOrder)
@@ -692,13 +724,15 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                         <h5 className={styles.subcategoryName}>{subcategory.subcategoryName}</h5>
 
                         <div className={styles.tagList}>
-                          {subcategory.tags.map(tag => {
+                          {subcategory.tags.map((tag) => {
                             const isFiltered = activeTagFilters.includes(tag.name);
 
                             return (
                               <div
                                 key={tag.id}
-                                className={`${styles.tagItem} ${isFiltered ? styles.tagFilter : ''}`}
+                                className={`${styles.tagItem} ${
+                                  isFiltered ? styles.tagFilter : ""
+                                }`}
                                 onClick={() => handleTagFilter(tag.name)}
                               >
                                 <span className={styles.tagName}>{tag.name}</span>

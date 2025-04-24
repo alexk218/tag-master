@@ -1,193 +1,193 @@
 .modalOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    overflow: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  overflow: auto;
 }
 
 .modal {
-    background: var(--spice-card);
-    border-radius: 8px;
-    width: 90%;
-    max-width: 500px;
-    /* or 600px for LocalTracksModal */
-    max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    margin: auto;
-    position: relative;
+  background: var(--spice-card);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  /* or 600px for LocalTracksModal */
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  position: relative;
 }
 
 .modalHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--spice-button-disabled);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--spice-button-disabled);
 }
 
 .modalTitle {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--spice-text);
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--spice-text);
 }
 
 .closeButton {
-    background: transparent;
-    border: none;
-    color: var(--spice-text);
-    font-size: 24px;
-    cursor: pointer;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--spice-text);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modalBody {
-    padding: 24px;
-    overflow-y: auto;
-    max-height: calc(90vh - 70px);
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 70px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .trackStats {
-    margin-bottom: 8px;
+  margin-bottom: 8px;
 }
 
 .trackStats p {
-    margin: 0;
-    color: var(--spice-text);
-    font-size: 14px;
+  margin: 0;
+  color: var(--spice-text);
+  font-size: 14px;
 }
 
 .warning {
-    color: var(--spice-notification-error);
-    font-style: italic;
+  color: var(--spice-notification-error);
+  font-style: italic;
 }
 
 .playlistForm {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .formField {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .label {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--spice-text);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--spice-text);
 }
 
 .input,
 .textarea {
-    padding: 10px 12px;
-    border-radius: 4px;
-    background: var(--spice-main);
-    border: 1px solid var(--spice-button-disabled);
-    color: var(--spice-text);
-    font-size: 14px;
-    width: 100%;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: var(--spice-main);
+  border: 1px solid var(--spice-button-disabled);
+  color: var(--spice-text);
+  font-size: 14px;
+  width: 100%;
 }
 
 .input:focus,
 .textarea:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.3);
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .textarea {
-    min-height: 80px;
-    resize: vertical;
+  min-height: 80px;
+  resize: vertical;
 }
 
 .checkboxLabel {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: var(--spice-text);
-    cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--spice-text);
+  cursor: pointer;
 }
 
 .checkbox {
-    width: 16px;
-    height: 16px;
-    accent-color: rgba(0, 0, 0, 0.2);
+  width: 16px;
+  height: 16px;
+  accent-color: rgba(0, 0, 0, 0.2);
 }
 
 .tagsSection {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .tag {
-    background: rgba(0, 0, 0, 0.2);
-    color: var(--spice-text);
-    border-radius: 16px;
-    padding: 4px 12px;
-    font-size: 12px;
-    display: inline-block;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  display: inline-block;
 }
 
 .formActions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
 }
 
 .cancelButton {
-    background: rgba(0, 0, 0, 0.3);
-    color: var(--spice-text);
-    border: none;
-    border-radius: 4px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .cancelButton:hover {
-    background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .createButton {
-    background: rgba(0, 0, 0, 0.3);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .createButton:hover {
-    background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
 }

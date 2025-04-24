@@ -17,7 +17,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   categories,
   trackTags,
   onToggleTag,
-  onOpenTagManager
+  onOpenTagManager,
 }) => {
   // Keep track of expanded categories and subcategories
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -27,7 +27,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
 
   // Toggle category expansion
   const toggleCategory = (categoryId: string) => {
-    setExpandedCategories(prev => {
+    setExpandedCategories((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(categoryId)) {
         newSet.delete(categoryId);
@@ -40,7 +40,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
 
   // Toggle subcategory expansion
   const toggleSubcategory = (subcategoryId: string) => {
-    setExpandedSubcategories(prev => {
+    setExpandedSubcategories((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(subcategoryId)) {
         newSet.delete(subcategoryId);
@@ -53,11 +53,11 @@ const TagSelector: React.FC<TagSelectorProps> = ({
 
   // Function to expand all categories and subcategories
   const expandAll = () => {
-    const allCategoryIds = categories.map(category => category.id);
-    const allSubcategoryIds = categories.flatMap(category => 
-      category.subcategories.map(subcategory => subcategory.id)
+    const allCategoryIds = categories.map((category) => category.id);
+    const allSubcategoryIds = categories.flatMap((category) =>
+      category.subcategories.map((subcategory) => subcategory.id)
     );
-    
+
     setExpandedCategories(new Set(allCategoryIds));
     setExpandedSubcategories(new Set(allSubcategoryIds));
     setAreAllExpanded(true);
@@ -82,9 +82,8 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   // Check if a tag is applied to the track
   const isTagApplied = (categoryId: string, subcategoryId: string, tagId: string) => {
     return trackTags.some(
-      tag => tag.categoryId === categoryId &&
-        tag.subcategoryId === subcategoryId &&
-        tag.tagId === tagId
+      (tag) =>
+        tag.categoryId === categoryId && tag.subcategoryId === subcategoryId && tag.tagId === tagId
     );
   };
 
@@ -105,11 +104,11 @@ const TagSelector: React.FC<TagSelectorProps> = ({
     const matchingCategories = new Set<string>();
     const matchingSubcategories = new Set<string>();
 
-    categories.forEach(category => {
+    categories.forEach((category) => {
       let categoryHasMatches = false;
 
-      category.subcategories.forEach(subcategory => {
-        const hasMatchingTags = subcategory.tags.some(tag =>
+      category.subcategories.forEach((subcategory) => {
+        const hasMatchingTags = subcategory.tags.some((tag) =>
           tag.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
@@ -139,12 +138,10 @@ const TagSelector: React.FC<TagSelectorProps> = ({
             onClick={toggleExpandAll}
             title={areAllExpanded ? "Collapse all categories" : "Expand all categories"}
           >
-            <span className={styles.expandCollapseIcon}>
-              {areAllExpanded ? "▼" : "►"}
-            </span>
+            <span className={styles.expandCollapseIcon}>{areAllExpanded ? "▼" : "►"}</span>
             {areAllExpanded ? "Collapse All" : "Expand All"}
           </button>
-          
+
           <button
             className={styles.manageButton}
             onClick={(e) => {
@@ -168,9 +165,9 @@ const TagSelector: React.FC<TagSelectorProps> = ({
       </div>
 
       <div className={styles.categoryList}>
-        {categories?.map(category => {
-          const hasMatchingTags = category.subcategories.some(subcategory =>
-            subcategory.tags.some(tag => filterTag(tag.name))
+        {categories?.map((category) => {
+          const hasMatchingTags = category.subcategories.some((subcategory) =>
+            subcategory.tags.some((tag) => filterTag(tag.name))
           );
 
           if (searchTerm && !hasMatchingTags) return null;
@@ -179,20 +176,17 @@ const TagSelector: React.FC<TagSelectorProps> = ({
 
           return (
             <div key={category.id} className={styles.category}>
-              <div
-                className={styles.categoryHeader}
-                onClick={() => toggleCategory(category.id)}
-              >
-                <span className={styles.categoryToggle}>
-                  {isCategoryExpanded ? "▼" : "►"}
-                </span>
+              <div className={styles.categoryHeader} onClick={() => toggleCategory(category.id)}>
+                <span className={styles.categoryToggle}>{isCategoryExpanded ? "▼" : "►"}</span>
                 <h3 className={styles.categoryTitle}>{category.name}</h3>
               </div>
 
               {isCategoryExpanded && (
                 <div className={styles.subcategoryList}>
-                  {category.subcategories?.map(subcategory => {
-                    const hasMatchingSubcategoryTags = subcategory.tags.some(tag => filterTag(tag.name));
+                  {category.subcategories?.map((subcategory) => {
+                    const hasMatchingSubcategoryTags = subcategory.tags.some((tag) =>
+                      filterTag(tag.name)
+                    );
 
                     if (searchTerm && !hasMatchingSubcategoryTags) return null;
 
@@ -213,17 +207,20 @@ const TagSelector: React.FC<TagSelectorProps> = ({
                         {isSubcategoryExpanded && (
                           <div className={styles.tagGrid}>
                             {subcategory.tags
-                              .filter(tag => filterTag(tag.name))
-                              .map(tag => (
+                              .filter((tag) => filterTag(tag.name))
+                              .map((tag) => (
                                 <button
                                   key={tag.id}
-                                  className={`${styles.tagButton} ${isTagApplied(category.id, subcategory.id, tag.id) ? styles.tagApplied : ''}`}
+                                  className={`${styles.tagButton} ${
+                                    isTagApplied(category.id, subcategory.id, tag.id)
+                                      ? styles.tagApplied
+                                      : ""
+                                  }`}
                                   onClick={() => onToggleTag(category.id, subcategory.id, tag.id)}
                                 >
                                   {tag.name}
                                 </button>
-                              ))
-                            }
+                              ))}
                           </div>
                         )}
                       </div>

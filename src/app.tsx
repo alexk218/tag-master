@@ -62,9 +62,7 @@ const App: React.FC = () => {
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
 
   const [showLocalTracksModal, setShowLocalTracksModal] = useState(false);
-  const [localTracksForPlaylist, setLocalTracksForPlaylist] = useState<
-    string[]
-  >([]);
+  const [localTracksForPlaylist, setLocalTracksForPlaylist] = useState<string[]>([]);
   const [createdPlaylistInfo, setCreatedPlaylistInfo] = useState<{
     name: string;
     id: string | null;
@@ -77,8 +75,7 @@ const App: React.FC = () => {
       const link = document.createElement("link");
       link.id = "font-awesome-css";
       link.rel = "stylesheet";
-      link.href =
-        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css";
+      link.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css";
       document.head.appendChild(link);
     }
   }, []);
@@ -123,9 +120,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // Only set up the listener if storage has been loaded
     if (!isStorageLoaded) {
-      console.log(
-        "TagMaster: Waiting for localStorage to load before setting up player listener"
-      );
+      console.log("TagMaster: Waiting for localStorage to load before setting up player listener");
       return;
     }
 
@@ -158,8 +153,7 @@ const App: React.FC = () => {
           name: trackData.name || "Unknown Track",
           artists: trackData.artists || [{ name: "Unknown Artist" }],
           album: trackData.album || { name: "Unknown Album" },
-          duration_ms:
-            typeof trackData.duration === "number" ? trackData.duration : 0,
+          duration_ms: typeof trackData.duration === "number" ? trackData.duration : 0,
         };
 
         // ALWAYS update currentTrack to reflect what's playing in Spotify
@@ -167,19 +161,13 @@ const App: React.FC = () => {
 
         // ONLY update lockedTrack if we're NOT locked - don't touch lockedTrack when isLocked is true
         if (!isLocked) {
-          console.log(
-            "TagMaster: Updating lockedTrack because not locked:",
-            newTrack.name
-          );
+          console.log("TagMaster: Updating lockedTrack because not locked:", newTrack.name);
           // Make sure to set both track objects to valid state
           const safeTrack = {
             ...newTrack,
             artists: newTrack.artists || [{ name: "Unknown Artist" }],
             album: newTrack.album || { name: "Unknown Album" },
-            duration_ms:
-              typeof newTrack.duration_ms === "number"
-                ? newTrack.duration_ms
-                : 0,
+            duration_ms: typeof newTrack.duration_ms === "number" ? newTrack.duration_ms : 0,
           };
 
           setLockedTrack(safeTrack);
@@ -206,8 +194,7 @@ const App: React.FC = () => {
     // Define the track URI checker function
     const checkForTrackUri = async () => {
       // Get the current location and log it for debugging
-      const currentLocation =
-        Spicetify.Platform.History.location || window.location;
+      const currentLocation = Spicetify.Platform.History.location || window.location;
       console.log("TagMaster: Current location:", currentLocation);
 
       // Try multiple ways to get the URI parameter
@@ -217,23 +204,15 @@ const App: React.FC = () => {
       const windowParams = new URLSearchParams(window.location.search);
       if (windowParams.has("uri")) {
         trackUri = windowParams.get("uri");
-        console.log(
-          "TagMaster: Found URI in window.location.search:",
-          trackUri
-        );
+        console.log("TagMaster: Found URI in window.location.search:", trackUri);
       }
 
       // Try from Spicetify.Platform.History.location if available
       if (!trackUri && Spicetify.Platform.History.location) {
-        const historyParams = new URLSearchParams(
-          Spicetify.Platform.History.location.search
-        );
+        const historyParams = new URLSearchParams(Spicetify.Platform.History.location.search);
         if (historyParams.has("uri")) {
           trackUri = historyParams.get("uri");
-          console.log(
-            "TagMaster: Found URI in History location search:",
-            trackUri
-          );
+          console.log("TagMaster: Found URI in History location search:", trackUri);
         }
 
         // Also check state
@@ -302,10 +281,7 @@ const App: React.FC = () => {
             // The useEffect will handle saving to localStorage
           }
         } catch (error) {
-          console.error(
-            "TagMaster: Error loading track from URI parameter:",
-            error
-          );
+          console.error("TagMaster: Error loading track from URI parameter:", error);
           Spicetify.showNotification("Error loading track for tagging", true);
         }
       } else {
@@ -330,27 +306,21 @@ const App: React.FC = () => {
 
       try {
         // Try to set up the listener and get the unlisten function
-        const unlistenFunc = Spicetify.Platform.History.listen(
-          (location: any) => {
-            console.log("TagMaster: History changed:", location);
-            checkForTrackUri();
-          }
-        );
+        const unlistenFunc = Spicetify.Platform.History.listen((location: any) => {
+          console.log("TagMaster: History changed:", location);
+          checkForTrackUri();
+        });
 
         // Check if the returned value is a function (as it should be)
         if (typeof unlistenFunc === "function") {
           unlisten = unlistenFunc;
         } else {
-          console.warn(
-            "TagMaster: History.listen did not return a cleanup function"
-          );
+          console.warn("TagMaster: History.listen did not return a cleanup function");
           // Create a fallback cleanup function if needed
           unlisten = () => {
             // Try to remove the listener using an alternative method if available
             // This is a placeholder - you might need specific logic based on Spicetify's API
-            console.log(
-              "TagMaster: Using fallback cleanup for history listener"
-            );
+            console.log("TagMaster: Using fallback cleanup for history listener");
           };
         }
       } catch (error) {
@@ -462,10 +432,7 @@ const App: React.FC = () => {
 
       // Check if categories exist and is an array
       if (!tagData.categories || !Array.isArray(tagData.categories)) {
-        console.error(
-          "TagData is missing valid categories array",
-          tagData.categories
-        );
+        console.error("TagData is missing valid categories array", tagData.categories);
         return {}; // Return empty object to avoid further errors
       }
 
@@ -481,11 +448,7 @@ const App: React.FC = () => {
         if (!track) return;
 
         // Skip tracks that have no meaningful data
-        if (
-          track.rating === 0 &&
-          track.energy === 0 &&
-          (!track.tags || track.tags.length === 0)
-        ) {
+        if (track.rating === 0 && track.energy === 0 && (!track.tags || track.tags.length === 0)) {
           return;
         }
 
@@ -497,25 +460,17 @@ const App: React.FC = () => {
         };
 
         // Skip if no tags
-        if (
-          !track.tags ||
-          !Array.isArray(track.tags) ||
-          track.tags.length === 0
-        ) {
+        if (!track.tags || !Array.isArray(track.tags) || track.tags.length === 0) {
           return;
         }
 
         // Process each tag
         track.tags.forEach((tag) => {
           // Find the tag info
-          const category = tagData.categories.find(
-            (c) => c.id === tag.categoryId
-          );
+          const category = tagData.categories.find((c) => c.id === tag.categoryId);
           if (!category) return;
 
-          const subcategory = category.subcategories.find(
-            (s) => s.id === tag.subcategoryId
-          );
+          const subcategory = category.subcategories.find((s) => s.id === tag.subcategoryId);
           if (!subcategory) return;
 
           const tagObj = subcategory.tags.find((t) => t.id === tag.tagId);
@@ -549,9 +504,7 @@ const App: React.FC = () => {
 
     try {
       // First, get the current user's profile to get the user ID
-      const userProfile = await Spicetify.CosmosAsync.get(
-        "https://api.spotify.com/v1/me"
-      );
+      const userProfile = await Spicetify.CosmosAsync.get("https://api.spotify.com/v1/me");
       const userId = userProfile.id;
 
       if (!userId) {
@@ -559,12 +512,8 @@ const App: React.FC = () => {
       }
 
       // Split tracks into Spotify tracks and local tracks
-      const spotifyTrackUris = trackUris.filter(
-        (uri) => !uri.startsWith("spotify:local:")
-      );
-      const localTrackUris = trackUris.filter((uri) =>
-        uri.startsWith("spotify:local:")
-      );
+      const spotifyTrackUris = trackUris.filter((uri) => !uri.startsWith("spotify:local:"));
+      const localTrackUris = trackUris.filter((uri) => uri.startsWith("spotify:local:"));
 
       // Check if we have any Spotify tracks to add
       if (spotifyTrackUris.length === 0 && localTrackUris.length > 0) {
@@ -614,10 +563,7 @@ const App: React.FC = () => {
 
       // Add tracks to the playlist in batches of 100 (API limit)
       for (let i = 0; i < spotifyTrackUris.length; i += 100) {
-        const batch = spotifyTrackUris.slice(
-          i,
-          Math.min(i + 100, spotifyTrackUris.length)
-        );
+        const batch = spotifyTrackUris.slice(i, Math.min(i + 100, spotifyTrackUris.length));
         await Spicetify.CosmosAsync.post(
           `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
           {
@@ -655,10 +601,7 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error("Error creating playlist:", error);
-      Spicetify.showNotification(
-        "Failed to create playlist. Please try again.",
-        true
-      );
+      Spicetify.showNotification("Failed to create playlist. Please try again.", true);
     }
   };
 
@@ -672,33 +615,24 @@ const App: React.FC = () => {
           {activeTrack && (
             <div className={styles.trackLockControl}>
               <button
-                className={`${styles.lockButton} ${
-                  isLocked ? styles.locked : styles.unlocked
-                }`}
+                className={`${styles.lockButton} ${isLocked ? styles.locked : styles.unlocked}`}
                 onClick={toggleLock}
-                title={
-                  isLocked
-                    ? "Unlock to follow currently playing track"
-                    : "Lock to this track"
-                }
+                title={isLocked ? "Unlock to follow currently playing track" : "Lock to this track"}
               >
                 {isLocked ? "🔓" : "🔒"}
               </button>
 
-              {isLocked &&
-                currentTrack &&
-                currentTrack.uri !== activeTrack.uri && (
-                  <button
-                    className={styles.switchTrackButton}
-                    onClick={() => {
-                      setLockedTrack(currentTrack);
-                    }}
-                    title="Switch to currently playing track"
-                  >
-                    <span className={styles.buttonIcon}>↺</span> Switch to
-                    current
-                  </button>
-                )}
+              {isLocked && currentTrack && currentTrack.uri !== activeTrack.uri && (
+                <button
+                  className={styles.switchTrackButton}
+                  onClick={() => {
+                    setLockedTrack(currentTrack);
+                  }}
+                  title="Switch to currently playing track"
+                >
+                  <span className={styles.buttonIcon}>↺</span> Switch to current
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -706,9 +640,7 @@ const App: React.FC = () => {
         {/* Track info display when locked */}
         {isLocked && activeTrack && (
           <div className={styles.lockedTrackInfo}>
-            Currently tagging:{" "}
-            <span className={styles.lockedTrackName}>{activeTrack.name}</span>{" "}
-            by{" "}
+            Currently tagging: <span className={styles.lockedTrackName}>{activeTrack.name}</span> by{" "}
             <span className={styles.lockedTrackArtist}>
               {activeTrack.artists.map((a) => a.name).join(", ")}
             </span>
@@ -746,12 +678,7 @@ const App: React.FC = () => {
                   onSetRating={(rating) => setRating(activeTrack.uri, rating)}
                   onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
                   onRemoveTag={(categoryId, subcategoryId, tagId) =>
-                    toggleTrackTag(
-                      activeTrack.uri,
-                      categoryId,
-                      subcategoryId,
-                      tagId
-                    )
+                    toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
                   }
                   onFilterByTag={(tagName) => {
                     setActiveTagFilters((prev) => {
@@ -769,12 +696,7 @@ const App: React.FC = () => {
                   categories={tagData.categories}
                   trackTags={tagData.tracks[activeTrack.uri]?.tags || []}
                   onToggleTag={(categoryId, subcategoryId, tagId) =>
-                    toggleTrackTag(
-                      activeTrack.uri,
-                      categoryId,
-                      subcategoryId,
-                      tagId
-                    )
+                    toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
                   }
                   onOpenTagManager={() => setShowTagManager(true)}
                 />
@@ -841,12 +763,7 @@ const App: React.FC = () => {
           )}
 
           {/* Export panel for Rekordbox */}
-          {showExport && (
-            <ExportPanel
-              data={exportData()}
-              onClose={() => setShowExport(false)}
-            />
-          )}
+          {showExport && <ExportPanel data={exportData()} onClose={() => setShowExport(false)} />}
         </>
       )}
       {showLocalTracksModal && (
