@@ -320,7 +320,9 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
       }
 
       // Find our track in the album and get its play count
-      const trackItem = tracks.items.find((item: { track: { uri: string; }; }) => item.track && item.track.uri === trackUri);
+      const trackItem = tracks.items.find(
+        (item: { track: { uri: string } }) => item.track && item.track.uri === trackUri
+      );
 
       if (!trackItem || !trackItem.track) {
         console.error("Track not found in album data");
@@ -492,6 +494,58 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
     }
   };
 
+  // Add this function with the other navigation functions
+  const navigateToArtist = (artistName: string) => {
+    try {
+      // Check if this is a local file first
+      if (track.uri.startsWith("spotify:local:")) {
+        Spicetify.showNotification("Cannot navigate to artist for local files", true);
+        return;
+      }
+
+      // Try to get artist URI from track data
+      if (track.artists && track.artists.length > 0) {
+        const artist = track.artists.find((a) => a.name === artistName);
+        if (artist && (artist as any).uri) {
+          // If we have the artist URI directly
+          const artistId = (artist as any).uri.split(":").pop();
+          if (artistId) {
+            Spicetify.Platform.History.push(`/artist/${artistId}`);
+            return;
+          }
+        }
+      }
+
+      const trackId = track.uri.split(":").pop();
+      if (trackId) {
+        Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`)
+          .then((response) => {
+            if (response && response.artists) {
+              const artist = response.artists.find((a: any) => a.name === artistName);
+              if (artist && artist.id) {
+                Spicetify.Platform.History.push(`/artist/${artist.id}`);
+                return;
+              }
+            }
+
+            // Fallback - search for the artist
+            Spicetify.Platform.History.push(`/search/${encodeURIComponent(artistName)}/artists`);
+          })
+          .catch((error) => {
+            console.error("Error finding artist:", error);
+            // Fallback - search for the artist
+            Spicetify.Platform.History.push(`/search/${encodeURIComponent(artistName)}/artists`);
+          });
+      } else {
+        // Fallback - search for the artist
+        Spicetify.Platform.History.push(`/search/${encodeURIComponent(artistName)}/artists`);
+      }
+    } catch (error) {
+      console.error("Error navigating to artist:", error);
+      Spicetify.showNotification("Error navigating to artist", true);
+    }
+  };
+
   // Navigate to context (playlist, album, etc.)
   const navigateToContext = () => {
     if (!contextUri) {
@@ -611,7 +665,22 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 <span style={{ fontSize: "0.8em", opacity: 0.7, marginLeft: "6px" }}>(Local)</span>
               )}
             </h2>
-            <p className={styles.trackArtist}>{artistNames}</p>
+            <p className={styles.trackArtist}>
+              {track.artists && track.artists.length > 0
+                ? track.artists.map((artist, idx, arr) => (
+                    <React.Fragment key={idx}>
+                      <span
+                        className={`${styles.clickableArtist}`}
+                        onClick={() => navigateToArtist(artist.name)}
+                        title={`Go to ${artist.name}`}
+                      >
+                        {artist.name}
+                      </span>
+                      {idx < arr.length - 1 && ", "}
+                    </React.Fragment>
+                  ))
+                : "Unknown Artist"}
+            </p>
             <p className={styles.trackAlbum}>{track.album?.name || "Unknown Album"}</p>
 
             {/* New Track Metadata Section */}

@@ -35,6 +35,16 @@
   margin-bottom: 0;
 }
 
+.clickableArtist {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.clickableArtist:hover {
+  color: rgba(255, 255, 255, 0.977);
+  text-decoration: underline;
+}
+
 .albumCoverContainer {
   flex-shrink: 0;
   width: 100px;
