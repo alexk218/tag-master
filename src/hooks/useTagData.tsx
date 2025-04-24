@@ -25,7 +25,7 @@ export interface TrackTag {
 }
 
 export interface TrackData {
-    rating: number; // 1-5 stars, 0 for no rating
+    rating: number; // 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, or 5
     energy: number; // 1-10 scale, 0 for no energy rating
     tags: TrackTag[]; // References to tags by their IDs
 }

@@ -3,6 +3,7 @@ import styles from "./TrackList.module.css";
 import { parseLocalFileUri } from "../utils/LocalFileParser";
 import { Category } from "../hooks/useTagData";
 import CreatePlaylistModal from "./CreatePlaylistModal";
+import ReactStars from "react-rating-stars-component";
 
 interface Tag {
   tag: string;
@@ -552,9 +553,18 @@ const TrackList: React.FC<TrackListProps> = ({
                     className={`${styles.ratingFilter} ${ratingFilters.includes(rating) ? styles.active : ''}`}
                     onClick={() => toggleRatingFilter(rating)}
                   >
-                    {Array(rating).fill(0).map((_, i) => (
-                      <span key={i} className={styles.filterStar}>★</span>
-                    ))}
+                    <ReactStars
+                      count={5}
+                      value={rating}
+                      edit={false}
+                      size={14}
+                      isHalf={true}
+                      emptyIcon={<i className="far fa-star"></i>}
+                      halfIcon={<i className="fa fa-star-half-alt"></i>}
+                      fullIcon={<i className="fa fa-star"></i>}
+                      activeColor="#ffd700"
+                      color="rgba(255, 255, 255, 0.2)"
+                    />
                   </button>
                 ))}
               </div>
@@ -730,14 +740,18 @@ const TrackList: React.FC<TrackListProps> = ({
                     <div className={styles.trackItemFixedMeta}>
                       {data.rating > 0 && (
                         <div className={styles.trackItemRating}>
-                          {Array(5).fill(0).map((_, i) => (
-                            <span
-                              key={i}
-                              className={`${styles.miniStar} ${i < data.rating ? styles.active : ''}`}
-                            >
-                              ★
-                            </span>
-                          ))}
+                          <ReactStars
+                            count={5}
+                            value={data.rating}
+                            edit={false} // Make it read-only in the list view
+                            size={16}    // Smaller size for the list
+                            isHalf={true}
+                            emptyIcon={<i className="far fa-star"></i>}
+                            halfIcon={<i className="fa fa-star-half-alt"></i>}
+                            fullIcon={<i className="fa fa-star"></i>}
+                            activeColor="#ffd700"
+                            color="var(--spice-button-disabled)"
+                          />
                         </div>
                       )}
 

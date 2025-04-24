@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styles from "./TrackDetails.module.css";
 import { Category, TrackTag } from "../hooks/useTagData";
+import ReactStars from "react-rating-stars-component";
 
 interface TrackDetailsProps {
   track: {
@@ -599,20 +600,23 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         <div className={styles.controlsContainer}>
           {/* Rating */}
           <div className={styles.controlSection}>
-            <label className={styles.label}>Rating:</label>
+            <label className={styles.label}>Rating: {trackData.rating > 0 ? trackData.rating : ''}</label>
             <div className={styles.ratingContainer}>
-              <div className={styles.stars}>
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    className={`${styles.star} ${star <= trackData.rating ? styles.starActive : ''}`}
-                    onClick={() => onSetRating(star === trackData.rating ? 0 : star)}
-                    aria-label={`Rate ${star} stars`}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
+              <ReactStars
+                count={5}
+                value={trackData.rating}
+                onChange={(newRating: number) => {
+                  // Convert from 0-5 scale to our 0-5 scale (with half stars)
+                  onSetRating(newRating === trackData.rating ? 0 : newRating);
+                }}
+                size={24}
+                isHalf={true}
+                emptyIcon={<i className="far fa-star"></i>}
+                halfIcon={<i className="fa fa-star-half-alt"></i>}
+                fullIcon={<i className="fa fa-star"></i>}
+                activeColor="#ffd700"
+                color="var(--spice-button-disabled)"
+              />
             </div>
           </div>
 

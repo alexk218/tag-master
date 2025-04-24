@@ -236,6 +236,32 @@
   height: 28px; /* Fixed height to prevent shifting */
 }
 
+.ratingContainer {
+  margin-top: 8px;
+}
+
+.starsWrapper {
+  display: flex;
+  flex-direction: row;
+}
+
+.starsDisplay {
+  display: flex;
+  gap: 4px;
+}
+
+.ratingSymbol {
+  font-size: 24px;
+  color: var(--spice-button-disabled);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  user-select: none;
+}
+
+.ratingSymbol.active {
+  color: #ffd700;
+}
+
 .stars {
   display: flex;
   gap: 4px;
