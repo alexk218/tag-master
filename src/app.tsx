@@ -129,8 +129,6 @@ const App: React.FC = () => {
       return;
     }
 
-    console.log("TagMaster: Player listener updating - isLocked:", isLocked);
-
     // Function to update current track based on Spicetify API
     const updateCurrentTrack = () => {
       // Check if we have a valid player data
@@ -167,8 +165,7 @@ const App: React.FC = () => {
         // ALWAYS update currentTrack to reflect what's playing in Spotify
         setCurrentTrack(newTrack);
 
-        // ONLY update lockedTrack if we're NOT locked
-        // This is the key fix - don't touch lockedTrack when isLocked is true
+        // ONLY update lockedTrack if we're NOT locked - don't touch lockedTrack when isLocked is true
         if (!isLocked) {
           console.log(
             "TagMaster: Updating lockedTrack because not locked:",
@@ -203,14 +200,6 @@ const App: React.FC = () => {
       Spicetify.Player.removeEventListener("songchange", updateCurrentTrack);
     };
   }, [isLocked, isStorageLoaded]);
-
-  useEffect(() => {
-    console.log("TagMaster: lockedTrack changed:", lockedTrack?.name);
-  }, [lockedTrack]);
-
-  useEffect(() => {
-    console.log("TagMaster: Lock state changed:", isLocked);
-  }, [isLocked]);
 
   // Check for track URI in URL parameters
   useEffect(() => {
