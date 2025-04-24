@@ -237,7 +237,15 @@
 }
 
 .ratingContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-top: 8px;
+  height: 28px; /* Match the height of the energy container */
+}
+
+.stars {
+  display: flex;
 }
 
 .starsWrapper {
@@ -260,11 +268,6 @@
 
 .ratingSymbol.active {
   color: #ffd700;
-}
-
-.stars {
-  display: flex;
-  gap: 4px;
 }
 
 .star {

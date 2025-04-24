@@ -602,21 +602,30 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
           <div className={styles.controlSection}>
             <label className={styles.label}>Rating: {trackData.rating > 0 ? trackData.rating : ''}</label>
             <div className={styles.ratingContainer}>
-              <ReactStars
-                count={5}
-                value={trackData.rating}
-                onChange={(newRating: number) => {
-                  // Convert from 0-5 scale to our 0-5 scale (with half stars)
-                  onSetRating(newRating === trackData.rating ? 0 : newRating);
-                }}
-                size={24}
-                isHalf={true}
-                emptyIcon={<i className="far fa-star"></i>}
-                halfIcon={<i className="fa fa-star-half-alt"></i>}
-                fullIcon={<i className="fa fa-star"></i>}
-                activeColor="#ffd700"
-                color="var(--spice-button-disabled)"
-              />
+              <div className={styles.stars} key={`stars-${trackData.rating}`}>
+                <ReactStars
+                  count={5}
+                  value={trackData.rating || 0}
+                  onChange={(newRating: number) => onSetRating(newRating)}
+                  size={24}
+                  isHalf={true}
+                  emptyIcon={<i className="far fa-star"></i>}
+                  halfIcon={<i className="fa fa-star-half-alt"></i>}
+                  fullIcon={<i className="fa fa-star"></i>}
+                  activeColor="#ffd700"
+                  color="var(--spice-button-disabled)"
+                />
+              </div>
+
+              {trackData.rating > 0 && (
+                <button
+                  className={styles.clearButton}
+                  onClick={() => onSetRating(0)}
+                  aria-label="Clear rating"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
 
