@@ -489,13 +489,6 @@
   justify-content: center;
 }
 
-.tagIcon {
-  font-size: 12px;
-  margin-left: 4px;
-  color: white;
-  display: none; /* Hidden by default, shown on hover */
-}
-
 .activeTrackItem:hover .tagIcon {
   display: block;
 }

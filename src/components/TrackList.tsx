@@ -663,9 +663,6 @@ const TrackList: React.FC<TrackListProps> = ({
                 id={`track-item-${uri}`}
                 className={`${styles.trackItem} ${isActiveTrack ? styles.activeTrackItem : ''}`}
               >
-                {isActiveTrack && <div className={styles.activeTrackIndicator} title="Currently tagging this track">
-                  <span className={styles.tagIcon}>🏷️</span>
-                </div>}
                 {/* Track info section - title and artist + buttons at top */}
                 <div className={styles.trackItemInfo}>
                   {/* Track title and artist on left */}
