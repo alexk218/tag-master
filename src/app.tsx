@@ -42,7 +42,7 @@ const App: React.FC = () => {
     renameTag,
     exportData,
     exportBackup,
-    importBackup
+    importBackup,
   } = useTagData();
 
   // State for current track
@@ -62,18 +62,23 @@ const App: React.FC = () => {
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
 
   const [showLocalTracksModal, setShowLocalTracksModal] = useState(false);
-  const [localTracksForPlaylist, setLocalTracksForPlaylist] = useState<string[]>([]);
+  const [localTracksForPlaylist, setLocalTracksForPlaylist] = useState<
+    string[]
+  >([]);
   const [createdPlaylistInfo, setCreatedPlaylistInfo] = useState<{
     name: string;
     id: string | null;
   }>({ name: "", id: null });
 
+  const [isStorageLoaded, setIsStorageLoaded] = useState(false);
+
   useEffect(() => {
-    if (!document.getElementById('font-awesome-css')) {
-      const link = document.createElement('link');
-      link.id = 'font-awesome-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css';
+    if (!document.getElementById("font-awesome-css")) {
+      const link = document.createElement("link");
+      link.id = "font-awesome-css";
+      link.rel = "stylesheet";
+      link.href =
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css";
       document.head.appendChild(link);
     }
   }, []);
@@ -84,20 +89,26 @@ const App: React.FC = () => {
       const savedLockState = localStorage.getItem(LOCK_STATE_KEY);
       const savedLockedTrack = localStorage.getItem(LOCKED_TRACK_KEY);
 
-      if (savedLockState === 'true' && savedLockedTrack) {
+      if (savedLockState === "true" && savedLockedTrack) {
         setIsLocked(true);
         setLockedTrack(JSON.parse(savedLockedTrack));
-        console.log("TagMaster: Restored locked state for track", JSON.parse(savedLockedTrack).name);
+        console.log(
+          "TagMaster: Restored locked state for track",
+          JSON.parse(savedLockedTrack).name
+        );
       }
     } catch (error) {
       console.error("TagMaster: Error loading saved lock state:", error);
+    } finally {
+      // Mark storage as loaded, even if there was an error
+      setIsStorageLoaded(true);
     }
   }, []);
 
   // Save lock state and locked track whenever they change
   useEffect(() => {
     if (isLocked && lockedTrack) {
-      localStorage.setItem(LOCK_STATE_KEY, 'true');
+      localStorage.setItem(LOCK_STATE_KEY, "true");
       localStorage.setItem(LOCKED_TRACK_KEY, JSON.stringify(lockedTrack));
     } else {
       localStorage.removeItem(LOCK_STATE_KEY);
@@ -110,13 +121,23 @@ const App: React.FC = () => {
 
   // Listen for track changes
   useEffect(() => {
+    // Only set up the listener if storage has been loaded
+    if (!isStorageLoaded) {
+      console.log(
+        "TagMaster: Waiting for localStorage to load before setting up player listener"
+      );
+      return;
+    }
+
+    console.log("TagMaster: Player listener updating - isLocked:", isLocked);
+
     // Function to update current track based on Spicetify API
     const updateCurrentTrack = () => {
       // Check if we have a valid player data
       if (!Spicetify?.Player?.data) return;
 
       try {
-        // Try to get the track data - different Spicetify versions might have different structures
+        // Try to get the track data
         let trackData = null;
 
         // First try 'track' property which is the most common
@@ -139,20 +160,29 @@ const App: React.FC = () => {
           name: trackData.name || "Unknown Track",
           artists: trackData.artists || [{ name: "Unknown Artist" }],
           album: trackData.album || { name: "Unknown Album" },
-          duration_ms: typeof trackData.duration === 'number' ? trackData.duration : 0
+          duration_ms:
+            typeof trackData.duration === "number" ? trackData.duration : 0,
         };
 
+        // ALWAYS update currentTrack to reflect what's playing in Spotify
         setCurrentTrack(newTrack);
 
-        // Check if we're not locked, also update the locked track to match the current track
+        // ONLY update lockedTrack if we're NOT locked
+        // This is the key fix - don't touch lockedTrack when isLocked is true
         if (!isLocked) {
+          console.log(
+            "TagMaster: Updating lockedTrack because not locked:",
+            newTrack.name
+          );
           // Make sure to set both track objects to valid state
-          // Sometimes track might not have all required properties
           const safeTrack = {
             ...newTrack,
             artists: newTrack.artists || [{ name: "Unknown Artist" }],
             album: newTrack.album || { name: "Unknown Album" },
-            duration_ms: typeof newTrack.duration_ms === 'number' ? newTrack.duration_ms : 0
+            duration_ms:
+              typeof newTrack.duration_ms === "number"
+                ? newTrack.duration_ms
+                : 0,
           };
 
           setLockedTrack(safeTrack);
@@ -172,6 +202,14 @@ const App: React.FC = () => {
     return () => {
       Spicetify.Player.removeEventListener("songchange", updateCurrentTrack);
     };
+  }, [isLocked, isStorageLoaded]);
+
+  useEffect(() => {
+    console.log("TagMaster: lockedTrack changed:", lockedTrack?.name);
+  }, [lockedTrack]);
+
+  useEffect(() => {
+    console.log("TagMaster: Lock state changed:", isLocked);
   }, [isLocked]);
 
   // Check for track URI in URL parameters
@@ -179,7 +217,8 @@ const App: React.FC = () => {
     // Define the track URI checker function
     const checkForTrackUri = async () => {
       // Get the current location and log it for debugging
-      const currentLocation = Spicetify.Platform.History.location || window.location;
+      const currentLocation =
+        Spicetify.Platform.History.location || window.location;
       console.log("TagMaster: Current location:", currentLocation);
 
       // Try multiple ways to get the URI parameter
@@ -187,17 +226,25 @@ const App: React.FC = () => {
 
       // Try from window.location.search
       const windowParams = new URLSearchParams(window.location.search);
-      if (windowParams.has('uri')) {
-        trackUri = windowParams.get('uri');
-        console.log("TagMaster: Found URI in window.location.search:", trackUri);
+      if (windowParams.has("uri")) {
+        trackUri = windowParams.get("uri");
+        console.log(
+          "TagMaster: Found URI in window.location.search:",
+          trackUri
+        );
       }
 
       // Try from Spicetify.Platform.History.location if available
       if (!trackUri && Spicetify.Platform.History.location) {
-        const historyParams = new URLSearchParams(Spicetify.Platform.History.location.search);
-        if (historyParams.has('uri')) {
-          trackUri = historyParams.get('uri');
-          console.log("TagMaster: Found URI in History location search:", trackUri);
+        const historyParams = new URLSearchParams(
+          Spicetify.Platform.History.location.search
+        );
+        if (historyParams.has("uri")) {
+          trackUri = historyParams.get("uri");
+          console.log(
+            "TagMaster: Found URI in History location search:",
+            trackUri
+          );
         }
 
         // Also check state
@@ -212,7 +259,7 @@ const App: React.FC = () => {
 
         try {
           // Check if this is a local file
-          if (trackUri.startsWith('spotify:local:')) {
+          if (trackUri.startsWith("spotify:local:")) {
             // Use our dedicated parser to get better metadata
             const parsedFile = parseLocalFileUri(trackUri);
 
@@ -222,7 +269,7 @@ const App: React.FC = () => {
               name: parsedFile.title,
               artists: [{ name: parsedFile.artist }],
               album: { name: parsedFile.album },
-              duration_ms: 0
+              duration_ms: 0,
             };
 
             // Lock to this track
@@ -234,7 +281,7 @@ const App: React.FC = () => {
           }
 
           // Extract the track ID from the URI
-          const trackId = trackUri.split(':').pop();
+          const trackId = trackUri.split(":").pop();
 
           if (!trackId) {
             throw new Error("Invalid track URI");
@@ -250,9 +297,11 @@ const App: React.FC = () => {
             const trackInfo: SpotifyTrack = {
               uri: trackUri,
               name: response.name,
-              artists: response.artists.map((artist: any) => ({ name: artist.name })),
+              artists: response.artists.map((artist: any) => ({
+                name: artist.name,
+              })),
               album: { name: response.album?.name || "Unknown Album" },
-              duration_ms: response.duration_ms
+              duration_ms: response.duration_ms,
             };
 
             console.log("TagMaster: Setting locked track:", trackInfo.name);
@@ -262,10 +311,12 @@ const App: React.FC = () => {
             setIsLocked(true);
 
             // The useEffect will handle saving to localStorage
-
           }
         } catch (error) {
-          console.error("TagMaster: Error loading track from URI parameter:", error);
+          console.error(
+            "TagMaster: Error loading track from URI parameter:",
+            error
+          );
           Spicetify.showNotification("Error loading track for tagging", true);
         }
       } else {
@@ -280,33 +331,43 @@ const App: React.FC = () => {
     // Set up better history listener
     let unlisten: (() => void) | null = null;
 
-// Before setting up the listener, check if there's a proper listen method available
-if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platform.History.listen === 'function') {
-  console.log("TagMaster: Setting up history listener");
-  
-  try {
-    // Try to set up the listener and get the unlisten function
-    const unlistenFunc = Spicetify.Platform.History.listen((location: any) => {
-      console.log("TagMaster: History changed:", location);
-      checkForTrackUri();
-    });
-    
-    // Check if the returned value is a function (as it should be)
-    if (typeof unlistenFunc === 'function') {
-      unlisten = unlistenFunc;
-    } else {
-      console.warn("TagMaster: History.listen did not return a cleanup function");
-      // Create a fallback cleanup function if needed
-      unlisten = () => {
-        // Try to remove the listener using an alternative method if available
-        // This is a placeholder - you might need specific logic based on Spicetify's API
-        console.log("TagMaster: Using fallback cleanup for history listener");
-      };
+    // Before setting up the listener, check if there's a proper listen method available
+    if (
+      Spicetify.Platform &&
+      Spicetify.Platform.History &&
+      typeof Spicetify.Platform.History.listen === "function"
+    ) {
+      console.log("TagMaster: Setting up history listener");
+
+      try {
+        // Try to set up the listener and get the unlisten function
+        const unlistenFunc = Spicetify.Platform.History.listen(
+          (location: any) => {
+            console.log("TagMaster: History changed:", location);
+            checkForTrackUri();
+          }
+        );
+
+        // Check if the returned value is a function (as it should be)
+        if (typeof unlistenFunc === "function") {
+          unlisten = unlistenFunc;
+        } else {
+          console.warn(
+            "TagMaster: History.listen did not return a cleanup function"
+          );
+          // Create a fallback cleanup function if needed
+          unlisten = () => {
+            // Try to remove the listener using an alternative method if available
+            // This is a placeholder - you might need specific logic based on Spicetify's API
+            console.log(
+              "TagMaster: Using fallback cleanup for history listener"
+            );
+          };
+        }
+      } catch (error) {
+        console.error("TagMaster: Error setting up history listener:", error);
+      }
     }
-  } catch (error) {
-    console.error("TagMaster: Error setting up history listener:", error);
-  }
-}
 
     // Cleanup listener on unmount
     return () => {
@@ -337,7 +398,7 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
   const handleTagTrack = async (uri: string) => {
     try {
       // Check if this is a local file
-      if (uri.startsWith('spotify:local:')) {
+      if (uri.startsWith("spotify:local:")) {
         // Use our dedicated parser to get better metadata
         const parsedFile = parseLocalFileUri(uri);
 
@@ -347,7 +408,7 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
           name: parsedFile.title,
           artists: [{ name: parsedFile.artist }],
           album: { name: parsedFile.album },
-          duration_ms: 0
+          duration_ms: 0,
         };
 
         // Lock to this track
@@ -375,9 +436,11 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
         const trackInfo: SpotifyTrack = {
           uri: uri,
           name: response.name,
-          artists: response.artists.map((artist: any) => ({ name: artist.name })),
+          artists: response.artists.map((artist: any) => ({
+            name: artist.name,
+          })),
           album: { name: response.album?.name || "Unknown Album" },
-          duration_ms: response.duration_ms
+          duration_ms: response.duration_ms,
         };
 
         // Lock to this track
@@ -403,19 +466,22 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
 
     try {
       // First check if we have valid tagData
-      if (!tagData || typeof tagData !== 'object') {
+      if (!tagData || typeof tagData !== "object") {
         console.error("TagData is invalid", tagData);
         return {};
       }
 
       // Check if categories exist and is an array
       if (!tagData.categories || !Array.isArray(tagData.categories)) {
-        console.error("TagData is missing valid categories array", tagData.categories);
+        console.error(
+          "TagData is missing valid categories array",
+          tagData.categories
+        );
         return {}; // Return empty object to avoid further errors
       }
 
       // Check if tracks exist
-      if (!tagData.tracks || typeof tagData.tracks !== 'object') {
+      if (!tagData.tracks || typeof tagData.tracks !== "object") {
         console.error("TagData is missing valid tracks object", tagData.tracks);
         return {};
       }
@@ -426,38 +492,50 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
         if (!track) return;
 
         // Skip tracks that have no meaningful data
-        if (track.rating === 0 && track.energy === 0 && (!track.tags || track.tags.length === 0)) {
+        if (
+          track.rating === 0 &&
+          track.energy === 0 &&
+          (!track.tags || track.tags.length === 0)
+        ) {
           return;
         }
 
         // Create entry for this track
         result[uri] = {
           rating: track.rating || 0,
-          energy: track.energy || 0,  // Don't default to 5 if energy is 0
-          tags: []
+          energy: track.energy || 0, // Don't default to 5 if energy is 0
+          tags: [],
         };
 
         // Skip if no tags
-        if (!track.tags || !Array.isArray(track.tags) || track.tags.length === 0) {
+        if (
+          !track.tags ||
+          !Array.isArray(track.tags) ||
+          track.tags.length === 0
+        ) {
           return;
         }
 
         // Process each tag
-        track.tags.forEach(tag => {
+        track.tags.forEach((tag) => {
           // Find the tag info
-          const category = tagData.categories.find(c => c.id === tag.categoryId);
+          const category = tagData.categories.find(
+            (c) => c.id === tag.categoryId
+          );
           if (!category) return;
 
-          const subcategory = category.subcategories.find(s => s.id === tag.subcategoryId);
+          const subcategory = category.subcategories.find(
+            (s) => s.id === tag.subcategoryId
+          );
           if (!subcategory) return;
 
-          const tagObj = subcategory.tags.find(t => t.id === tag.tagId);
+          const tagObj = subcategory.tags.find((t) => t.id === tag.tagId);
           if (!tagObj) return;
 
           // Add the tag with proper names
           result[uri].tags.push({
             tag: tagObj.name,
-            category: `${category.name} > ${subcategory.name}`
+            category: `${category.name} > ${subcategory.name}`,
           });
         });
       });
@@ -482,7 +560,9 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
 
     try {
       // First, get the current user's profile to get the user ID
-      const userProfile = await Spicetify.CosmosAsync.get('https://api.spotify.com/v1/me');
+      const userProfile = await Spicetify.CosmosAsync.get(
+        "https://api.spotify.com/v1/me"
+      );
       const userId = userProfile.id;
 
       if (!userId) {
@@ -490,8 +570,12 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
       }
 
       // Split tracks into Spotify tracks and local tracks
-      const spotifyTrackUris = trackUris.filter(uri => !uri.startsWith('spotify:local:'));
-      const localTrackUris = trackUris.filter(uri => uri.startsWith('spotify:local:'));
+      const spotifyTrackUris = trackUris.filter(
+        (uri) => !uri.startsWith("spotify:local:")
+      );
+      const localTrackUris = trackUris.filter((uri) =>
+        uri.startsWith("spotify:local:")
+      );
 
       // Check if we have any Spotify tracks to add
       if (spotifyTrackUris.length === 0 && localTrackUris.length > 0) {
@@ -502,7 +586,7 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
           {
             name: playlistName,
             description: playlistDescription,
-            public: isPublic
+            public: isPublic,
           }
         );
 
@@ -515,7 +599,7 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
         // Store the created playlist info and local tracks for the modal
         setCreatedPlaylistInfo({
           name: playlistName,
-          id: playlistId
+          id: playlistId,
         });
         setLocalTracksForPlaylist(localTrackUris);
         setShowLocalTracksModal(true);
@@ -529,7 +613,7 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
         {
           name: playlistName,
           description: playlistDescription,
-          public: isPublic
+          public: isPublic,
         }
       );
 
@@ -541,11 +625,14 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
 
       // Add tracks to the playlist in batches of 100 (API limit)
       for (let i = 0; i < spotifyTrackUris.length; i += 100) {
-        const batch = spotifyTrackUris.slice(i, Math.min(i + 100, spotifyTrackUris.length));
+        const batch = spotifyTrackUris.slice(
+          i,
+          Math.min(i + 100, spotifyTrackUris.length)
+        );
         await Spicetify.CosmosAsync.post(
           `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
           {
-            uris: batch
+            uris: batch,
           }
         );
       }
@@ -555,7 +642,7 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
         // Store the created playlist info and local tracks for the modal
         setCreatedPlaylistInfo({
           name: playlistName,
-          id: playlistId
+          id: playlistId,
         });
         setLocalTracksForPlaylist(localTrackUris);
 
@@ -570,14 +657,19 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
         setShowLocalTracksModal(true);
       } else {
         // Simple success notification for Spotify-only playlists
-        Spicetify.showNotification(`Created playlist "${playlistName}" with ${spotifyTrackUris.length} tracks.`);
+        Spicetify.showNotification(
+          `Created playlist "${playlistName}" with ${spotifyTrackUris.length} tracks.`
+        );
 
         // Navigate to the newly created playlist
         Spicetify.Platform.History.push(`/playlist/${playlistId}`);
       }
     } catch (error) {
       console.error("Error creating playlist:", error);
-      Spicetify.showNotification("Failed to create playlist. Please try again.", true);
+      Spicetify.showNotification(
+        "Failed to create playlist. Please try again.",
+        true
+      );
     }
   };
 
@@ -591,24 +683,33 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
           {activeTrack && (
             <div className={styles.trackLockControl}>
               <button
-                className={`${styles.lockButton} ${isLocked ? styles.locked : styles.unlocked}`}
+                className={`${styles.lockButton} ${
+                  isLocked ? styles.locked : styles.unlocked
+                }`}
                 onClick={toggleLock}
-                title={isLocked ? "Unlock to follow currently playing track" : "Lock to this track"}
+                title={
+                  isLocked
+                    ? "Unlock to follow currently playing track"
+                    : "Lock to this track"
+                }
               >
                 {isLocked ? "🔓" : "🔒"}
               </button>
 
-              {isLocked && currentTrack && currentTrack.uri !== activeTrack.uri && (
-                <button
-                  className={styles.switchTrackButton}
-                  onClick={() => {
-                    setLockedTrack(currentTrack);
-                  }}
-                  title="Switch to currently playing track"
-                >
-                  <span className={styles.buttonIcon}>↺</span> Switch to current
-                </button>
-              )}
+              {isLocked &&
+                currentTrack &&
+                currentTrack.uri !== activeTrack.uri && (
+                  <button
+                    className={styles.switchTrackButton}
+                    onClick={() => {
+                      setLockedTrack(currentTrack);
+                    }}
+                    title="Switch to currently playing track"
+                  >
+                    <span className={styles.buttonIcon}>↺</span> Switch to
+                    current
+                  </button>
+                )}
             </div>
           )}
         </div>
@@ -616,130 +717,149 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
         {/* Track info display when locked */}
         {isLocked && activeTrack && (
           <div className={styles.lockedTrackInfo}>
-            Currently tagging: <span className={styles.lockedTrackName}>{activeTrack.name}</span> by <span className={styles.lockedTrackArtist}>{activeTrack.artists.map(a => a.name).join(', ')}</span>
+            Currently tagging:{" "}
+            <span className={styles.lockedTrackName}>{activeTrack.name}</span>{" "}
+            by{" "}
+            <span className={styles.lockedTrackArtist}>
+              {activeTrack.artists.map((a) => a.name).join(", ")}
+            </span>
           </div>
         )}
       </div>
 
-      {
-        isLoading ? (
-          <div className={styles.loadingContainer}>
-            <p className={styles.loadingText}>Loading tag data...</p>
-          </div>
-        ) : (
-          <>
-            <DataManager
-              onExportBackup={exportBackup}
-              onImportBackup={importBackup}
-              onExportRekordbox={() => setShowExport(true)}
-              lastSaved={lastSaved}
+      {isLoading ? (
+        <div className={styles.loadingContainer}>
+          <p className={styles.loadingText}>Loading tag data...</p>
+        </div>
+      ) : (
+        <>
+          <DataManager
+            onExportBackup={exportBackup}
+            onImportBackup={importBackup}
+            onExportRekordbox={() => setShowExport(true)}
+            lastSaved={lastSaved}
+          />
+
+          <div className={styles.content}>
+            {activeTrack && (
+              <>
+                <TrackDetails
+                  track={activeTrack}
+                  trackData={
+                    tagData.tracks[activeTrack.uri] || {
+                      rating: 0,
+                      energy: 0,
+                      tags: [],
+                    }
+                  }
+                  categories={tagData.categories}
+                  activeTagFilters={activeTagFilters} // Add this prop
+                  onSetRating={(rating) => setRating(activeTrack.uri, rating)}
+                  onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
+                  onRemoveTag={(categoryId, subcategoryId, tagId) =>
+                    toggleTrackTag(
+                      activeTrack.uri,
+                      categoryId,
+                      subcategoryId,
+                      tagId
+                    )
+                  }
+                  onFilterByTag={(tagName) => {
+                    setActiveTagFilters((prev) => {
+                      if (prev.includes(tagName)) {
+                        return prev.filter((t) => t !== tagName);
+                      } else {
+                        return [...prev, tagName];
+                      }
+                    });
+                  }}
+                />
+
+                <TagSelector
+                  track={activeTrack}
+                  categories={tagData.categories}
+                  trackTags={tagData.tracks[activeTrack.uri]?.tags || []}
+                  onToggleTag={(categoryId, subcategoryId, tagId) =>
+                    toggleTrackTag(
+                      activeTrack.uri,
+                      categoryId,
+                      subcategoryId,
+                      tagId
+                    )
+                  }
+                  onOpenTagManager={() => setShowTagManager(true)}
+                />
+              </>
+            )}
+
+            {/* List of tagged tracks */}
+            <TrackList
+              tracks={getLegacyFormatTracks()}
+              categories={tagData.categories}
+              activeTagFilters={activeTagFilters}
+              activeTrackUri={activeTrack?.uri || null} // Pass the active track URI to highlight it
+              onFilterByTag={(tag) => {
+                setActiveTagFilters((prev) => {
+                  if (prev.includes(tag)) {
+                    return prev.filter((t) => t !== tag);
+                  } else {
+                    return [...prev, tag];
+                  }
+                });
+              }}
+              onClearTagFilters={clearTagFilters}
+              onSelectTrack={(uri) => {
+                // Special handling for local files
+                if (uri.startsWith("spotify:local:")) {
+                  // For local files, we should navigate to the Local Files section
+                  // instead of trying to play directly
+                  Spicetify.Platform.History.push("/collection/local-files");
+
+                  // Show a notification to guide the user
+                  Spicetify.showNotification(
+                    "Local files can only be played from the Local Files section",
+                    false,
+                    3000
+                  );
+                  return;
+                }
+
+                // For regular Spotify tracks, play as usual
+                if (Spicetify.Player && Spicetify.Player.playUri) {
+                  Spicetify.Player.playUri(uri);
+                }
+              }}
+              onTagTrack={handleTagTrack}
+              onCreatePlaylist={createPlaylistFromFilters}
             />
+          </div>
 
-            <div className={styles.content}>
-              {activeTrack && (
-                <>
-                  <TrackDetails
-                    track={activeTrack}
-                    trackData={tagData.tracks[activeTrack.uri] || { rating: 0, energy: 0, tags: [] }}
-                    categories={tagData.categories}
-                    activeTagFilters={activeTagFilters} // Add this prop
-                    onSetRating={(rating) => setRating(activeTrack.uri, rating)}
-                    onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
-                    onRemoveTag={(categoryId, subcategoryId, tagId) =>
-                      toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
-                    }
-                    onFilterByTag={(tagName) => {
-                      setActiveTagFilters(prev => {
-                        if (prev.includes(tagName)) {
-                          return prev.filter(t => t !== tagName);
-                        } else {
-                          return [...prev, tagName];
-                        }
-                      });
-                    }}
-                  />
+          {/* Hierarchical tag manager modal */}
+          {showTagManager && (
+            <TagManager
+              categories={tagData.categories}
+              onClose={() => setShowTagManager(false)}
+              onAddCategory={addCategory}
+              onRemoveCategory={removeCategory}
+              onRenameCategory={renameCategory}
+              onAddSubcategory={addSubcategory}
+              onRemoveSubcategory={removeSubcategory}
+              onRenameSubcategory={renameSubcategory}
+              onAddTag={addTag}
+              onRemoveTag={removeTag}
+              onRenameTag={renameTag}
+            />
+          )}
 
-                  <TagSelector
-                    track={activeTrack}
-                    categories={tagData.categories}
-                    trackTags={tagData.tracks[activeTrack.uri]?.tags || []}
-                    onToggleTag={(categoryId, subcategoryId, tagId) =>
-                      toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
-                    }
-                    onOpenTagManager={() => setShowTagManager(true)}
-                  />
-                </>
-              )}
-
-              {/* List of tagged tracks */}
-              <TrackList
-                tracks={getLegacyFormatTracks()}
-                categories={tagData.categories}
-                activeTagFilters={activeTagFilters}
-                activeTrackUri={activeTrack?.uri || null} // Pass the active track URI to highlight it
-                onFilterByTag={(tag) => {
-                  setActiveTagFilters(prev => {
-                    if (prev.includes(tag)) {
-                      return prev.filter(t => t !== tag);
-                    } else {
-                      return [...prev, tag];
-                    }
-                  });
-                }}
-                onClearTagFilters={clearTagFilters}
-                onSelectTrack={(uri) => {
-                  // Special handling for local files
-                  if (uri.startsWith('spotify:local:')) {
-                    // For local files, we should navigate to the Local Files section 
-                    // instead of trying to play directly
-                    Spicetify.Platform.History.push('/collection/local-files');
-
-                    // Show a notification to guide the user
-                    Spicetify.showNotification(
-                      "Local files can only be played from the Local Files section",
-                      false,
-                      3000
-                    );
-                    return;
-                  }
-
-                  // For regular Spotify tracks, play as usual
-                  if (Spicetify.Player && Spicetify.Player.playUri) {
-                    Spicetify.Player.playUri(uri);
-                  }
-                }}
-                onTagTrack={handleTagTrack}
-                onCreatePlaylist={createPlaylistFromFilters}
-              />
-            </div>
-
-            {/* Hierarchical tag manager modal */}
-            {showTagManager && (
-              <TagManager
-                categories={tagData.categories}
-                onClose={() => setShowTagManager(false)}
-                onAddCategory={addCategory}
-                onRemoveCategory={removeCategory}
-                onRenameCategory={renameCategory}
-                onAddSubcategory={addSubcategory}
-                onRemoveSubcategory={removeSubcategory}
-                onRenameSubcategory={renameSubcategory}
-                onAddTag={addTag}
-                onRemoveTag={removeTag}
-                onRenameTag={renameTag}
-              />
-            )}
-
-            {/* Export panel for Rekordbox */}
-            {showExport && (
-              <ExportPanel
-                data={exportData()}
-                onClose={() => setShowExport(false)}
-              />
-            )}
-          </>
-        )
-      }
+          {/* Export panel for Rekordbox */}
+          {showExport && (
+            <ExportPanel
+              data={exportData()}
+              onClose={() => setShowExport(false)}
+            />
+          )}
+        </>
+      )}
       {showLocalTracksModal && (
         <LocalTracksModal
           localTracks={localTracksForPlaylist}
@@ -748,7 +868,7 @@ if (Spicetify.Platform && Spicetify.Platform.History && typeof Spicetify.Platfor
           onClose={() => setShowLocalTracksModal(false)}
         />
       )}
-    </div >
+    </div>
   );
 };
 
