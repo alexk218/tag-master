@@ -84,7 +84,6 @@
   font-size: 16px;
 }
 
-/* When not locked (Lock button), make it blue */
 .lockButton.unlocked {
   background-color: rgba(0, 0, 0, 0.3);
   color: white;
@@ -94,13 +93,12 @@
   background-color: rgba(255, 255, 255, 0.15);
 }
 
-/* When locked (Unlock button), make it dark grey with lighter hover */
 .lockButton.locked {
-  background-color: #1e90ff;
+  background-color: #5aa9e6;
 }
 
 .lockButton.locked:hover {
-  background-color: #1a7ee0;
+  background-color: #4a95d3;
 }
 
 /* Switch track button */
