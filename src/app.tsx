@@ -818,7 +818,7 @@ const App: React.FC = () => {
             />
           )}
 
-          {/* Export panel for Rekordbox */}
+          {/* Export panel for rekordbox */}
           {showExport && <ExportPanel data={exportData()} onClose={() => setShowExport(false)} />}
         </>
       )}

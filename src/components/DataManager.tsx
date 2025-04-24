@@ -79,7 +79,7 @@ const DataManager: React.FC<DataManagerProps> = ({
           className={`${styles.actionButton} ${styles.rekordboxButton}`}
           onClick={onExportRekordbox}
         >
-          Export for Rekordbox
+          Export for rekordbox
         </button>
       </div>
 

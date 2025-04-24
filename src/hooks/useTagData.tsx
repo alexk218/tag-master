@@ -778,7 +778,7 @@ export function useTagData() {
     return tag ? tag.name : "";
   };
 
-  // Export data for Rekordbox integration
+  // Export data for rekordbox integration
   const exportData = () => {
     const exportResult: any = {
       version: "1.0",
@@ -803,7 +803,7 @@ export function useTagData() {
       // Format energy level for comment (only include if set)
       const energyComment = data.energy > 0 ? `Energy ${data.energy} - ` : "";
 
-      // Format for Rekordbox
+      // Format for rekordbox
       exportResult.tracks[trackId] = {
         rating: data.rating,
         energy: data.energy,

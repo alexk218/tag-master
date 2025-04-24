@@ -14,7 +14,7 @@ Intended for DJs and music curators.
 - **Custom Tags**: Create and manage a hierarchical tagging system for your tracks
 - **Search & Filter**: Find tracks by tags, ratings, or search terms
 - **Playlist Generation**: Apply filters to your tagged track, and generate playlists for tracks satisfying those filters
-- **Export**: Export metadata for Rekordbox integration (SOON)
+- **Export**: Export metadata for rekordbox integration (SOON)
 
 
 ## Installation
