@@ -400,6 +400,7 @@ const TrackList: React.FC<TrackListProps> = ({
     activeTagFilters.length +
     (ratingFilters.length > 0 ? 1 : 0) +
     (energyMinFilter !== null || energyMaxFilter !== null ? 1 : 0);
+  searchTerm.trim() !== "" ? 1 : 0;
 
   const handleCreatePlaylist = (name: string, description: string, isPublic: boolean) => {
     if (sortedTracks.length === 0) return;
@@ -500,7 +501,7 @@ const TrackList: React.FC<TrackListProps> = ({
         <div className={styles.titleSection}>
           <h2 className={styles.title}>Tagged Tracks</h2>
           <span className={styles.trackCount}>
-            {activeFilterCount > 0
+            {activeFilterCount > 0 || searchTerm.trim() !== ""
               ? `${sortedTracks.length}/${Object.keys(tracks).length} tracks`
               : `${Object.keys(tracks).length} tracks`}
           </span>
