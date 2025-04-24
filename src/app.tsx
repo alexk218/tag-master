@@ -619,7 +619,7 @@ const App: React.FC = () => {
                 onClick={toggleLock}
                 title={isLocked ? "Unlock to follow currently playing track" : "Lock to this track"}
               >
-                {isLocked ? "🔓" : "🔒"}
+                {isLocked ? "🔒" : "🔓"}
               </button>
 
               {isLocked && currentTrack && currentTrack.uri !== activeTrack.uri && (
