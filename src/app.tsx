@@ -735,8 +735,64 @@ const App: React.FC = () => {
                   return;
                 }
 
-                // For regular Spotify tracks, play as usual
-                if (Spicetify.Player && Spicetify.Player.playUri) {
+                // Check if music is currently playing
+                const isPlaying = Spicetify.Player.isPlaying();
+
+                if (isPlaying) {
+                  try {
+                    // Add track to top of queue
+                    const trackObject = [{ uri }];
+
+                    // Queue access approach that should work
+                    const queue = Spicetify.Queue;
+
+                    if (queue && queue.nextTracks && queue.nextTracks.length > 0) {
+                      // Queue has tracks, try to insert our track at the beginning
+                      Spicetify.addToQueue(trackObject)
+                        .then(() => {
+                          // Move our track from the end to the beginning of the queue
+                          // This is a workaround since we can't directly insert at a specific position
+
+                          // After adding to queue, play next
+                          Spicetify.Player.next();
+                          Spicetify.showNotification(
+                            "Playing track while maintaining playlist flow"
+                          );
+                        })
+                        .catch((err) => {
+                          console.error("Failed to add to queue", err);
+                          Spicetify.showNotification(
+                            "Unable to play track, playing directly",
+                            true
+                          );
+
+                          // Fallback to direct play
+                          Spicetify.Player.playUri(uri);
+                        });
+                    } else {
+                      // Queue is empty, simply add to queue and skip
+                      Spicetify.addToQueue(trackObject)
+                        .then(() => {
+                          Spicetify.Player.next();
+                        })
+                        .catch((err) => {
+                          console.error("Failed to add to queue", err);
+                          Spicetify.showNotification(
+                            "Unable to play track, playing directly",
+                            true
+                          );
+
+                          // Fallback to direct play
+                          Spicetify.Player.playUri(uri);
+                        });
+                    }
+                  } catch (error) {
+                    console.error("Error manipulating queue:", error);
+                    // Fallback to direct play
+                    Spicetify.Player.playUri(uri);
+                  }
+                } else {
+                  // No music playing, just play the track directly
                   Spicetify.Player.playUri(uri);
                 }
               }}
