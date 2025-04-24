@@ -1,25 +1,20 @@
 # TagMaster - Spicetify Custom App
 
-A custom Spicetify app for managing tags, ratings, and energy levels for your Spotify tracks with Rekordbox integration.
+Organize your music by adding ratings, energy levels, and custom tags to your tracks. 
+Filter through your tags, and generate playlists for tracks that satisfy those filters.
+Intended for DJs and music curators.
+
+Future: Will integrate with rekordbox. Sync your custom tags with "My Tags". Export your star ratings to rekordbox, etc.
 
 ## Features
 
 - **Rating System**: Rate tracks from 1-5 stars
 - **Energy Levels**: Assign energy levels (1-10) to tracks
-- **Custom Tags**: Create and manage a hierarchical tag system
-- **Tag Categories**: Organize tags into categories
+- **Custom Tags**: Create and manage a hierarchical tagging system for your tracks
 - **Search & Filter**: Find tracks by tags, ratings, or search terms
-- **Export**: Export metadata for Rekordbox integration
+- **Playlist Generation**: Apply filters to your tagged track, and generate playlists for tracks satisfying those filters
+- **Export**: Export metadata for Rekordbox integration (SOON)
 
-## Hierarchical Tag Structure
-
-TagMaster supports organizing tags into categories:
-
-- **Genres**: Organic, Minimal, Soul, Beautiful, etc.
-- **Label-defined sounds**: Maccabi, HOOM, ADID, PAMPA
-- **Artist-inspired styles**: KORA minimal, SIS minimal, RUSSO, etc.
-
-You can create, edit, and organize your own tag categories and tags.
 
 ## Installation
 
@@ -32,7 +27,7 @@ You can create, edit, and organize your own tag categories and tags.
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/tagmaster.git
+   git clone https://github.com/alexk218/tagmaster.git
    cd tagmaster
    ```
 
@@ -60,33 +55,3 @@ You can create, edit, and organize your own tag categories and tags.
    spicetify config custom_apps tagmaster
    spicetify apply
    ```
-
-## Rekordbox Integration
-
-TagMaster allows you to export your tag data for use with Rekordbox:
-
-1. Use TagMaster to tag and rate your tracks in Spotify
-2. Export your data using the "Export for Rekordbox" button
-3. Use the companion script (available separately) to apply the metadata to your music files
-4. Import the tagged files into Rekordbox
-
-The exported metadata will include:
-- Star ratings that map to Rekordbox ratings
-- Comments in the format: "Energy Level - Tag1, Tag2, Tag3"
-
-## Development
-
-### Local Development
-
-```
-npm run watch
-```
-
-This will automatically rebuild the app when you make changes.
-
-### Building for Production
-
-```
-npm run build
-```
-
