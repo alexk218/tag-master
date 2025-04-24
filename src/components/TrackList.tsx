@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "./TrackList.module.css";
 import { parseLocalFileUri } from "../utils/LocalFileParser";
 import { Category } from "../hooks/useTagData";
@@ -59,6 +59,8 @@ const TrackList: React.FC<TrackListProps> = ({
   const [trackInfo, setTrackInfo] = useState<{ [uri: string]: SpotifyTrackInfo }>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
+  const [displayCount, setDisplayCount] = useState<number>(30); // Initial batch size
+  const observerRef = useRef<HTMLDivElement>(null);
 
   // Advanced filtering states
   const [ratingFilters, setRatingFilters] = useState<number[]>([]);
@@ -68,9 +70,8 @@ const TrackList: React.FC<TrackListProps> = ({
   const [isOrFilterMode, setIsOrFilterMode] = useState(false);
 
   // Sort tags based on their position in the hierarchy
-  // Using the same approach as in TrackDetails.tsx
   const sortTags = (tags: Tag[]) => {
-    // First build an index of tag positions in the category hierarchy
+    // Build an index of tag positions in the category hierarchy
     const tagPositions: { [tagName: string]: string } = {};
 
     // Iterate through all categories to build position mapping
@@ -86,9 +87,9 @@ const TrackList: React.FC<TrackListProps> = ({
       });
     });
 
-    // Sort the tags by their positions
+    // Sort the tags by their positions. Default to end if not found
     return [...tags].sort((a, b) => {
-      const posA = tagPositions[a.tag] || "999-999-999"; // Default to end if not found
+      const posA = tagPositions[a.tag] || "999-999-999";
       const posB = tagPositions[b.tag] || "999-999-999";
       return posA.localeCompare(posB);
     });
@@ -212,6 +213,115 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   }, [tracks]);
 
+  useEffect(() => {
+    // Reset display count when filters change
+    setDisplayCount(30);
+  }, [activeTagFilters, searchTerm, ratingFilters, energyMinFilter, energyMaxFilter]);
+
+  // Filter tracks based on all applied filters
+  const filteredTracks = Object.entries(tracks).filter(([uri, trackData]) => {
+    const info = trackInfo[uri];
+
+    // Skip if we don't have info for this track
+    // But KEEP local files even if we have no info yet
+    if (!info && !uri.startsWith("spotify:local:")) {
+      return false;
+    }
+
+    // If it's a local file that we don't have info for yet, keep it visible
+    // This ensures local files appear while metadata is still loading
+    if (!info && uri.startsWith("spotify:local:")) {
+      // Only apply tag/rating/energy filters since we can't search without metadata
+
+      // Tag filters
+      const matchesTags =
+        activeTagFilters.length === 0 ||
+        (isOrFilterMode
+          ? // OR logic - track must have ANY of the selected tags
+            activeTagFilters.some((tag) => trackData.tags.some((t) => t.tag === tag))
+          : // AND logic - track must have ALL of the selected tags
+            activeTagFilters.every((tag) => trackData.tags.some((t) => t.tag === tag)));
+
+      // Rating filter
+      const matchesRating =
+        ratingFilters.length === 0 ||
+        (trackData.rating > 0 && ratingFilters.includes(trackData.rating));
+
+      // Energy range filter
+      const matchesEnergyMin = energyMinFilter === null || trackData.energy >= energyMinFilter;
+      const matchesEnergyMax = energyMaxFilter === null || trackData.energy <= energyMaxFilter;
+
+      // If search term is empty, then return based on other filters
+      // Otherwise, hide it since we can't search on local files without metadata yet
+      return (
+        searchTerm === "" && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax
+      );
+    }
+
+    // For tracks with info (both Spotify and loaded local files)
+    // Search term filter
+    const matchesSearch =
+      searchTerm === "" ||
+      info.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      info.artists.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Tag filters - track must have ALL selected tags
+    const matchesTags =
+      activeTagFilters.length === 0 ||
+      (isOrFilterMode
+        ? // OR logic - track must have ANY of the selected tags
+          activeTagFilters.some((tag) => trackData.tags.some((t) => t.tag === tag))
+        : // AND logic - track must have ALL of the selected tags
+          activeTagFilters.every((tag) => trackData.tags.some((t) => t.tag === tag)));
+
+    // Rating filter - Updated to check if track rating is in the ratingFilters array
+    const matchesRating =
+      ratingFilters.length === 0 ||
+      (trackData.rating > 0 && ratingFilters.includes(trackData.rating));
+
+    // Energy range filter
+    const matchesEnergyMin = energyMinFilter === null || trackData.energy >= energyMinFilter;
+    const matchesEnergyMax = energyMaxFilter === null || trackData.energy <= energyMaxFilter;
+
+    return matchesSearch && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax;
+  });
+
+  // Sort filtered tracks by track name
+  const allSortedTracks = [...filteredTracks].sort((a, b) => {
+    const infoA = trackInfo[a[0]];
+    const infoB = trackInfo[b[0]];
+
+    if (!infoA || !infoB) return 0;
+
+    // Sort by track name
+    return infoA.name.localeCompare(infoB.name);
+  });
+
+  // get only the slice we want to display
+  const sortedTracks = allSortedTracks.slice(0, displayCount);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && sortedTracks.length < filteredTracks.length) {
+          // User has scrolled to the observer element
+          setDisplayCount((prev) => Math.min(prev + 30, filteredTracks.length));
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observer.unobserve(observerRef.current);
+      }
+    };
+  }, [sortedTracks.length, filteredTracks.length]);
+
   // Extract all unique tags from all tracks
   const allTags = new Set<string>();
   Object.values(tracks).forEach((track) => {
@@ -284,87 +394,6 @@ const TrackList: React.FC<TrackListProps> = ({
     setEnergyMinFilter(null);
     setEnergyMaxFilter(null);
   };
-
-  // Filter tracks based on all applied filters
-  const filteredTracks = Object.entries(tracks).filter(([uri, trackData]) => {
-    const info = trackInfo[uri];
-
-    // Skip if we don't have info for this track
-    // But KEEP local files even if we have no info yet
-    if (!info && !uri.startsWith("spotify:local:")) {
-      return false;
-    }
-
-    // If it's a local file that we don't have info for yet, keep it visible
-    // This ensures local files appear while metadata is still loading
-    if (!info && uri.startsWith("spotify:local:")) {
-      // Only apply tag/rating/energy filters since we can't search without metadata
-
-      // Tag filters
-      const matchesTags =
-        activeTagFilters.length === 0 ||
-        (isOrFilterMode
-          ? // OR logic - track must have ANY of the selected tags
-            activeTagFilters.some((tag) => trackData.tags.some((t) => t.tag === tag))
-          : // AND logic - track must have ALL of the selected tags
-            activeTagFilters.every((tag) => trackData.tags.some((t) => t.tag === tag)));
-
-      // Rating filter
-      const matchesRating =
-        ratingFilters.length === 0 ||
-        (trackData.rating > 0 && ratingFilters.includes(trackData.rating));
-
-      // Energy range filter
-      const matchesEnergyMin = energyMinFilter === null || trackData.energy >= energyMinFilter;
-
-      const matchesEnergyMax = energyMaxFilter === null || trackData.energy <= energyMaxFilter;
-
-      // If search term is empty, then return based on other filters
-      // Otherwise, hide it since we can't search on local files without metadata yet
-      return (
-        searchTerm === "" && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax
-      );
-    }
-
-    // For tracks with info (both Spotify and loaded local files)
-    // Search term filter
-    const matchesSearch =
-      searchTerm === "" ||
-      info.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      info.artists.toLowerCase().includes(searchTerm.toLowerCase());
-
-    // Tag filters - track must have ALL selected tags
-    const matchesTags =
-      activeTagFilters.length === 0 ||
-      (isOrFilterMode
-        ? // OR logic - track must have ANY of the selected tags
-          activeTagFilters.some((tag) => trackData.tags.some((t) => t.tag === tag))
-        : // AND logic - track must have ALL of the selected tags
-          activeTagFilters.every((tag) => trackData.tags.some((t) => t.tag === tag)));
-
-    // Rating filter - Updated to check if track rating is in the ratingFilters array
-    const matchesRating =
-      ratingFilters.length === 0 ||
-      (trackData.rating > 0 && ratingFilters.includes(trackData.rating));
-
-    // Energy range filter
-    const matchesEnergyMin = energyMinFilter === null || trackData.energy >= energyMinFilter;
-
-    const matchesEnergyMax = energyMaxFilter === null || trackData.energy <= energyMaxFilter;
-
-    return matchesSearch && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax;
-  });
-
-  // Sort filtered tracks by track name
-  const sortedTracks = [...filteredTracks].sort((a, b) => {
-    const infoA = trackInfo[a[0]];
-    const infoB = trackInfo[b[0]];
-
-    if (!infoA || !infoB) return 0;
-
-    // Sort by track name
-    return infoA.name.localeCompare(infoB.name);
-  });
 
   // Calculate active filter count for badge
   const activeFilterCount =
@@ -818,6 +847,16 @@ const TrackList: React.FC<TrackListProps> = ({
           })
         )}
       </div>
+      {allSortedTracks.length > sortedTracks.length && (
+        <div ref={observerRef} className={styles.loadMoreContainer}>
+          <button
+            className={styles.loadMoreButton}
+            onClick={() => setDisplayCount((prev) => Math.min(prev + 30, allSortedTracks.length))}
+          >
+            Load More ({allSortedTracks.length - sortedTracks.length} remaining)
+          </button>
+        </div>
+      )}
       {showCreatePlaylistModal && (
         <CreatePlaylistModal
           trackCount={sortedTracks.length}

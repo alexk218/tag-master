@@ -608,3 +608,29 @@
   background: #1e90ff !important;
   opacity: 1 !important;
 }
+
+/* Load more elements... */
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  margin-top: 8px;
+  height: 60px;
+}
+
+.loadMoreButton {
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.loadMoreButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
