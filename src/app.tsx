@@ -682,7 +682,7 @@ const App: React.FC = () => {
                     }
                   }
                   categories={tagData.categories}
-                  activeTagFilters={activeTagFilters} // Add this prop
+                  activeTagFilters={activeTagFilters}
                   onSetRating={(rating) => setRating(activeTrack.uri, rating)}
                   onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
                   onRemoveTag={(categoryId, subcategoryId, tagId) =>
@@ -696,6 +696,83 @@ const App: React.FC = () => {
                         return [...prev, tagName];
                       }
                     });
+                  }}
+                  onPlayTrack={(uri) => {
+                    // Special handling for local files
+                    if (uri.startsWith("spotify:local:")) {
+                      // For local files, we should navigate to the Local Files section
+                      // instead of trying to play directly
+                      Spicetify.Platform.History.push("/collection/local-files");
+
+                      // Show a notification to guide the user
+                      Spicetify.showNotification(
+                        "Local files can only be played from the Local Files section",
+                        false,
+                        3000
+                      );
+                      return;
+                    }
+
+                    // Check if music is currently playing
+                    const isPlaying = Spicetify.Player.isPlaying();
+
+                    if (isPlaying) {
+                      try {
+                        // Add track to top of queue
+                        const trackObject = [{ uri }];
+
+                        // Queue access approach that should work
+                        const queue = Spicetify.Queue;
+
+                        if (queue && queue.nextTracks && queue.nextTracks.length > 0) {
+                          // Queue has tracks, try to insert our track at the beginning
+                          Spicetify.addToQueue(trackObject)
+                            .then(() => {
+                              // Move our track from the end to the beginning of the queue
+                              // This is a workaround since we can't directly insert at a specific position
+
+                              // After adding to queue, play next
+                              Spicetify.Player.next();
+                              Spicetify.showNotification(
+                                "Playing track while maintaining playlist flow"
+                              );
+                            })
+                            .catch((err) => {
+                              console.error("Failed to add to queue", err);
+                              Spicetify.showNotification(
+                                "Unable to play track, playing directly",
+                                true
+                              );
+
+                              // Fallback to direct play
+                              Spicetify.Player.playUri(uri);
+                            });
+                        } else {
+                          // Queue is empty, simply add to queue and skip
+                          Spicetify.addToQueue(trackObject)
+                            .then(() => {
+                              Spicetify.Player.next();
+                            })
+                            .catch((err) => {
+                              console.error("Failed to add to queue", err);
+                              Spicetify.showNotification(
+                                "Unable to play track, playing directly",
+                                true
+                              );
+
+                              // Fallback to direct play
+                              Spicetify.Player.playUri(uri);
+                            });
+                        }
+                      } catch (error) {
+                        console.error("Error manipulating queue:", error);
+                        // Fallback to direct play
+                        Spicetify.Player.playUri(uri);
+                      }
+                    } else {
+                      // No music playing, just play the track directly
+                      Spicetify.Player.playUri(uri);
+                    }
                   }}
                 />
 

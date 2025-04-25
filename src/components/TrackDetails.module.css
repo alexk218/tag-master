@@ -54,6 +54,9 @@
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   background-color: var(--spice-main);
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
 }
 
 .albumCoverClickable {
@@ -565,4 +568,23 @@
   color: #ffcc00;
   font-size: 18px;
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+}
+
+.playButton {
+  background: rgba(0, 0, 0, 0.24);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  /* margin-top: 8px; */
+  width: 100%;
+  text-align: center;
+}
+
+.playButton:hover {
+  background: rgba(255, 255, 255, 0.1);
 }

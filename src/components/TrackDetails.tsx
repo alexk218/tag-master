@@ -23,6 +23,7 @@ interface TrackDetailsProps {
   onRemoveTag: (categoryId: string, subcategoryId: string, tagId: string) => void;
   activeTagFilters: string[];
   onFilterByTag?: (tag: string) => void;
+  onPlayTrack?: (uri: string) => void;
 }
 
 interface TrackMetadata {
@@ -43,6 +44,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   onSetEnergy,
   onRemoveTag,
   onFilterByTag,
+  onPlayTrack,
 }) => {
   const [contextUri, setContextUri] = useState<string | null>(null);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
@@ -336,6 +338,12 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
       return null;
     }
   }
+
+  const handlePlayTrack = () => {
+    if (onPlayTrack && track.uri) {
+      onPlayTrack(track.uri);
+    }
+  };
 
   // Helper function to find tag name by ids
   const findTagInfo = (categoryId: string, subcategoryId: string, tagId: string) => {
@@ -710,6 +718,15 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                 </div>
               )}
             </div>
+            <button
+              className={styles.playButton}
+              onClick={handlePlayTrack}
+              title={
+                track.uri?.startsWith("spotify:local:") ? "Go to Local Files" : "Play this track"
+              }
+            >
+              {track.uri?.startsWith("spotify:local:") ? "Go to Local Files" : "Play"}
+            </button>
           </div>
           <div className={styles.trackInfo}>
             <h2
