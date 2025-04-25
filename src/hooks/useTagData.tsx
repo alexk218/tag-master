@@ -1,20 +1,19 @@
 import { useState, useEffect } from "react";
 
-// Define types for our hierarchical tag data structure
 export interface Tag {
   name: string;
-  id: string; // Unique identifier for the tag
+  id: string;
 }
 
 export interface Subcategory {
   name: string;
-  id: string; // Unique identifier for the subcategory
+  id: string;
   tags: Tag[];
 }
 
 export interface Category {
   name: string;
-  id: string; // Unique identifier for the category
+  id: string;
   subcategories: Subcategory[];
 }
 
@@ -25,9 +24,9 @@ export interface TrackTag {
 }
 
 export interface TrackData {
-  rating: number; // 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, or 5
-  energy: number; // 1-10 scale, 0 for no energy rating
-  tags: TrackTag[]; // References to tags by their IDs
+  rating: number;
+  energy: number;
+  tags: TrackTag[];
 }
 
 export interface TagDataStructure {
@@ -37,10 +36,7 @@ export interface TagDataStructure {
   };
 }
 
-// Generate an ID from a name string
 const generateIdFromName = (name: string): string => {
-  // Convert to lowercase, replace spaces and special characters with hyphens
-  // then remove any leading or trailing hyphens
   return name
     .toLowerCase()
     .trim()
@@ -50,7 +46,6 @@ const generateIdFromName = (name: string): string => {
     .replace(/^-+|-+$/g, ""); // Remove leading and trailing hyphens
 };
 
-// Check if ID already exists within a collection and make it unique if needed
 const ensureUniqueId = (id: string, existingIds: string[]): string => {
   if (!existingIds.includes(id)) return id;
 
@@ -305,19 +300,21 @@ const defaultTagData: TagDataStructure = {
   tracks: {},
 };
 
-// Storage key for tag data in local storage
 const STORAGE_KEY = "tagmaster:tagData";
 
 export function useTagData() {
-  // State to hold our tag data
   const [tagData, setTagData] = useState<TagDataStructure>(defaultTagData);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Helper function to save to localStorage
   const saveToLocalStorage = (data: TagDataStructure) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      // Dispatch a custom event to notify extensions
+      const event = new CustomEvent("tagmaster:dataUpdated", {
+        detail: { type: "save" },
+      });
+      window.dispatchEvent(event);
       console.log("TagMaster: Data saved to localStorage");
       return true;
     } catch (error) {
@@ -326,7 +323,6 @@ export function useTagData() {
     }
   };
 
-  // Helper function to load from localStorage
   const loadFromLocalStorage = (): TagDataStructure | null => {
     try {
       const savedData = localStorage.getItem(STORAGE_KEY);
@@ -339,7 +335,6 @@ export function useTagData() {
     return null;
   };
 
-  // Load tag data
   const loadTagData = () => {
     setIsLoading(true);
 
@@ -360,7 +355,6 @@ export function useTagData() {
     setIsLoading(false);
   };
 
-  // Save tag data
   const saveTagData = (data: TagDataStructure) => {
     const saved = saveToLocalStorage(data);
     if (saved) {
@@ -369,7 +363,6 @@ export function useTagData() {
     return saved;
   };
 
-  // Export backup data as a downloadable file
   const exportBackup = () => {
     const jsonData = JSON.stringify(tagData, null, 2);
     const blob = new Blob([jsonData], { type: "application/json" });
@@ -385,7 +378,6 @@ export function useTagData() {
     Spicetify.showNotification("Backup created and downloaded");
   };
 
-  // Import data from a backup file
   const importBackup = (backupData: TagDataStructure) => {
     setTagData(backupData);
     saveTagData(backupData);
@@ -411,14 +403,12 @@ export function useTagData() {
     }
   }, [tagData, isLoading]);
 
-  // CATEGORY MANAGEMENT
+  // ! CATEGORY MANAGEMENT
 
   // Add a new main category
   const addCategory = (name: string) => {
-    // Get existing category IDs
     const existingCategoryIds = tagData.categories.map((c) => c.id);
 
-    // Generate ID and ensure it's unique
     const baseId = generateIdFromName(name);
     const uniqueId = ensureUniqueId(baseId, existingCategoryIds);
 
@@ -434,7 +424,6 @@ export function useTagData() {
     });
   };
 
-  // Remove a main category
   const removeCategory = (categoryId: string) => {
     // Create updated categories without the removed one
     const updatedCategories = tagData.categories.filter((category) => category.id !== categoryId);
@@ -454,7 +443,6 @@ export function useTagData() {
     });
   };
 
-  // Rename a main category
   const renameCategory = (categoryId: string, newName: string) => {
     const updatedCategories = tagData.categories?.map((category) =>
       category.id === categoryId ? { ...category, name: newName } : category
@@ -466,7 +454,7 @@ export function useTagData() {
     });
   };
 
-  // SUBCATEGORY MANAGEMENT
+  // ! SUBCATEGORY MANAGEMENT
 
   // Add a new subcategory to a main category
   const addSubcategory = (categoryId: string, name: string) => {
@@ -477,7 +465,6 @@ export function useTagData() {
     // Get existing subcategory IDs in this category
     const existingSubcategoryIds = category.subcategories.map((s) => s.id);
 
-    // Generate ID and ensure it's unique
     const baseId = generateIdFromName(name);
     const uniqueId = ensureUniqueId(baseId, existingSubcategoryIds);
 
@@ -502,9 +489,7 @@ export function useTagData() {
     });
   };
 
-  // Remove a subcategory
   const removeSubcategory = (categoryId: string, subcategoryId: string) => {
-    // Update categories
     const updatedCategories = tagData.categories?.map((category) => {
       if (category.id !== categoryId) return category;
 
@@ -531,7 +516,6 @@ export function useTagData() {
     });
   };
 
-  // Rename a subcategory
   const renameSubcategory = (categoryId: string, subcategoryId: string, newName: string) => {
     const updatedCategories = tagData.categories?.map((category) => {
       if (category.id !== categoryId) return category;
@@ -550,7 +534,7 @@ export function useTagData() {
     });
   };
 
-  // TAG MANAGEMENT
+  // ! TAG MANAGEMENT
 
   // Add a new tag to a subcategory
   const addTag = (categoryId: string, subcategoryId: string, name: string) => {
@@ -561,10 +545,8 @@ export function useTagData() {
     const subcategory = category.subcategories.find((s) => s.id === subcategoryId);
     if (!subcategory) return;
 
-    // Get existing tag IDs in this subcategory
     const existingTagIds = subcategory.tags.map((t) => t.id);
 
-    // Generate ID and ensure it's unique
     const baseId = generateIdFromName(name);
     const uniqueId = ensureUniqueId(baseId, existingTagIds);
 
@@ -595,9 +577,7 @@ export function useTagData() {
     });
   };
 
-  // Remove a tag
   const removeTag = (categoryId: string, subcategoryId: string, tagId: string) => {
-    // Update categories
     const updatedCategories = tagData.categories?.map((category) => {
       if (category.id !== categoryId) return category;
 
@@ -614,7 +594,6 @@ export function useTagData() {
       };
     });
 
-    // Remove this tag from all tracks
     const updatedTracks = { ...tagData.tracks };
     Object.keys(updatedTracks).forEach((uri) => {
       updatedTracks[uri] = {
@@ -636,7 +615,6 @@ export function useTagData() {
     });
   };
 
-  // Rename a tag
   const renameTag = (categoryId: string, subcategoryId: string, tagId: string, newName: string) => {
     const updatedCategories = tagData.categories?.map((category) => {
       if (category.id !== categoryId) return category;
@@ -660,7 +638,7 @@ export function useTagData() {
     });
   };
 
-  // TRACK TAG MANAGEMENT
+  // ! TRACK TAG MANAGEMENT
 
   // Ensure track data exists for a given URI
   const ensureTrackData = (trackUri: string) => {
@@ -726,7 +704,6 @@ export function useTagData() {
     setTagData(newTagData);
   };
 
-  // Set rating for a track (0 means no rating)
   const setRating = (trackUri: string, rating: number) => {
     // Ensure track data exists
     const currentData = ensureTrackData(trackUri);
@@ -766,7 +743,6 @@ export function useTagData() {
     setTagData(newTagData);
   };
 
-  // Helper function to find tag name by ids
   const findTagName = (categoryId: string, subcategoryId: string, tagId: string): string => {
     const category = tagData.categories.find((c) => c.id === categoryId);
     if (!category) return "";
@@ -795,12 +771,10 @@ export function useTagData() {
 
       const trackId = uri.split(":").pop() || uri;
 
-      // Build tag names array for comments
       const tagNames = data.tags
         .map((tag) => findTagName(tag.categoryId, tag.subcategoryId, tag.tagId))
         .filter((name) => name !== "");
 
-      // Format energy level for comment (only include if set)
       const energyComment = data.energy > 0 ? `Energy ${data.energy} - ` : "";
 
       // Format for rekordbox
@@ -843,7 +817,6 @@ export function useTagData() {
     };
   };
 
-  // Return hook functions and data
   return {
     tagData,
     isLoading,
