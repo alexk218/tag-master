@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { addTrackToTaggedPlaylist } from "../utils/PlaylistManager";
 
 export interface Tag {
   name: string;
@@ -306,6 +307,7 @@ export function useTagData() {
   const [tagData, setTagData] = useState<TagDataStructure>(defaultTagData);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [pendingTaggedTracks] = useState<Map<string, number>>(new Map());
 
   const saveToLocalStorage = (data: TagDataStructure) => {
     try {
@@ -402,6 +404,32 @@ export function useTagData() {
       return () => clearTimeout(timer);
     }
   }, [tagData, isLoading]);
+
+  const scheduleAddToTaggedPlaylist = (trackUri: string) => {
+    // Clear any existing timeout for this track
+    if (pendingTaggedTracks.has(trackUri)) {
+      clearTimeout(pendingTaggedTracks.get(trackUri));
+    }
+
+    // Only schedule for Spotify tracks (not local files)
+    if (!trackUri.startsWith("spotify:local:")) {
+      // Schedule adding to playlist after 2 seconds
+      const timeoutId = setTimeout(async () => {
+        await addTrackToTaggedPlaylist(trackUri);
+        pendingTaggedTracks.delete(trackUri);
+      }, 2000);
+
+      pendingTaggedTracks.set(trackUri, timeoutId);
+    }
+  };
+
+  // Function to cancel pending addition to playlist
+  const cancelAddToTaggedPlaylist = (trackUri: string) => {
+    if (pendingTaggedTracks.has(trackUri)) {
+      clearTimeout(pendingTaggedTracks.get(trackUri));
+      pendingTaggedTracks.delete(trackUri);
+    }
+  };
 
   // ! CATEGORY MANAGEMENT
 
@@ -691,8 +719,14 @@ export function useTagData() {
     } else {
       // Add tag if it doesn't exist
       updatedTags = [...trackData.tags, { categoryId, subcategoryId, tagId }];
+
+      // Schedule adding to TAGGED playlist if this makes the track non-empty
+      if (updatedTags.length === 1 && trackData.rating === 0 && trackData.energy === 0) {
+        scheduleAddToTaggedPlaylist(trackUri);
+      }
     }
 
+    // Prepare updated track data
     const updatedTrackData = {
       ...trackData,
       tags: updatedTags,
@@ -700,6 +734,9 @@ export function useTagData() {
 
     // Check if the track is now empty
     if (isTrackEmpty(updatedTrackData)) {
+      // Cancel any pending addition to TAGGED playlist
+      cancelAddToTaggedPlaylist(trackUri);
+
       // Create new state by removing this track
       const { [trackUri]: _, ...remainingTracks } = currentData.tracks;
 
@@ -724,8 +761,21 @@ export function useTagData() {
     const currentData = ensureTrackData(trackUri);
     const trackData = currentData.tracks[trackUri];
 
+    // If this is the first rating for an otherwise empty track, schedule adding to TAGGED playlist
+    if (
+      rating > 0 &&
+      trackData.rating === 0 &&
+      trackData.energy === 0 &&
+      trackData.tags.length === 0
+    ) {
+      scheduleAddToTaggedPlaylist(trackUri);
+    }
+
     // Check if this would make the track empty
     if (rating === 0 && trackData.energy === 0 && trackData.tags.length === 0) {
+      // Cancel any pending addition to TAGGED playlist
+      cancelAddToTaggedPlaylist(trackUri);
+
       // Create new state by removing this track
       const { [trackUri]: _, ...remainingTracks } = currentData.tracks;
 
@@ -754,8 +804,21 @@ export function useTagData() {
     const currentData = ensureTrackData(trackUri);
     const trackData = currentData.tracks[trackUri];
 
+    // If this is the first energy setting for an otherwise empty track, schedule adding to TAGGED playlist
+    if (
+      energy > 0 &&
+      trackData.rating === 0 &&
+      trackData.energy === 0 &&
+      trackData.tags.length === 0
+    ) {
+      scheduleAddToTaggedPlaylist(trackUri);
+    }
+
     // Check if this would make the track empty
     if (energy === 0 && trackData.rating === 0 && trackData.tags.length === 0) {
+      // Cancel any pending addition to TAGGED playlist
+      cancelAddToTaggedPlaylist(trackUri);
+
       // Create new state by removing this track
       const { [trackUri]: _, ...remainingTracks } = currentData.tracks;
 
