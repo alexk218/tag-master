@@ -1,0 +1,291 @@
+interface PlaylistInfo {
+  id: string;
+  name: string;
+  owner: string;
+}
+
+interface PlaylistCache {
+  tracks: Record<string, PlaylistInfo[]>;
+  lastUpdated: number; // timestamp
+}
+
+// Storage key for the cache
+const PLAYLIST_CACHE_KEY = "tagmaster:playlistCache";
+
+// Function to get the cache from localStorage
+export function getPlaylistCache(): PlaylistCache {
+  try {
+    const cacheString = localStorage.getItem(PLAYLIST_CACHE_KEY);
+    if (cacheString) {
+      return JSON.parse(cacheString);
+    }
+  } catch (error) {
+    console.error("TagMaster: Error reading playlist cache:", error);
+  }
+
+  // Return empty cache if not found or error
+  return {
+    tracks: {},
+    lastUpdated: 0,
+  };
+}
+
+// Function to save the cache to localStorage
+export function savePlaylistCache(cache: PlaylistCache): void {
+  try {
+    localStorage.setItem(PLAYLIST_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    console.error("TagMaster: Error saving playlist cache:", error);
+  }
+}
+
+// Function to add a track to a playlist in the cache
+export function addTrackToPlaylistInCache(
+  trackUri: string,
+  playlistId: string,
+  playlistName: string,
+  playlistOwner: string
+): void {
+  const cache = getPlaylistCache();
+
+  if (!cache.tracks[trackUri]) {
+    cache.tracks[trackUri] = [];
+  }
+
+  // Check if the playlist is already in the track's list
+  const existingIndex = cache.tracks[trackUri].findIndex((p) => p.id === playlistId);
+
+  if (existingIndex === -1) {
+    // Add playlist info to the track's list
+    cache.tracks[trackUri].push({
+      id: playlistId,
+      name: playlistName,
+      owner: playlistOwner,
+    });
+
+    // Update the timestamp
+    cache.lastUpdated = Date.now();
+
+    // Save the updated cache
+    savePlaylistCache(cache);
+  }
+}
+
+// Function to get playlists containing a track from the cache
+export function getPlaylistsContainingTrack(trackUri: string): PlaylistInfo[] {
+  const cache = getPlaylistCache();
+  return cache.tracks[trackUri] || [];
+}
+
+// Function to refresh the entire cache
+export async function refreshPlaylistCache(): Promise<number> {
+  try {
+    // Get user profile
+    const userProfile = await Spicetify.CosmosAsync.get("https://api.spotify.com/v1/me");
+    const userId = userProfile.id;
+
+    if (!userId) {
+      throw new Error("Could not get user ID");
+    }
+
+    // Create a new empty cache
+    const newCache: PlaylistCache = {
+      tracks: {},
+      lastUpdated: Date.now(),
+    };
+
+    // Get all user's playlists
+    const playlists: Array<{
+      id: string;
+      name: string;
+      owner: { id: string; display_name: string };
+      tracks: { total: number };
+    }> = [];
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await Spicetify.CosmosAsync.get(
+        `https://api.spotify.com/v1/me/playlists?limit=50&offset=${offset}`
+      );
+
+      if (response && response.items && response.items.length > 0) {
+        playlists.push(...response.items);
+        offset += response.items.length;
+        hasMore = response.items.length === 50;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    console.log(`TagMaster: Found ${playlists.length} playlists`);
+
+    // For each playlist, get all tracks and add to cache
+    let totalTracksProcessed = 0;
+    let playlistsProcessed = 0;
+
+    // Process playlists one by one to avoid rate limits
+    for (const playlist of playlists) {
+      // Skip very large playlists (optional, to prevent long processing times)
+      if (playlist.tracks.total > 1000) {
+        console.log(
+          `TagMaster: Skipping large playlist ${playlist.name} with ${playlist.tracks.total} tracks`
+        );
+        continue;
+      }
+
+      try {
+        // Show progress notification every 5 playlists
+        if (playlistsProcessed % 5 === 0) {
+          Spicetify.showNotification(
+            `Refreshing playlist cache: ${playlistsProcessed}/${playlists.length} playlists`
+          );
+        }
+
+        // Get all tracks from this playlist
+        let tracksOffset = 0;
+        let hasMoreTracks = true;
+
+        while (hasMoreTracks) {
+          // Add a delay to avoid rate limits
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          const tracksResponse = await Spicetify.CosmosAsync.get(
+            `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=100&offset=${tracksOffset}&fields=items(track(uri)),next`
+          );
+
+          if (tracksResponse && tracksResponse.items && tracksResponse.items.length > 0) {
+            // Process tracks
+            tracksResponse.items.forEach((item: any) => {
+              if (item.track && item.track.uri) {
+                const trackUri = item.track.uri;
+
+                // Skip local tracks
+                if (trackUri.startsWith("spotify:local:")) {
+                  return;
+                }
+
+                // Add to cache
+                if (!newCache.tracks[trackUri]) {
+                  newCache.tracks[trackUri] = [];
+                }
+
+                // Check if playlist already exists for this track
+                const existingIndex = newCache.tracks[trackUri].findIndex(
+                  (p) => p.id === playlist.id
+                );
+
+                if (existingIndex === -1) {
+                  newCache.tracks[trackUri].push({
+                    id: playlist.id,
+                    name: playlist.name,
+                    owner: playlist.owner.id === userId ? "You" : playlist.owner.display_name,
+                  });
+                }
+              }
+            });
+
+            totalTracksProcessed += tracksResponse.items.length;
+            tracksOffset += tracksResponse.items.length;
+            hasMoreTracks = tracksResponse.items.length === 100;
+          } else {
+            hasMoreTracks = false;
+          }
+        }
+
+        playlistsProcessed++;
+      } catch (error) {
+        console.error(`TagMaster: Error processing playlist ${playlist.name}:`, error);
+      }
+    }
+
+    // Add Liked Songs information
+    try {
+      Spicetify.showNotification("Refreshing playlist cache: Processing Liked Songs");
+
+      let likedOffset = 0;
+      let hasMoreLiked = true;
+
+      while (hasMoreLiked) {
+        // Add a delay to avoid rate limits
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const likedResponse = await Spicetify.CosmosAsync.get(
+          `https://api.spotify.com/v1/me/tracks?limit=50&offset=${likedOffset}`
+        );
+
+        if (likedResponse && likedResponse.items && likedResponse.items.length > 0) {
+          likedResponse.items.forEach((item: any) => {
+            if (item.track && item.track.uri) {
+              const trackUri = item.track.uri;
+
+              // Skip local tracks
+              if (trackUri.startsWith("spotify:local:")) {
+                return;
+              }
+
+              // Add to cache
+              if (!newCache.tracks[trackUri]) {
+                newCache.tracks[trackUri] = [];
+              }
+
+              // Check if Liked Songs already exists for this track
+              const existingIndex = newCache.tracks[trackUri].findIndex((p) => p.id === "liked");
+
+              if (existingIndex === -1) {
+                newCache.tracks[trackUri].push({
+                  id: "liked",
+                  name: "Liked Songs",
+                  owner: "You",
+                });
+              }
+            }
+          });
+
+          totalTracksProcessed += likedResponse.items.length;
+          likedOffset += likedResponse.items.length;
+          hasMoreLiked = likedResponse.items.length === 50;
+        } else {
+          hasMoreLiked = false;
+        }
+      }
+    } catch (error) {
+      console.error("TagMaster: Error processing Liked Songs:", error);
+    }
+
+    // Save the new cache
+    savePlaylistCache(newCache);
+
+    console.log(
+      `TagMaster: Refreshed playlist cache with ${
+        Object.keys(newCache.tracks).length
+      } unique tracks across ${playlists.length} playlists`
+    );
+    Spicetify.showNotification(
+      `Playlist data refreshed: ${Object.keys(newCache.tracks).length} tracks in ${
+        playlists.length
+      } playlists`
+    );
+
+    return totalTracksProcessed;
+  } catch (error) {
+    console.error("TagMaster: Error refreshing playlist cache:", error);
+    Spicetify.showNotification("Error refreshing playlist data", true);
+    return 0;
+  }
+}
+
+// Check if the cache should be automatically updated (once per day)
+export async function checkAndUpdateCacheIfNeeded(): Promise<void> {
+  const cache = getPlaylistCache();
+  const now = Date.now();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+
+  // If cache is empty or older than a day, update it
+  if (Object.keys(cache.tracks).length === 0 || now - cache.lastUpdated > oneDayMs) {
+    console.log("TagMaster: Playlist cache is outdated, updating...");
+    await refreshPlaylistCache();
+  } else {
+    console.log("TagMaster: Playlist cache is up to date");
+  }
+}

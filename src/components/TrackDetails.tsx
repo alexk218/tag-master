@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styles from "./TrackDetails.module.css";
 import { Category, TrackTag } from "../hooks/useTagData";
 import ReactStars from "react-rating-stars-component";
+import { findPlaylistsContainingTrack } from "../utils/PlaylistManager";
 
 interface TrackDetailsProps {
   track: {
@@ -42,8 +43,15 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   onRemoveTag,
   onFilterByTag,
 }) => {
+  const [contextUri, setContextUri] = useState<string | null>(null);
+  const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
+  const artistNames = track.artists ? track.artists.map((artist) => artist.name).join(", ") : "";
   const [albumCover, setAlbumCover] = useState<string | null>(null);
   const [isLoadingCover, setIsLoadingCover] = useState(true);
+  // const [containingPlaylists, setContainingPlaylists] = useState<
+  //   Array<{ id: string; name: string; owner: string }>
+  // >([]);
+  const containingPlaylists = track.uri ? findPlaylistsContainingTrack(track.uri) : [];
   const [trackMetadata, setTrackMetadata] = useState<TrackMetadata>({
     releaseDate: "",
     trackLength: "",
@@ -53,12 +61,23 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
     genres: [],
   });
 
-  // Track the context URI for navigation
-  const [contextUri, setContextUri] = useState<string | null>(null);
-  const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
+  // useEffect(() => {
+  //   const fetchContainingPlaylists = async () => {
+  //     if (!track.uri) return;
 
-  // Get track artist names as a string
-  const artistNames = track.artists ? track.artists.map((artist) => artist.name).join(", ") : "";
+  //     setIsLoadingPlaylists(true);
+  //     try {
+  //       const playlists = await findPlaylistsContainingTrack(track.uri);
+  //       setContainingPlaylists(playlists);
+  //     } catch (error) {
+  //       console.error("Error fetching containing playlists:", error);
+  //     } finally {
+  //       setIsLoadingPlaylists(false);
+  //     }
+  //   };
+
+  //   fetchContainingPlaylists();
+  // }, [track.uri]);
 
   // Format milliseconds to mm:ss
   const formatDuration = (ms: number): string => {
@@ -432,6 +451,16 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
     }
   };
 
+  const navigateToPlaylist = (playlistId: string) => {
+    if (playlistId === "liked") {
+      // Navigate to Liked Songs
+      Spicetify.Platform.History.push("/collection/tracks");
+    } else {
+      // Navigate to the playlist
+      Spicetify.Platform.History.push(`/playlist/${playlistId}`);
+    }
+  };
+
   // Navigation functions
   const navigateToAlbum = () => {
     try {
@@ -751,6 +780,27 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
             </div>
           </div>
         </div>
+
+        {containingPlaylists.length > 0 ? (
+          <div className={styles.playlistsSection}>
+            <h4 className={styles.sectionTitle}>In Playlists:</h4>
+            <div className={styles.playlistList}>
+              {containingPlaylists.map((playlist) => (
+                <div
+                  key={playlist.id}
+                  className={styles.playlistItem}
+                  onClick={() => navigateToPlaylist(playlist.id)}
+                  title={`Go to ${playlist.name}`}
+                >
+                  <span className={styles.playlistName}>{playlist.name}</span>
+                  <span className={styles.playlistOwner}>{playlist.owner}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className={styles.noPlaylists}>Not found in any playlists in cache</div>
+        )}
 
         {/* Right side - Controls and metadata */}
         <div className={styles.controlsContainer}>

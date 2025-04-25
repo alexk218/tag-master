@@ -472,3 +472,55 @@
 .tagFilter:hover {
   background: #1a7ee0;
 }
+
+/* Playlists section */
+.playlistsSection {
+  margin-bottom: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--spice-button-disabled);
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--spice-text);
+}
+
+.playlistList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.playlistItem {
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.playlistItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.playlistName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--spice-text);
+}
+
+.playlistOwner {
+  font-size: 11px;
+  color: var(--spice-subtext);
+}
+
+.playlistsLoading {
+  font-size: 13px;
+  color: var(--spice-subtext);
+  font-style: italic;
+  margin: 8px 0;
+}

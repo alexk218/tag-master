@@ -9,6 +9,7 @@ import DataManager from "./components/DataManager";
 import { useTagData } from "./hooks/useTagData";
 import { parseLocalFileUri } from "./utils/LocalFileParser";
 import LocalTracksModal from "./components/LocalTracksModal";
+import { checkAndUpdateCacheIfNeeded } from "./utils/PlaylistCache";
 
 interface SpotifyTrack {
   uri: string;
@@ -100,6 +101,12 @@ const App: React.FC = () => {
       // Mark storage as loaded, even if there was an error
       setIsStorageLoaded(true);
     }
+  }, []);
+
+  useEffect(() => {
+    checkAndUpdateCacheIfNeeded().catch((error) => {
+      console.error("Error checking/updating playlist cache:", error);
+    });
   }, []);
 
   // Save lock state and locked track whenever they change

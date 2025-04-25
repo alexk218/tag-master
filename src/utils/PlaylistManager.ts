@@ -1,3 +1,5 @@
+import { addTrackToPlaylistInCache, getPlaylistsContainingTrack } from "./PlaylistCache";
+
 const TAGGED_PLAYLIST_NAME = "TAGGED";
 
 /**
@@ -180,6 +182,14 @@ export async function addTrackToTaggedPlaylist(trackUri: string): Promise<boolea
     const playlistId = await getOrCreateTaggedPlaylist();
     if (!playlistId) return false;
 
+    // Get playlist details for cache
+    const playlistDetails = await Spicetify.CosmosAsync.get(
+      `https://api.spotify.com/v1/playlists/${playlistId}`
+    );
+
+    const playlistName = playlistDetails?.name || "TAGGED";
+    const playlistOwner = "You";
+
     // Check if track is already in the playlist
     const isAlreadyInPlaylist = await isTrackInTaggedPlaylist(playlistId, trackUri);
     if (isAlreadyInPlaylist) {
@@ -193,10 +203,19 @@ export async function addTrackToTaggedPlaylist(trackUri: string): Promise<boolea
       uris: [trackUri],
     });
 
+    // Update the cache
+    addTrackToPlaylistInCache(trackUri, playlistId, playlistName, playlistOwner);
+
     Spicetify.showNotification("Track added to TAGGED playlist");
     return true;
   } catch (error) {
     console.error("TagMaster: Error adding track to TAGGED playlist:", error);
     return false;
   }
+}
+
+export function findPlaylistsContainingTrack(
+  trackUri: string
+): Array<{ id: string; name: string; owner: string }> {
+  return getPlaylistsContainingTrack(trackUri);
 }

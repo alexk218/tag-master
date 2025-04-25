@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import styles from "./DataManager.module.css";
 import { TagDataStructure } from "../hooks/useTagData";
 import { syncAllTaggedTracks } from "../utils/PlaylistManager";
+import { refreshPlaylistCache } from "../utils/PlaylistCache";
 
 interface DataManagerProps {
   onExportBackup: () => void;
@@ -21,6 +22,16 @@ const DataManager: React.FC<DataManagerProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isRefreshingPlaylists, setIsRefreshingPlaylists] = useState(false);
+
+  const handleRefreshPlaylists = async () => {
+    setIsRefreshingPlaylists(true);
+    try {
+      await refreshPlaylistCache();
+    } finally {
+      setIsRefreshingPlaylists(false);
+    }
+  };
 
   const handleSyncToPlaylist = async () => {
     setIsSyncing(true);
@@ -115,6 +126,14 @@ const DataManager: React.FC<DataManagerProps> = ({
           disabled={isSyncing || Object.keys(taggedTracks).length === 0}
         >
           {isSyncing ? "Syncing..." : "Sync to TAGGED Playlist"}
+        </button>
+
+        <button
+          className={styles.actionButton}
+          onClick={handleRefreshPlaylists}
+          disabled={isRefreshingPlaylists}
+        >
+          {isRefreshingPlaylists ? "Refreshing..." : "Refresh Playlist Data"}
         </button>
 
         <input
