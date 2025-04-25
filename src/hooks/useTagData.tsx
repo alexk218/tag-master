@@ -661,6 +661,10 @@ export function useTagData() {
     return tagData;
   };
 
+  const isTrackEmpty = (trackData: TrackData): boolean => {
+    return trackData.rating === 0 && trackData.energy === 0 && trackData.tags.length === 0;
+  };
+
   // Toggle a tag for a track
   const toggleTrackTag = (
     trackUri: string,
@@ -689,58 +693,89 @@ export function useTagData() {
       updatedTags = [...trackData.tags, { categoryId, subcategoryId, tagId }];
     }
 
-    // Update state
-    const newTagData = {
-      ...currentData,
-      tracks: {
-        ...currentData.tracks,
-        [trackUri]: {
-          ...trackData,
-          tags: updatedTags,
-        },
-      },
+    const updatedTrackData = {
+      ...trackData,
+      tags: updatedTags,
     };
 
-    setTagData(newTagData);
+    // Check if the track is now empty
+    if (isTrackEmpty(updatedTrackData)) {
+      // Create new state by removing this track
+      const { [trackUri]: _, ...remainingTracks } = currentData.tracks;
+
+      setTagData({
+        ...currentData,
+        tracks: remainingTracks,
+      });
+    } else {
+      // Update state with modified track
+      setTagData({
+        ...currentData,
+        tracks: {
+          ...currentData.tracks,
+          [trackUri]: updatedTrackData,
+        },
+      });
+    }
   };
 
   const setRating = (trackUri: string, rating: number) => {
     // Ensure track data exists
     const currentData = ensureTrackData(trackUri);
+    const trackData = currentData.tracks[trackUri];
 
-    // Update rating
-    const newTagData = {
-      ...currentData,
-      tracks: {
-        ...currentData.tracks,
-        [trackUri]: {
-          ...currentData.tracks[trackUri],
-          rating,
+    // Check if this would make the track empty
+    if (rating === 0 && trackData.energy === 0 && trackData.tags.length === 0) {
+      // Create new state by removing this track
+      const { [trackUri]: _, ...remainingTracks } = currentData.tracks;
+
+      setTagData({
+        ...currentData,
+        tracks: remainingTracks,
+      });
+    } else {
+      // Update state with modified track
+      setTagData({
+        ...currentData,
+        tracks: {
+          ...currentData.tracks,
+          [trackUri]: {
+            ...trackData,
+            rating,
+          },
         },
-      },
-    };
-
-    setTagData(newTagData);
+      });
+    }
   };
 
   // Set energy level for a track (0 means no energy rating)
   const setEnergy = (trackUri: string, energy: number) => {
     // Ensure track data exists
     const currentData = ensureTrackData(trackUri);
+    const trackData = currentData.tracks[trackUri];
 
-    // Update energy
-    const newTagData = {
-      ...currentData,
-      tracks: {
-        ...currentData.tracks,
-        [trackUri]: {
-          ...currentData.tracks[trackUri],
-          energy,
+    // Check if this would make the track empty
+    if (energy === 0 && trackData.rating === 0 && trackData.tags.length === 0) {
+      // Create new state by removing this track
+      const { [trackUri]: _, ...remainingTracks } = currentData.tracks;
+
+      setTagData({
+        ...currentData,
+        tracks: remainingTracks,
+      });
+    } else {
+      // Update state with modified track
+      setTagData({
+        ...currentData,
+        tracks: {
+          ...currentData.tracks,
+          [trackUri]: {
+            ...trackData,
+            energy,
+          },
         },
-      },
-    };
-
-    setTagData(newTagData);
+      });
+    }
   };
 
   const findTagName = (categoryId: string, subcategoryId: string, tagId: string): string => {
