@@ -90,8 +90,7 @@ export function shouldExcludePlaylist(
     return true;
   }
 
-  // Hardcoded exclusions for MASTER playlist
-  if (playlistName === "MASTER") {
+  if (playlistName === "TAGGED") {
     return true;
   }
 

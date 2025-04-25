@@ -5,6 +5,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
 }
 
 .contentLayout {
@@ -474,6 +475,13 @@
 }
 
 /* Playlists section */
+.playlistsWrapper {
+  width: 100%;
+  margin-top: 1.5rem;
+  margin-bottom: 0.25rem;
+  padding: 0 1rem;
+}
+
 .playlistsSection {
   margin-top: 12px;
   padding-top: 12px;
@@ -532,4 +540,29 @@
   color: var(--spice-subtext);
   font-style: italic;
   margin: 8px 0;
+}
+
+.warningIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 204, 0, 0.15);
+  border-left: 3px solid #ffcc00;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.warningIconContainer {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  cursor: help; /* Changes cursor to indicate there's a tooltip */
+}
+
+.warningIcon {
+  color: #ffcc00;
+  font-size: 18px;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
 }
