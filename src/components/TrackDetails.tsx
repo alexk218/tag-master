@@ -790,10 +790,9 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                   key={playlist.id}
                   className={styles.playlistItem}
                   onClick={() => navigateToPlaylist(playlist.id)}
-                  title={`Go to ${playlist.name}`}
+                  title={`Go to ${playlist.name} (Owner: ${playlist.owner})`}
                 >
                   <span className={styles.playlistName}>{playlist.name}</span>
-                  <span className={styles.playlistOwner}>{playlist.owner}</span>
                 </div>
               ))}
             </div>

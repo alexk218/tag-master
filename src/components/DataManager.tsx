@@ -3,6 +3,7 @@ import styles from "./DataManager.module.css";
 import { TagDataStructure } from "../hooks/useTagData";
 import { syncAllTaggedTracks } from "../utils/PlaylistManager";
 import { refreshPlaylistCache } from "../utils/PlaylistCache";
+import PlaylistSettingsModal from "./PlaylistSettings";
 
 interface DataManagerProps {
   onExportBackup: () => void;
@@ -23,6 +24,17 @@ const DataManager: React.FC<DataManagerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRefreshingPlaylists, setIsRefreshingPlaylists] = useState(false);
+  const [showPlaylistSettings, setShowPlaylistSettings] = useState(false);
+
+  const handlePlaylistSettingsSaved = async () => {
+    // When settings change, we should refresh the cache
+    setIsRefreshingPlaylists(true);
+    try {
+      await refreshPlaylistCache();
+    } finally {
+      setIsRefreshingPlaylists(false);
+    }
+  };
 
   const handleRefreshPlaylists = async () => {
     setIsRefreshingPlaylists(true);
@@ -136,6 +148,10 @@ const DataManager: React.FC<DataManagerProps> = ({
           {isRefreshingPlaylists ? "Refreshing..." : "Refresh Playlist Data"}
         </button>
 
+        <button className={styles.actionButton} onClick={() => setShowPlaylistSettings(true)}>
+          Playlist Settings
+        </button>
+
         <input
           ref={fileInputRef}
           type="file"
@@ -144,6 +160,13 @@ const DataManager: React.FC<DataManagerProps> = ({
           style={{ display: "none" }}
         />
       </div>
+
+      {showPlaylistSettings && (
+        <PlaylistSettingsModal
+          onClose={() => setShowPlaylistSettings(false)}
+          onSettingsSaved={handlePlaylistSettingsSaved}
+        />
+      )}
 
       <div className={styles.info}>
         <p>

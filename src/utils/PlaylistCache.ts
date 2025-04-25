@@ -1,3 +1,5 @@
+import { shouldExcludePlaylist } from "./PlaylistSettings";
+
 interface PlaylistInfo {
   id: string;
   name: string;
@@ -100,13 +102,16 @@ export async function refreshPlaylistCache(): Promise<number> {
       name: string;
       owner: { id: string; display_name: string };
       tracks: { total: number };
+      description: string;
     }> = [];
+
     let offset = 0;
     let hasMore = true;
 
+    // First, fetch all playlists
     while (hasMore) {
       const response = await Spicetify.CosmosAsync.get(
-        `https://api.spotify.com/v1/me/playlists?limit=50&offset=${offset}`
+        `https://api.spotify.com/v1/me/playlists?limit=50&offset=${offset}&fields=items(id,name,owner,tracks.total,description)`
       );
 
       if (response && response.items && response.items.length > 0) {
@@ -118,15 +123,51 @@ export async function refreshPlaylistCache(): Promise<number> {
       }
     }
 
-    console.log(`TagMaster: Found ${playlists.length} playlists`);
+    console.log(`TagMaster: Found ${playlists.length} total playlists`);
 
-    // For each playlist, get all tracks and add to cache
+    // Filter playlists based on exclusion settings
+    const filteredPlaylists = playlists.filter(
+      (playlist) =>
+        !shouldExcludePlaylist(
+          playlist.id,
+          playlist.name,
+          playlist.owner.id,
+          playlist.description || "",
+          userId
+        )
+    );
+
+    console.log(
+      `TagMaster: After filtering, processing ${filteredPlaylists.length} playlists (excluded ${
+        playlists.length - filteredPlaylists.length
+      })`
+    );
+
+    // Clear previous cached data for excluded playlists
+    const oldCache = getPlaylistCache();
+
+    // For each track in the old cache
+    Object.entries(oldCache.tracks).forEach(([trackUri, playlistsArray]) => {
+      // Filter out playlists that should be excluded
+      const filteredPlaylistsForTrack = playlistsArray.filter(
+        (playlist) =>
+          // Keep "Liked Songs" and any playlists that aren't excluded
+          playlist.id === "liked" || filteredPlaylists.some((p) => p.id === playlist.id)
+      );
+
+      // If there are still playlists for this track after filtering
+      if (filteredPlaylistsForTrack.length > 0) {
+        newCache.tracks[trackUri] = filteredPlaylistsForTrack;
+      }
+    });
+
+    // Process filtered playlists
     let totalTracksProcessed = 0;
     let playlistsProcessed = 0;
 
     // Process playlists one by one to avoid rate limits
-    for (const playlist of playlists) {
-      // Skip very large playlists (optional, to prevent long processing times)
+    for (const playlist of filteredPlaylists) {
+      // Skip very large playlists (optional)
       if (playlist.tracks.total > 1000) {
         console.log(
           `TagMaster: Skipping large playlist ${playlist.name} with ${playlist.tracks.total} tracks`
@@ -138,7 +179,7 @@ export async function refreshPlaylistCache(): Promise<number> {
         // Show progress notification every 5 playlists
         if (playlistsProcessed % 5 === 0) {
           Spicetify.showNotification(
-            `Refreshing playlist cache: ${playlistsProcessed}/${playlists.length} playlists`
+            `Refreshing playlist cache: ${playlistsProcessed}/${filteredPlaylists.length} playlists`
           );
         }
 
@@ -259,11 +300,11 @@ export async function refreshPlaylistCache(): Promise<number> {
     console.log(
       `TagMaster: Refreshed playlist cache with ${
         Object.keys(newCache.tracks).length
-      } unique tracks across ${playlists.length} playlists`
+      } unique tracks across ${filteredPlaylists.length} playlists`
     );
     Spicetify.showNotification(
       `Playlist data refreshed: ${Object.keys(newCache.tracks).length} tracks in ${
-        playlists.length
+        filteredPlaylists.length
       } playlists`
     );
 
