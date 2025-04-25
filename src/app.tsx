@@ -659,6 +659,7 @@ const App: React.FC = () => {
             onImportBackup={importBackup}
             onExportRekordbox={() => setShowExport(true)}
             lastSaved={lastSaved}
+            taggedTracks={tagData.tracks}
           />
 
           <div className={styles.content}>

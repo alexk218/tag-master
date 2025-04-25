@@ -1,12 +1,14 @@
 import React, { useState, useRef } from "react";
 import styles from "./DataManager.module.css";
 import { TagDataStructure } from "../hooks/useTagData";
+import { syncAllTaggedTracks } from "../utils/PlaylistManager";
 
 interface DataManagerProps {
   onExportBackup: () => void;
   onImportBackup: (data: TagDataStructure) => void;
   onExportRekordbox: () => void;
   lastSaved: Date | null;
+  taggedTracks: Record<string, any>;
 }
 
 const DataManager: React.FC<DataManagerProps> = ({
@@ -14,9 +16,20 @@ const DataManager: React.FC<DataManagerProps> = ({
   onImportBackup,
   onExportRekordbox,
   lastSaved,
+  taggedTracks,
 }) => {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncToPlaylist = async () => {
+    setIsSyncing(true);
+    try {
+      await syncAllTaggedTracks(taggedTracks);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleImportClick = () => {
     if (fileInputRef.current) {
@@ -94,6 +107,14 @@ const DataManager: React.FC<DataManagerProps> = ({
 
         <button className={styles.actionButton} onClick={handleImportClick} disabled={isImporting}>
           {isImporting ? "Importing..." : "Import Backup File"}
+        </button>
+
+        <button
+          className={styles.actionButton}
+          onClick={handleSyncToPlaylist}
+          disabled={isSyncing || Object.keys(taggedTracks).length === 0}
+        >
+          {isSyncing ? "Syncing..." : "Sync to TAGGED Playlist"}
         </button>
 
         <input

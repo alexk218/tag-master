@@ -1,5 +1,82 @@
 const TAGGED_PLAYLIST_NAME = "TAGGED";
 
+/**
+ * Syncs all tagged tracks to the TAGGED playlist
+ * @param tracks Object containing all tagged tracks
+ * @returns Number of tracks added to the playlist
+ */
+export async function syncAllTaggedTracks(tracks: Record<string, any>): Promise<number> {
+  try {
+    // Get or create the TAGGED playlist
+    const playlistId = await getOrCreateTaggedPlaylist();
+    if (!playlistId) return 0;
+
+    // Get all Spotify track URIs (filter out local files)
+    const trackUris = Object.keys(tracks).filter((uri) => !uri.startsWith("spotify:local:"));
+
+    if (trackUris.length === 0) {
+      Spicetify.showNotification("No tracks to sync to TAGGED playlist");
+      return 0;
+    }
+
+    // Get existing tracks in the playlist to avoid duplicates
+    const existingTracks = new Set<string>();
+
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await Spicetify.CosmosAsync.get(
+        `https://api.spotify.com/v1/playlists/${playlistId}/tracks?fields=items(track(uri)),next&offset=${offset}&limit=100`
+      );
+
+      if (response && response.items) {
+        response.items.forEach((item: any) => {
+          if (item.track && item.track.uri) {
+            existingTracks.add(item.track.uri);
+          }
+        });
+
+        offset += response.items.length;
+        hasMore = response.items.length === 100;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    // Filter out tracks that are already in the playlist
+    const tracksToAdd = trackUris.filter((uri) => !existingTracks.has(uri));
+
+    if (tracksToAdd.length === 0) {
+      Spicetify.showNotification("All tracks already in TAGGED playlist");
+      return 0;
+    }
+
+    // Add tracks in batches of 100 (API limit)
+    let addedCount = 0;
+
+    for (let i = 0; i < tracksToAdd.length; i += 100) {
+      const batch = tracksToAdd.slice(i, Math.min(i + 100, tracksToAdd.length));
+
+      await Spicetify.CosmosAsync.post(
+        `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
+        {
+          uris: batch,
+        }
+      );
+
+      addedCount += batch.length;
+    }
+
+    Spicetify.showNotification(`Added ${addedCount} tracks to TAGGED playlist`);
+    return addedCount;
+  } catch (error) {
+    console.error("TagMaster: Error syncing tracks to TAGGED playlist:", error);
+    Spicetify.showNotification("Error syncing to TAGGED playlist", true);
+    return 0;
+  }
+}
+
 //  Gets the TAGGED playlist ID, creating it if it doesn't exist
 export async function getOrCreateTaggedPlaylist(): Promise<string | null> {
   try {
