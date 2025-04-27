@@ -422,10 +422,10 @@ const TrackList: React.FC<TrackListProps> = ({
     (searchTerm.trim() !== "" ? 1 : 0);
 
   const handleCreatePlaylist = (name: string, description: string, isPublic: boolean) => {
-    if (sortedTracks.length === 0) return;
+    if (filteredTracks.length === 0) return;
 
     // Extract URIs from the filtered tracks
-    const trackUris = sortedTracks.map(([uri]) => uri);
+    const trackUris = filteredTracks.map(([uri]) => uri);
 
     if (onCreatePlaylist) {
       onCreatePlaylist(trackUris, name, description, isPublic);
@@ -435,7 +435,7 @@ const TrackList: React.FC<TrackListProps> = ({
   };
 
   const handleCreatePlaylistClick = () => {
-    if (sortedTracks.length > 0) {
+    if (filteredTracks.length > 0) {
       setShowCreatePlaylistModal(true);
     }
   };
@@ -521,7 +521,7 @@ const TrackList: React.FC<TrackListProps> = ({
           <h2 className={styles.title}>Tagged Tracks</h2>
           <span className={styles.trackCount}>
             {activeFilterCount > 0 || searchTerm.trim() !== ""
-              ? `${sortedTracks.length}/${Object.keys(tracks).length} tracks`
+              ? `${filteredTracks.length}/${Object.keys(tracks).length} tracks`
               : `${Object.keys(tracks).length} tracks`}
           </span>
         </div>
@@ -576,11 +576,11 @@ const TrackList: React.FC<TrackListProps> = ({
         )}
 
         {/* Add Create Playlist button - always visible when there are tracks */}
-        {sortedTracks.length > 0 && (
+        {filteredTracks.length > 0 && (
           <button
             className={styles.createPlaylistButton}
             onClick={handleCreatePlaylistClick}
-            title={`Create playlist with ${sortedTracks.length} tracks`}
+            title={`Create playlist with ${filteredTracks.length} tracks`}
           >
             Create Playlist
           </button>
