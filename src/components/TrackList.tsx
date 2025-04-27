@@ -427,6 +427,18 @@ const TrackList: React.FC<TrackListProps> = ({
     };
   }, [sortedTracks.length, filteredTracks.length]);
 
+  const hasIncompleteTags = (trackData: any): boolean => {
+    if (!trackData) return true;
+
+    // Check if any of these are missing
+    const missingRating = trackData.rating === 0 || trackData.rating === undefined;
+    const missingEnergy = trackData.energy === 0 || trackData.energy === undefined;
+    const missingTags = !trackData.tags || trackData.tags.length === 0;
+
+    // Return true if any are missing
+    return missingRating || missingEnergy || missingTags;
+  };
+
   // Extract all unique tags from all tracks
   const allTags = new Set<string>();
   Object.values(tracks).forEach((track) => {
@@ -857,6 +869,14 @@ const TrackList: React.FC<TrackListProps> = ({
                       onClick={() => !isLocalFile && navigateToAlbum(uri)}
                       title={!isLocalFile ? "Go to album" : undefined}
                     >
+                      {hasIncompleteTags(tracks[uri]) && (
+                        <span
+                          className={styles.incompleteBullet}
+                          title="This track has incomplete tags (missing rating, energy, or tags)"
+                        >
+                          ●
+                        </span>
+                      )}
                       {displayInfo.name}
                       {isLocalFile && (
                         <span style={{ fontSize: "0.8em", marginLeft: "6px", opacity: 0.7 }}>

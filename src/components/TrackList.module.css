@@ -691,3 +691,10 @@
   background-color: #c0392b !important;
   opacity: 0.95 !important;
 }
+
+.incompleteBullet {
+  color: #ffa500; /* Orange bullet for incomplete tags */
+  margin-right: 4px;
+  font-size: 12px;
+  display: inline-block;
+}
