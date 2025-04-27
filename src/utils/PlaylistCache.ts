@@ -12,7 +12,7 @@ interface PlaylistCache {
 }
 
 // Storage key for the cache
-const PLAYLIST_CACHE_KEY = "tagmaster:playlistCache";
+const PLAYLIST_CACHE_KEY = "tagify:playlistCache";
 
 // Function to get the cache from localStorage
 export function getPlaylistCache(): PlaylistCache {
@@ -22,7 +22,7 @@ export function getPlaylistCache(): PlaylistCache {
       return JSON.parse(cacheString);
     }
   } catch (error) {
-    console.error("TagMaster: Error reading playlist cache:", error);
+    console.error("Tagify: Error reading playlist cache:", error);
   }
 
   // Return empty cache if not found or error
@@ -37,7 +37,7 @@ export function savePlaylistCache(cache: PlaylistCache): void {
   try {
     localStorage.setItem(PLAYLIST_CACHE_KEY, JSON.stringify(cache));
   } catch (error) {
-    console.error("TagMaster: Error saving playlist cache:", error);
+    console.error("Tagify: Error saving playlist cache:", error);
   }
 }
 
@@ -123,7 +123,7 @@ export async function refreshPlaylistCache(): Promise<number> {
       }
     }
 
-    console.log(`TagMaster: Found ${playlists.length} total playlists`);
+    console.log(`Tagify: Found ${playlists.length} total playlists`);
 
     // Filter playlists based on exclusion settings
     const filteredPlaylists = playlists.filter(
@@ -138,7 +138,7 @@ export async function refreshPlaylistCache(): Promise<number> {
     );
 
     console.log(
-      `TagMaster: After filtering, processing ${filteredPlaylists.length} playlists (excluded ${
+      `Tagify: After filtering, processing ${filteredPlaylists.length} playlists (excluded ${
         playlists.length - filteredPlaylists.length
       })`
     );
@@ -170,7 +170,7 @@ export async function refreshPlaylistCache(): Promise<number> {
       // Skip very large playlists (optional)
       if (playlist.tracks.total > 1000) {
         console.log(
-          `TagMaster: Skipping large playlist ${playlist.name} with ${playlist.tracks.total} tracks`
+          `Tagify: Skipping large playlist ${playlist.name} with ${playlist.tracks.total} tracks`
         );
         continue;
       }
@@ -236,7 +236,7 @@ export async function refreshPlaylistCache(): Promise<number> {
 
         playlistsProcessed++;
       } catch (error) {
-        console.error(`TagMaster: Error processing playlist ${playlist.name}:`, error);
+        console.error(`Tagify: Error processing playlist ${playlist.name}:`, error);
       }
     }
 
@@ -291,14 +291,14 @@ export async function refreshPlaylistCache(): Promise<number> {
         }
       }
     } catch (error) {
-      console.error("TagMaster: Error processing Liked Songs:", error);
+      console.error("Tagify: Error processing Liked Songs:", error);
     }
 
     // Save the new cache
     savePlaylistCache(newCache);
 
     console.log(
-      `TagMaster: Refreshed playlist cache with ${
+      `Tagify: Refreshed playlist cache with ${
         Object.keys(newCache.tracks).length
       } unique tracks across ${filteredPlaylists.length} playlists`
     );
@@ -310,7 +310,7 @@ export async function refreshPlaylistCache(): Promise<number> {
 
     return totalTracksProcessed;
   } catch (error) {
-    console.error("TagMaster: Error refreshing playlist cache:", error);
+    console.error("Tagify: Error refreshing playlist cache:", error);
     Spicetify.showNotification("Error refreshing playlist data", true);
     return 0;
   }
@@ -324,9 +324,9 @@ export async function checkAndUpdateCacheIfNeeded(): Promise<void> {
 
   // If cache is empty or older than a day, update it
   if (Object.keys(cache.tracks).length === 0 || now - cache.lastUpdated > oneDayMs) {
-    console.log("TagMaster: Playlist cache is outdated, updating...");
+    console.log("Tagify: Playlist cache is outdated, updating...");
     await refreshPlaylistCache();
   } else {
-    console.log("TagMaster: Playlist cache is up to date");
+    console.log("Tagify: Playlist cache is up to date");
   }
 }

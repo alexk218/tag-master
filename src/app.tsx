@@ -21,8 +21,8 @@ interface SpotifyTrack {
 }
 
 // Constants for localStorage keys
-const LOCK_STATE_KEY = "tagmaster:lockState";
-const LOCKED_TRACK_KEY = "tagmaster:lockedTrack";
+const LOCK_STATE_KEY = "tagify:lockState";
+const LOCKED_TRACK_KEY = "tagify:lockedTrack";
 
 const App: React.FC = () => {
   // Get tag data management functions from our custom hook
@@ -69,7 +69,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      const savedFilters = localStorage.getItem("tagmaster:filterState");
+      const savedFilters = localStorage.getItem("tagify:filterState");
       if (savedFilters) {
         const filters = JSON.parse(savedFilters);
 
@@ -106,13 +106,10 @@ const App: React.FC = () => {
       if (savedLockState === "true" && savedLockedTrack) {
         setIsLocked(true);
         setLockedTrack(JSON.parse(savedLockedTrack));
-        console.log(
-          "TagMaster: Restored locked state for track",
-          JSON.parse(savedLockedTrack).name
-        );
+        console.log("Tagify: Restored locked state for track", JSON.parse(savedLockedTrack).name);
       }
     } catch (error) {
-      console.error("TagMaster: Error loading saved lock state:", error);
+      console.error("Tagify: Error loading saved lock state:", error);
     } finally {
       // Mark storage as loaded, even if there was an error
       setIsStorageLoaded(true);
@@ -143,7 +140,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // Only set up the listener if storage has been loaded
     if (!isStorageLoaded) {
-      console.log("TagMaster: Waiting for localStorage to load before setting up player listener");
+      console.log("Tagify: Waiting for localStorage to load before setting up player listener");
       return;
     }
 
@@ -184,7 +181,7 @@ const App: React.FC = () => {
 
         // ONLY update lockedTrack if we're NOT locked - don't touch lockedTrack when isLocked is true
         if (!isLocked) {
-          console.log("TagMaster: Updating lockedTrack because not locked:", newTrack.name);
+          console.log("Tagify: Updating lockedTrack because not locked:", newTrack.name);
           // Make sure to set both track objects to valid state
           const safeTrack = {
             ...newTrack,
@@ -218,7 +215,7 @@ const App: React.FC = () => {
     const checkForTrackUris = async () => {
       // Get the current location and log it for debugging
       const currentLocation = Spicetify.Platform.History.location || window.location;
-      console.log("TagMaster: Current location:", currentLocation);
+      console.log("Tagify: Current location:", currentLocation);
 
       // Try multiple ways to get the URI parameter (for single track)
       let trackUri = null;
@@ -227,7 +224,7 @@ const App: React.FC = () => {
       const windowParams = new URLSearchParams(window.location.search);
       if (windowParams.has("uri")) {
         trackUri = windowParams.get("uri");
-        console.log("TagMaster: Found URI in window.location.search:", trackUri);
+        console.log("Tagify: Found URI in window.location.search:", trackUri);
       }
 
       // Try from Spicetify.Platform.History.location if available
@@ -235,13 +232,13 @@ const App: React.FC = () => {
         const historyParams = new URLSearchParams(Spicetify.Platform.History.location.search);
         if (historyParams.has("uri")) {
           trackUri = historyParams.get("uri");
-          console.log("TagMaster: Found URI in History location search:", trackUri);
+          console.log("Tagify: Found URI in History location search:", trackUri);
         }
 
         // Also check state
         if (!trackUri && Spicetify.Platform.History.location.state?.trackUri) {
           trackUri = Spicetify.Platform.History.location.state.trackUri;
-          console.log("TagMaster: Found URI in History state:", trackUri);
+          console.log("Tagify: Found URI in History state:", trackUri);
         }
       }
 
@@ -251,7 +248,7 @@ const App: React.FC = () => {
       // Try from window.location.search
       if (windowParams.has("uris")) {
         trackUrisParam = windowParams.get("uris");
-        console.log("TagMaster: Found URIs in window.location.search:", trackUrisParam);
+        console.log("Tagify: Found URIs in window.location.search:", trackUrisParam);
       }
 
       // Try from Spicetify.Platform.History.location if available
@@ -259,19 +256,19 @@ const App: React.FC = () => {
         const historyParams = new URLSearchParams(Spicetify.Platform.History.location.search);
         if (historyParams.has("uris")) {
           trackUrisParam = historyParams.get("uris");
-          console.log("TagMaster: Found URIs in History location search:", trackUrisParam);
+          console.log("Tagify: Found URIs in History location search:", trackUrisParam);
         }
 
         // Also check state
         if (!trackUrisParam && Spicetify.Platform.History.location.state?.trackUris) {
           trackUrisParam = JSON.stringify(Spicetify.Platform.History.location.state.trackUris);
-          console.log("TagMaster: Found URIs in History state:", trackUrisParam);
+          console.log("Tagify: Found URIs in History state:", trackUrisParam);
         }
       }
 
       // SINGLE TRACK HANDLING
       if (trackUri) {
-        console.log("TagMaster: Processing track URI:", trackUri);
+        console.log("Tagify: Processing track URI:", trackUri);
 
         try {
           // Check if this is a local file
@@ -320,7 +317,7 @@ const App: React.FC = () => {
               duration_ms: response.duration_ms,
             };
 
-            console.log("TagMaster: Setting locked track:", trackInfo.name);
+            console.log("Tagify: Setting locked track:", trackInfo.name);
 
             // Set as locked track and enable lock - IMPORTANT!
             setLockedTrack(trackInfo);
@@ -333,7 +330,7 @@ const App: React.FC = () => {
             }
           }
         } catch (error) {
-          console.error("TagMaster: Error loading track from URI parameter:", error);
+          console.error("Tagify: Error loading track from URI parameter:", error);
           Spicetify.showNotification("Error loading track for tagging", true);
         }
       }
@@ -342,7 +339,7 @@ const App: React.FC = () => {
         try {
           // Parse the JSON array of URIs
           const trackUris = JSON.parse(decodeURIComponent(trackUrisParam));
-          console.log("TagMaster: Processing track URIs:", trackUris);
+          console.log("Tagify: Processing track URIs:", trackUris);
 
           if (!Array.isArray(trackUris) || trackUris.length === 0) {
             throw new Error("Invalid track URIs format");
@@ -351,7 +348,7 @@ const App: React.FC = () => {
           // If there's only one track, handle it as a single track
           if (trackUris.length === 1) {
             // Use the format that works with your Spicetify version
-            Spicetify.Platform.History.push(`/tag-master?uri=${encodeURIComponent(trackUris[0])}`);
+            Spicetify.Platform.History.push(`/tagify?uri=${encodeURIComponent(trackUris[0])}`);
             return;
           }
 
@@ -394,13 +391,13 @@ const App: React.FC = () => {
                 });
               }
             } catch (error) {
-              console.error(`TagMaster: Error fetching track ${uri}:`, error);
+              console.error(`Tagify: Error fetching track ${uri}:`, error);
             }
           }
 
           if (fetchedTracks.length > 0) {
             console.log(
-              `TagMaster: Successfully fetched ${fetchedTracks.length} tracks for mass tagging`
+              `Tagify: Successfully fetched ${fetchedTracks.length} tracks for mass tagging`
             );
             setSelectedTracks(fetchedTracks);
             setIsMultiTagging(true);
@@ -409,7 +406,7 @@ const App: React.FC = () => {
             setIsLocked(false);
           }
         } catch (error) {
-          console.error("TagMaster: Error processing track URIs:", error);
+          console.error("Tagify: Error processing track URIs:", error);
           Spicetify.showNotification("Error loading tracks for tagging", true);
         }
       }
@@ -427,12 +424,12 @@ const App: React.FC = () => {
       Spicetify.Platform.History &&
       typeof Spicetify.Platform.History.listen === "function"
     ) {
-      console.log("TagMaster: Setting up history listener");
+      console.log("Tagify: Setting up history listener");
 
       try {
         // Try to set up the listener and get the unlisten function
         const unlistenFunc = Spicetify.Platform.History.listen((location: any) => {
-          console.log("TagMaster: History changed:", location);
+          console.log("Tagify: History changed:", location);
           checkForTrackUris();
         });
 
@@ -440,23 +437,23 @@ const App: React.FC = () => {
         if (typeof unlistenFunc === "function") {
           unlisten = unlistenFunc;
         } else {
-          console.warn("TagMaster: History.listen did not return a cleanup function");
+          console.warn("Tagify: History.listen did not return a cleanup function");
           // Create a fallback cleanup function if needed
           unlisten = () => {
             // Try to remove the listener using an alternative method if available
             // This is a placeholder - you might need specific logic based on Spicetify's API
-            console.log("TagMaster: Using fallback cleanup for history listener");
+            console.log("Tagify: Using fallback cleanup for history listener");
           };
         }
       } catch (error) {
-        console.error("TagMaster: Error setting up history listener:", error);
+        console.error("Tagify: Error setting up history listener:", error);
       }
     }
 
     // Cleanup listener on unmount
     return () => {
       if (unlisten) {
-        console.log("TagMaster: Cleaning up history listener");
+        console.log("Tagify: Cleaning up history listener");
         unlisten();
       }
     };
@@ -519,7 +516,7 @@ const App: React.FC = () => {
 
     // Clear any URL parameters to avoid getting back into multi-tagging mode
     // when the URL is processed again
-    Spicetify.Platform.History.push("/tag-master");
+    Spicetify.Platform.History.push("/tagify");
   };
 
   const onFilterByTag = (tag: string) => {
@@ -809,7 +806,7 @@ const App: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleArea}>
-          <h1 className={styles.title}>TagMaster</h1>
+          <h1 className={styles.title}>Tagify</h1>
 
           {/* Moved track lock control below the title */}
           {activeTrack && (

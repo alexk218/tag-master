@@ -20,14 +20,14 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
   // Generate a default name based on tags
   const defaultName =
     tags.length > 0
-      ? `TagMaster: ${tags.join(", ")}`
-      : `TagMaster Playlist ${new Date().toLocaleDateString()}`;
+      ? `Tagify: ${tags.join(", ")}`
+      : `Tagify Playlist ${new Date().toLocaleDateString()}`;
 
   // Generate a default description
   const defaultDescription =
     tags.length > 0
-      ? `Created with TagMaster | Tags: ${tags.join(", ")}`
-      : "Created with TagMaster";
+      ? `Created with Tagify | Tags: ${tags.join(", ")}`
+      : "Created with Tagify";
 
   const [playlistName, setPlaylistName] = useState(defaultName);
   const [playlistDescription, setPlaylistDescription] = useState(defaultDescription);

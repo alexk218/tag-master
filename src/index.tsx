@@ -5,10 +5,10 @@ import App from "./app";
 // Reference to the app's root element
 let appContainer: HTMLElement | null = null;
 
-const TagMaster = () => {
+const Tagify = () => {
   // Get the container element from Spotify
   appContainer = document.createElement("div");
-  appContainer.id = "tagmaster-container";
+  appContainer.id = "tagify-container";
   document.body.appendChild(appContainer);
 
   // Create root and render our React app into the container
@@ -24,7 +24,7 @@ const TagMaster = () => {
 
 // Wait for Spicetify to load before initializing our app
 export default async function main() {
-  console.log("TagMaster: Starting initialization");
+  console.log("Tagify: Starting initialization");
 
   try {
     // Wait for Spicetify to be available
@@ -34,26 +34,26 @@ export default async function main() {
 
     // Important - make sure required Spicetify components are available
     if (!Spicetify.CosmosAsync) {
-      console.error("TagMaster: Spicetify.CosmosAsync is not available!");
-      Spicetify.showNotification("TagMaster: API access not available", true);
+      console.error("Tagify: Spicetify.CosmosAsync is not available!");
+      Spicetify.showNotification("Tagify: API access not available", true);
     }
 
     // Initialize our app when Spicetify is ready
-    TagMaster();
+    Tagify();
 
     // Show welcome message
-    console.log("TagMaster loaded. Right-click tracks to tag them.");
-    Spicetify.showNotification("TagMaster loaded! Right-click tracks to tag them.");
+    console.log("Tagify loaded. Right-click tracks to tag them.");
+    Spicetify.showNotification("Tagify loaded! Right-click tracks to tag them.");
   } catch (error) {
-    console.error("TagMaster: Error during initialization:", error);
-    Spicetify.showNotification("Error initializing TagMaster", true);
+    console.error("Tagify: Error during initialization:", error);
+    Spicetify.showNotification("Error initializing Tagify", true);
   }
 }
 
 // This will be called when the app is unloaded
 export function getCSS() {
   return `
-    #tagmaster-container {
+    #tagify-container {
       position: relative;
       width: 100%;
       height: 100%;

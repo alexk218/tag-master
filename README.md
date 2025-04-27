@@ -1,4 +1,4 @@
-# TagMaster
+# Tagify
 
 Organize your music by adding ratings, energy levels, and custom tags to your tracks. 
 
@@ -24,12 +24,12 @@ Intended for DJs and music curators.
 1. [Spotify Desktop App](https://www.spotify.com/download/)
 2. [Spicetify](https://spicetify.app/) installed
 
-### Install TagMaster
+### Install Tagify
 
 1. Clone the repository:
    ```
-   git clone https://github.com/alexk218/tag-master.git
-   cd tagmaster
+   git clone https://github.com/alexk218/tagify.git
+   cd tagify
    ```
 
 2. Install dependencies:
@@ -45,14 +45,14 @@ Intended for DJs and music curators.
 4. Copy the app to your Spicetify custom apps folder:
    ```
    # Windows
-   cp -r dist "$(spicetify -c | Split-Path)\CustomApps\tagmaster"
+   cp -r dist "$(spicetify -c | Split-Path)\CustomApps\tagify"
 
    # MacOS/Linux
-   cp -r dist "$(dirname "$(spicetify -c)")/CustomApps/tagmaster"
+   cp -r dist "$(dirname "$(spicetify -c)")/CustomApps/tagify"
    ```
 
 5. Add the app to your Spicetify config:
    ```
-   spicetify config custom_apps tagmaster
+   spicetify config custom_apps tagify
    spicetify apply
    ```

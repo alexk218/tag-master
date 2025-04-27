@@ -46,7 +46,7 @@ interface TrackListProps {
   ) => void;
 }
 
-const FILTER_STATE_KEY = "tagmaster:filterState";
+const FILTER_STATE_KEY = "tagify:filterState";
 
 const TrackList: React.FC<TrackListProps> = ({
   tracks,

@@ -12,7 +12,7 @@ const Portal: React.FC<PortalProps> = ({ children }) => {
   useEffect(() => {
     // Create a div element that will be our portal
     const element = document.createElement("div");
-    element.className = "tagmaster-portal";
+    element.className = "tagify-portal";
     document.body.appendChild(element);
     setPortalElement(element);
 

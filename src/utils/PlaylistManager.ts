@@ -73,7 +73,7 @@ export async function syncAllTaggedTracks(tracks: Record<string, any>): Promise<
     Spicetify.showNotification(`Added ${addedCount} tracks to TAGGED playlist`);
     return addedCount;
   } catch (error) {
-    console.error("TagMaster: Error syncing tracks to TAGGED playlist:", error);
+    console.error("Tagify: Error syncing tracks to TAGGED playlist:", error);
     Spicetify.showNotification("Error syncing to TAGGED playlist", true);
     return 0;
   }
@@ -87,7 +87,7 @@ export async function getOrCreateTaggedPlaylist(): Promise<string | null> {
     const userId = userProfile.id;
 
     if (!userId) {
-      console.error("TagMaster: Could not get user ID");
+      console.error("Tagify: Could not get user ID");
       return null;
     }
 
@@ -103,29 +103,29 @@ export async function getOrCreateTaggedPlaylist(): Promise<string | null> {
 
     // If found, return its ID
     if (taggedPlaylist) {
-      console.log(`TagMaster: Found existing TAGGED playlist: ${taggedPlaylist.id}`);
+      console.log(`Tagify: Found existing TAGGED playlist: ${taggedPlaylist.id}`);
       return taggedPlaylist.id;
     }
 
     // If not found, create it
-    console.log("TagMaster: Creating new TAGGED playlist");
+    console.log("Tagify: Creating new TAGGED playlist");
     const newPlaylist = await Spicetify.CosmosAsync.post(
       `https://api.spotify.com/v1/users/${userId}/playlists`,
       {
         name: TAGGED_PLAYLIST_NAME,
-        description: "Tracks tagged with TagMaster",
+        description: "Tracks tagged with Tagify",
         public: false,
       }
     );
 
     if (newPlaylist && newPlaylist.id) {
-      console.log(`TagMaster: Created TAGGED playlist: ${newPlaylist.id}`);
+      console.log(`Tagify: Created TAGGED playlist: ${newPlaylist.id}`);
       return newPlaylist.id;
     }
 
     throw new Error("Failed to create TAGGED playlist");
   } catch (error) {
-    console.error("TagMaster: Error getting/creating TAGGED playlist:", error);
+    console.error("Tagify: Error getting/creating TAGGED playlist:", error);
     Spicetify.showNotification("Error creating TAGGED playlist", true);
     return null;
   }
@@ -164,7 +164,7 @@ export async function isTrackInTaggedPlaylist(
     // Check if track exists in playlist
     return tracks.some((item) => item.track && item.track.uri === trackUri);
   } catch (error) {
-    console.error("TagMaster: Error checking if track is in playlist:", error);
+    console.error("Tagify: Error checking if track is in playlist:", error);
     return false;
   }
 }
@@ -174,7 +174,7 @@ export async function addTrackToTaggedPlaylist(trackUri: string): Promise<boolea
   try {
     // Skip local files as they can't be added to playlists via API
     if (trackUri.startsWith("spotify:local:")) {
-      console.log("TagMaster: Skipping local file for playlist addition");
+      console.log("Tagify: Skipping local file for playlist addition");
       return false;
     }
 
@@ -193,12 +193,12 @@ export async function addTrackToTaggedPlaylist(trackUri: string): Promise<boolea
     // Check if track is already in the playlist
     const isAlreadyInPlaylist = await isTrackInTaggedPlaylist(playlistId, trackUri);
     if (isAlreadyInPlaylist) {
-      console.log(`TagMaster: Track ${trackUri} already in TAGGED playlist`);
+      console.log(`Tagify: Track ${trackUri} already in TAGGED playlist`);
       return false;
     }
 
     // Add track to playlist
-    console.log(`TagMaster: Adding track ${trackUri} to TAGGED playlist`);
+    console.log(`Tagify: Adding track ${trackUri} to TAGGED playlist`);
     await Spicetify.CosmosAsync.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
       uris: [trackUri],
     });
@@ -209,7 +209,7 @@ export async function addTrackToTaggedPlaylist(trackUri: string): Promise<boolea
     Spicetify.showNotification("Track added to TAGGED playlist");
     return true;
   } catch (error) {
-    console.error("TagMaster: Error adding track to TAGGED playlist:", error);
+    console.error("Tagify: Error adding track to TAGGED playlist:", error);
     return false;
   }
 }

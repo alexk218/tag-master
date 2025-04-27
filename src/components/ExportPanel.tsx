@@ -35,7 +35,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ data, onClose }) => {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `tagmaster-export-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `tagify-export-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
 
     URL.revokeObjectURL(url);

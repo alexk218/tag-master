@@ -16,7 +16,7 @@ export interface PlaylistSettings {
 }
 
 // Storage key for settings
-const SETTINGS_KEY = "tagmaster:playlistSettings";
+const SETTINGS_KEY = "tagify:playlistSettings";
 
 // Default settings
 const DEFAULT_SETTINGS: PlaylistSettings = {
@@ -34,7 +34,7 @@ export function getPlaylistSettings(): PlaylistSettings {
       return JSON.parse(settingsString);
     }
   } catch (error) {
-    console.error("TagMaster: Error reading playlist settings:", error);
+    console.error("Tagify: Error reading playlist settings:", error);
   }
 
   // Return default settings if not found or error
@@ -45,9 +45,9 @@ export function getPlaylistSettings(): PlaylistSettings {
 export function savePlaylistSettings(settings: PlaylistSettings): void {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    console.log("TagMaster: Saved playlist settings");
+    console.log("Tagify: Saved playlist settings");
   } catch (error) {
-    console.error("TagMaster: Error saving playlist settings:", error);
+    console.error("Tagify: Error saving playlist settings:", error);
   }
 }
 

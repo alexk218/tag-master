@@ -301,7 +301,7 @@ const defaultTagData: TagDataStructure = {
   tracks: {},
 };
 
-const STORAGE_KEY = "tagmaster:tagData";
+const STORAGE_KEY = "tagify:tagData";
 
 export function useTagData() {
   const [tagData, setTagData] = useState<TagDataStructure>(defaultTagData);
@@ -313,14 +313,14 @@ export function useTagData() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       // Dispatch a custom event to notify extensions
-      const event = new CustomEvent("tagmaster:dataUpdated", {
+      const event = new CustomEvent("tagify:dataUpdated", {
         detail: { type: "save" },
       });
       window.dispatchEvent(event);
-      console.log("TagMaster: Data saved to localStorage");
+      console.log("Tagify: Data saved to localStorage");
       return true;
     } catch (error) {
-      console.error("TagMaster: Error saving to localStorage", error);
+      console.error("Tagify: Error saving to localStorage", error);
       return false;
     }
   };
@@ -332,7 +332,7 @@ export function useTagData() {
         return JSON.parse(savedData);
       }
     } catch (error) {
-      console.error("TagMaster: Error loading from localStorage", error);
+      console.error("Tagify: Error loading from localStorage", error);
     }
     return null;
   };
@@ -345,11 +345,11 @@ export function useTagData() {
     if (localData && localData.categories && Array.isArray(localData.categories)) {
       setTagData(localData);
       setLastSaved(new Date());
-      console.log("TagMaster: Loaded data from localStorage");
+      console.log("Tagify: Loaded data from localStorage");
     } else {
       // If no data in localStorage or data is invalid, use default
       setTagData(defaultTagData);
-      console.log("TagMaster: Initialized with default data");
+      console.log("Tagify: Initialized with default data");
       // Save the default data to localStorage to prevent future issues
       saveToLocalStorage(defaultTagData);
     }
@@ -372,7 +372,7 @@ export function useTagData() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `tagmaster-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `tagify-backup-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
 
     URL.revokeObjectURL(url);
