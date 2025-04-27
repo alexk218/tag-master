@@ -65,6 +65,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
 }
 
 .tagItem {
@@ -93,27 +94,30 @@
   color: var(--spice-subtext);
   font-style: italic;
   margin: 0;
+  font-size: 12px;
 }
 
 .trackListContainer {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* The max-height is removed so it will grow/shrink with content */
 }
 
 .trackList {
-  max-height: 300px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Removed max-height and overflow-y to allow full display */
 }
 
 .trackItem {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
-  overflow: hidden;
-  cursor: pointer;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   transition: background-color 0.2s ease;
 }
 
@@ -121,18 +125,12 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
-.trackHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-}
-
 .trackInfo {
   display: flex;
   flex-direction: column;
   min-width: 0;
   flex: 1;
+  margin-right: 12px;
 }
 
 .trackName {
@@ -152,15 +150,17 @@
   text-overflow: ellipsis;
 }
 
-.expandIcon {
-  font-size: 12px;
-  color: var(--spice-subtext);
-  margin-left: 8px;
+.trackTagsInline {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
-.trackTags {
-  padding: 0 12px 10px 12px;
-  background: rgba(0, 0, 0, 0.1);
+/* This ensures tags will wrap if they exceed available space */
+.trackTagsInline .tagList {
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .instructions {
@@ -171,19 +171,13 @@
   padding: 8px 0;
 }
 
-.showMoreButton {
-  align-self: center;
-  background-color: rgba(0, 0, 0, 0.2);
-  color: var(--spice-text);
-  border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+/* Ensure instructions paragraphs have proper spacing */
+.instructions p {
+  margin: 4px 0;
 }
 
-.showMoreButton:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+/* Make tag items slightly smaller in the track rows */
+.trackTagsInline .tagItem {
+  font-size: 11px;
+  padding: 3px 8px;
 }
