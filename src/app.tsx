@@ -6,10 +6,11 @@ import TrackList from "./components/TrackList";
 import TagManager from "./components/TagManager";
 import ExportPanel from "./components/ExportPanel";
 import DataManager from "./components/DataManager";
-import { useTagData } from "./hooks/useTagData";
+import { TrackTag, useTagData } from "./hooks/useTagData";
 import { parseLocalFileUri } from "./utils/LocalFileParser";
 import LocalTracksModal from "./components/LocalTracksModal";
 import { checkAndUpdateCacheIfNeeded } from "./utils/PlaylistCache";
+import MultiTrackDetails from "./components/MultiTrackDetails";
 
 interface SpotifyTrack {
   uri: string;
@@ -61,6 +62,8 @@ const App: React.FC = () => {
   }>({ name: "", id: null });
 
   const [isStorageLoaded, setIsStorageLoaded] = useState(false);
+  const [selectedTracks, setSelectedTracks] = useState<SpotifyTrack[]>([]);
+  const [isMultiTagging, setIsMultiTagging] = useState(false);
 
   useEffect(() => {
     try {
@@ -210,12 +213,12 @@ const App: React.FC = () => {
   // Check for track URI in URL parameters
   useEffect(() => {
     // Define the track URI checker function
-    const checkForTrackUri = async () => {
+    const checkForTrackUris = async () => {
       // Get the current location and log it for debugging
       const currentLocation = Spicetify.Platform.History.location || window.location;
       console.log("TagMaster: Current location:", currentLocation);
 
-      // Try multiple ways to get the URI parameter
+      // Try multiple ways to get the URI parameter (for single track)
       let trackUri = null;
 
       // Try from window.location.search
@@ -240,6 +243,31 @@ const App: React.FC = () => {
         }
       }
 
+      // For multiple tracks - check for 'uris' parameter
+      let trackUrisParam = null;
+
+      // Try from window.location.search
+      if (windowParams.has("uris")) {
+        trackUrisParam = windowParams.get("uris");
+        console.log("TagMaster: Found URIs in window.location.search:", trackUrisParam);
+      }
+
+      // Try from Spicetify.Platform.History.location if available
+      if (!trackUrisParam && Spicetify.Platform.History.location) {
+        const historyParams = new URLSearchParams(Spicetify.Platform.History.location.search);
+        if (historyParams.has("uris")) {
+          trackUrisParam = historyParams.get("uris");
+          console.log("TagMaster: Found URIs in History location search:", trackUrisParam);
+        }
+
+        // Also check state
+        if (!trackUrisParam && Spicetify.Platform.History.location.state?.trackUris) {
+          trackUrisParam = JSON.stringify(Spicetify.Platform.History.location.state.trackUris);
+          console.log("TagMaster: Found URIs in History state:", trackUrisParam);
+        }
+      }
+
+      // SINGLE TRACK HANDLING
       if (trackUri) {
         console.log("TagMaster: Processing track URI:", trackUri);
 
@@ -296,20 +324,97 @@ const App: React.FC = () => {
             setLockedTrack(trackInfo);
             setIsLocked(true);
 
-            // The useEffect will handle saving to localStorage
+            // Reset multi-tagging if active
+            if (isMultiTagging) {
+              setSelectedTracks([]);
+              setIsMultiTagging(false);
+            }
           }
         } catch (error) {
           console.error("TagMaster: Error loading track from URI parameter:", error);
           Spicetify.showNotification("Error loading track for tagging", true);
         }
-      } else {
-        console.log("TagMaster: No track URI found in URL");
-        // Don't reset lock state here - we want to maintain it
+      }
+      // MULTI-TRACK HANDLING
+      else if (trackUrisParam) {
+        try {
+          // Parse the JSON array of URIs
+          const trackUris = JSON.parse(decodeURIComponent(trackUrisParam));
+          console.log("TagMaster: Processing track URIs:", trackUris);
+
+          if (!Array.isArray(trackUris) || trackUris.length === 0) {
+            throw new Error("Invalid track URIs format");
+          }
+
+          // If there's only one track, handle it as a single track
+          if (trackUris.length === 1) {
+            // Use the format that works with your Spicetify version
+            Spicetify.Platform.History.push(`/tag-master?uri=${encodeURIComponent(trackUris[0])}`);
+            return;
+          }
+
+          // Multiple tracks case
+          const fetchedTracks: SpotifyTrack[] = [];
+
+          // Process tracks in batches
+          for (const uri of trackUris) {
+            // Handle local files
+            if (uri.startsWith("spotify:local:")) {
+              const parsedFile = parseLocalFileUri(uri);
+              fetchedTracks.push({
+                uri,
+                name: parsedFile.title,
+                artists: [{ name: parsedFile.artist }],
+                album: { name: parsedFile.album },
+                duration_ms: 0,
+              });
+              continue;
+            }
+
+            // For Spotify tracks
+            try {
+              const trackId = uri.split(":").pop();
+              if (!trackId) continue;
+
+              const response = await Spicetify.CosmosAsync.get(
+                `https://api.spotify.com/v1/tracks/${trackId}`
+              );
+
+              if (response) {
+                fetchedTracks.push({
+                  uri,
+                  name: response.name,
+                  artists: response.artists.map((artist: any) => ({
+                    name: artist.name,
+                  })),
+                  album: { name: response.album?.name || "Unknown Album" },
+                  duration_ms: response.duration_ms,
+                });
+              }
+            } catch (error) {
+              console.error(`TagMaster: Error fetching track ${uri}:`, error);
+            }
+          }
+
+          if (fetchedTracks.length > 0) {
+            console.log(
+              `TagMaster: Successfully fetched ${fetchedTracks.length} tracks for mass tagging`
+            );
+            setSelectedTracks(fetchedTracks);
+            setIsMultiTagging(true);
+
+            // Unlock when mass tagging
+            setIsLocked(false);
+          }
+        } catch (error) {
+          console.error("TagMaster: Error processing track URIs:", error);
+          Spicetify.showNotification("Error loading tracks for tagging", true);
+        }
       }
     };
 
     // Run the check immediately when component mounts
-    checkForTrackUri();
+    checkForTrackUris();
 
     // Set up better history listener
     let unlisten: (() => void) | null = null;
@@ -326,7 +431,7 @@ const App: React.FC = () => {
         // Try to set up the listener and get the unlisten function
         const unlistenFunc = Spicetify.Platform.History.listen((location: any) => {
           console.log("TagMaster: History changed:", location);
-          checkForTrackUri();
+          checkForTrackUris();
         });
 
         // Check if the returned value is a function (as it should be)
@@ -353,7 +458,84 @@ const App: React.FC = () => {
         unlisten();
       }
     };
-  }, []);
+  }, [isMultiTagging]);
+
+  const findCommonTags = (trackUris: string[]): TrackTag[] => {
+    if (trackUris.length === 0) return [];
+
+    // Get tags from the first track
+    const firstTrackTags = tagData.tracks[trackUris[0]]?.tags || [];
+
+    if (trackUris.length === 1) return firstTrackTags;
+
+    // Check which tags exist in all tracks
+    return firstTrackTags.filter((tag) => {
+      return trackUris.every((uri) => {
+        const trackTags = tagData.tracks[uri]?.tags || [];
+        return trackTags.some(
+          (t) =>
+            t.categoryId === tag.categoryId &&
+            t.subcategoryId === tag.subcategoryId &&
+            t.tagId === tag.tagId
+        );
+      });
+    });
+  };
+
+  const toggleTagForAllTracks = (categoryId: string, subcategoryId: string, tagId: string) => {
+    // Check if all tracks have this tag
+    const allHaveTag = selectedTracks.every((track) => {
+      const trackTags = tagData.tracks[track.uri]?.tags || [];
+      return trackTags.some(
+        (tag) =>
+          tag.categoryId === categoryId &&
+          tag.subcategoryId === subcategoryId &&
+          tag.tagId === tagId
+      );
+    });
+
+    // If all have the tag, remove it from all. Otherwise, add it to all
+    selectedTracks.forEach((track) => {
+      // Get current tags for this track
+      const trackTags = tagData.tracks[track.uri]?.tags || [];
+      const hasTag = trackTags.some(
+        (tag) =>
+          tag.categoryId === categoryId &&
+          tag.subcategoryId === subcategoryId &&
+          tag.tagId === tagId
+      );
+
+      // Only toggle if the state would change
+      if (allHaveTag) {
+        // If all tracks have it, remove from all
+        if (hasTag) {
+          toggleTrackTag(track.uri, categoryId, subcategoryId, tagId);
+        }
+      } else {
+        // If not all tracks have it, add to those missing it
+        if (!hasTag) {
+          toggleTrackTag(track.uri, categoryId, subcategoryId, tagId);
+        }
+      }
+    });
+  };
+
+  const cancelMultiTagging = () => {
+    // Clear the multi-tagging states
+    setSelectedTracks([]);
+    setIsMultiTagging(false);
+
+    // If there's no active track to show but we have a current track,
+    // set it as the locked track
+    if (!activeTrack && currentTrack) {
+      setLockedTrack(currentTrack);
+      setIsLocked(true);
+    }
+
+    // Clear any URL parameters to avoid getting back into multi-tagging mode
+    // when the URL is processed again
+    Spicetify.Platform.History.push("/tag-master");
+  };
 
   const onFilterByTag = (tag: string) => {
     if (activeTagFilters.includes(tag)) {
@@ -696,8 +878,18 @@ const App: React.FC = () => {
           />
 
           <div className={styles.content}>
-            {activeTrack && (
-              <>
+            {isMultiTagging && selectedTracks.length > 0 ? (
+              <MultiTrackDetails
+                tracks={selectedTracks}
+                trackTagsMap={Object.fromEntries(
+                  selectedTracks.map((track) => [track.uri, tagData.tracks[track.uri]?.tags || []])
+                )}
+                categories={tagData.categories}
+                onTagAllTracks={toggleTagForAllTracks}
+                onCancelTagging={cancelMultiTagging}
+              />
+            ) : (
+              activeTrack && (
                 <TrackDetails
                   track={activeTrack}
                   trackData={
@@ -715,15 +907,7 @@ const App: React.FC = () => {
                   onRemoveTag={(categoryId, subcategoryId, tagId) =>
                     toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
                   }
-                  onFilterByTag={(tagName) => {
-                    setActiveTagFilters((prev) => {
-                      if (prev.includes(tagName)) {
-                        return prev.filter((t) => t !== tagName);
-                      } else {
-                        return [...prev, tagName];
-                      }
-                    });
-                  }}
+                  onFilterByTag={onFilterByTag}
                   onPlayTrack={(uri) => {
                     // Special handling for local files
                     if (uri.startsWith("spotify:local:")) {
@@ -802,17 +986,27 @@ const App: React.FC = () => {
                     }
                   }}
                 />
+              )
+            )}
 
-                <TagSelector
-                  track={activeTrack}
-                  categories={tagData.categories}
-                  trackTags={tagData.tracks[activeTrack.uri]?.tags || []}
-                  onToggleTag={(categoryId, subcategoryId, tagId) =>
-                    toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
-                  }
-                  onOpenTagManager={() => setShowTagManager(true)}
-                />
-              </>
+            {/* TagSelector component - handles both single and multi-tagging modes */}
+            {(activeTrack || (isMultiTagging && selectedTracks.length > 0)) && (
+              <TagSelector
+                track={activeTrack || selectedTracks[0]}
+                categories={tagData.categories}
+                trackTags={
+                  isMultiTagging
+                    ? findCommonTags(selectedTracks.map((track) => track.uri))
+                    : tagData.tracks[activeTrack?.uri || ""]?.tags || []
+                }
+                onToggleTag={(categoryId, subcategoryId, tagId) =>
+                  isMultiTagging
+                    ? toggleTagForAllTracks(categoryId, subcategoryId, tagId)
+                    : toggleTrackTag(activeTrack!.uri, categoryId, subcategoryId, tagId)
+                }
+                onOpenTagManager={() => setShowTagManager(true)}
+                isMultiTagging={isMultiTagging}
+              />
             )}
 
             {/* List of tagged tracks */}

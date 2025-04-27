@@ -215,3 +215,23 @@
 .expandCollapseIcon {
   font-size: 10px;
 }
+
+.multiTaggingBanner {
+  background-color: rgba(30, 144, 255, 0.15);
+  border: 1px solid rgba(30, 144, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.multiTaggingIcon {
+  font-size: 16px;
+}
+
+.multiTaggingText {
+  font-size: 13px;
+  color: var(--spice-text);
+}

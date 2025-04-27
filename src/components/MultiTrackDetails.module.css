@@ -1,0 +1,189 @@
+.container {
+  background: var(--spice-card);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 20px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--spice-text);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.trackCount {
+  font-size: 14px;
+  color: var(--spice-subtext);
+}
+
+.cancelButton {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.cancelButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sectionTitle {
+  font-size: 16px;
+  margin: 0 0 12px 0;
+  font-weight: 600;
+  color: var(--spice-text);
+}
+
+.commonTagsSection {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tagItem {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.tagItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.removeTagIcon {
+  margin-left: 6px;
+  font-weight: bold;
+  opacity: 0.7;
+}
+
+.noTags {
+  color: var(--spice-subtext);
+  font-style: italic;
+  margin: 0;
+}
+
+.trackListContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trackList {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trackItem {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.trackItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.trackHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.trackInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.trackName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--spice-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackArtist {
+  font-size: 12px;
+  color: var(--spice-subtext);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expandIcon {
+  font-size: 12px;
+  color: var(--spice-subtext);
+  margin-left: 8px;
+}
+
+.trackTags {
+  padding: 0 12px 10px 12px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.instructions {
+  font-size: 14px;
+  color: var(--spice-subtext);
+  font-style: italic;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.showMoreButton {
+  align-self: center;
+  background-color: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.showMoreButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}

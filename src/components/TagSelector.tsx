@@ -11,6 +11,7 @@ interface TagSelectorProps {
   trackTags: TrackTag[];
   onToggleTag: (categoryId: string, subcategoryId: string, tagId: string) => void;
   onOpenTagManager: () => void;
+  isMultiTagging?: boolean;
 }
 
 const TagSelector: React.FC<TagSelectorProps> = ({
@@ -18,6 +19,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   trackTags,
   onToggleTag,
   onOpenTagManager,
+  isMultiTagging = false,
 }) => {
   // Keep track of expanded categories and subcategories
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -131,7 +133,9 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   return (
     <div className={styles.container} ref={containerRef}>
       <div className={styles.header}>
-        <h2 className={styles.title}>Add Tags</h2>
+        <h2 className={styles.title}>
+          {isMultiTagging ? "Add Tags to All Selected Tracks" : "Add Tags"}
+        </h2>
         <div className={styles.controls}>
           <button
             className={styles.expandCollapseButton}
@@ -163,6 +167,15 @@ const TagSelector: React.FC<TagSelectorProps> = ({
           </div>
         </div>
       </div>
+
+      {isMultiTagging && (
+        <div className={styles.multiTaggingBanner}>
+          <span className={styles.multiTaggingIcon}>🏷️</span>
+          <span className={styles.multiTaggingText}>
+            Tags will be applied to all selected tracks
+          </span>
+        </div>
+      )}
 
       <div className={styles.categoryList}>
         {categories?.map((category) => {
