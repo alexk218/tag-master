@@ -232,6 +232,24 @@
   font-weight: 600;
 }
 
+.tagFilter.excluded {
+  background: #ff4c4c; /* Red color for excluded filters */
+  color: white;
+}
+
+.tagFilter.excluded:hover {
+  background: #e64444;
+}
+
+.excludedTagFilter {
+  background: #ff4c4c !important; /* Red color for excluded filters */
+  color: white !important;
+}
+
+.excludedTagFilter:hover {
+  background: #e64444 !important;
+}
+
 /* Track list */
 .trackList {
   overflow-y: auto;
@@ -633,4 +651,16 @@
 
 .loadMoreButton:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.excludedTagFilter {
+  background-color: #e74c3c !important;
+  color: white !important;
+  font-weight: 600 !important;
+  text-decoration: line-through;
+}
+
+.excludedTagFilter:hover {
+  background-color: #c0392b !important;
+  opacity: 0.95 !important;
 }

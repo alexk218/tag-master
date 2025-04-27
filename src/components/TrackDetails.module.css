@@ -477,6 +477,14 @@
   background: #1a7ee0;
 }
 
+.tagItem.tagExcluded {
+  background: #ff4c4c;
+}
+
+.tagItem.tagExcluded:hover {
+  background: #e64444;
+}
+
 /* Playlists section */
 .playlistsWrapper {
   width: 100%;

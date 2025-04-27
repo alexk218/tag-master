@@ -32,6 +32,7 @@ interface TrackListProps {
   tracks: TracksObject;
   categories: Category[];
   activeTagFilters: string[];
+  excludedTagFilters: string[];
   activeTrackUri: string | null;
   onFilterByTag: (tag: string) => void;
   onSelectTrack: (uri: string) => void;
@@ -49,6 +50,7 @@ const TrackList: React.FC<TrackListProps> = ({
   tracks,
   categories,
   activeTagFilters,
+  excludedTagFilters,
   activeTrackUri,
   onFilterByTag,
   onSelectTrack,
@@ -233,14 +235,19 @@ const TrackList: React.FC<TrackListProps> = ({
     if (!info && uri.startsWith("spotify:local:")) {
       // Only apply tag/rating/energy filters since we can't search without metadata
 
-      // Tag filters
-      const matchesTags =
+      // Tag filters - include and exclude logic
+      const matchesIncludeTags =
         activeTagFilters.length === 0 ||
         (isOrFilterMode
           ? // OR logic - track must have ANY of the selected tags
             activeTagFilters.some((tag) => trackData.tags.some((t) => t.tag === tag))
           : // AND logic - track must have ALL of the selected tags
             activeTagFilters.every((tag) => trackData.tags.some((t) => t.tag === tag)));
+
+      // Exclude tags - track must NOT have ANY of these tags
+      const matchesExcludeTags =
+        excludedTagFilters.length === 0 ||
+        !excludedTagFilters.some((tag) => trackData.tags.some((t) => t.tag === tag));
 
       // Rating filter
       const matchesRating =
@@ -254,7 +261,12 @@ const TrackList: React.FC<TrackListProps> = ({
       // If search term is empty, then return based on other filters
       // Otherwise, hide it since we can't search on local files without metadata yet
       return (
-        searchTerm === "" && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax
+        searchTerm === "" &&
+        matchesIncludeTags &&
+        matchesExcludeTags &&
+        matchesRating &&
+        matchesEnergyMin &&
+        matchesEnergyMax
       );
     }
 
@@ -265,8 +277,8 @@ const TrackList: React.FC<TrackListProps> = ({
       info.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       info.artists.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Tag filters - track must have ALL selected tags
-    const matchesTags =
+    // Tag filters - Combined include/exclude logic
+    const matchesIncludeTags =
       activeTagFilters.length === 0 ||
       (isOrFilterMode
         ? // OR logic - track must have ANY of the selected tags
@@ -274,7 +286,12 @@ const TrackList: React.FC<TrackListProps> = ({
         : // AND logic - track must have ALL of the selected tags
           activeTagFilters.every((tag) => trackData.tags.some((t) => t.tag === tag)));
 
-    // Rating filter - Updated to check if track rating is in the ratingFilters array
+    // Exclude tags - track must NOT have ANY of these tags (always AND logic for exclusions)
+    const matchesExcludeTags =
+      excludedTagFilters.length === 0 ||
+      !excludedTagFilters.some((tag) => trackData.tags.some((t) => t.tag === tag));
+
+    // Rating filter
     const matchesRating =
       ratingFilters.length === 0 ||
       (trackData.rating > 0 && ratingFilters.includes(trackData.rating));
@@ -283,7 +300,14 @@ const TrackList: React.FC<TrackListProps> = ({
     const matchesEnergyMin = energyMinFilter === null || trackData.energy >= energyMinFilter;
     const matchesEnergyMax = energyMaxFilter === null || trackData.energy <= energyMaxFilter;
 
-    return matchesSearch && matchesTags && matchesRating && matchesEnergyMin && matchesEnergyMax;
+    return (
+      matchesSearch &&
+      matchesIncludeTags &&
+      matchesExcludeTags &&
+      matchesRating &&
+      matchesEnergyMin &&
+      matchesEnergyMax
+    );
   });
 
   // Sort filtered tracks by track name
@@ -346,11 +370,6 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   });
 
-  // Toggle a tag filter
-  const toggleTagFilter = (tag: string) => {
-    onFilterByTag(tag);
-  };
-
   // Toggle a rating filter - now adds/removes from array
   const toggleRatingFilter = (rating: number) => {
     setRatingFilters((prev) =>
@@ -358,10 +377,9 @@ const TrackList: React.FC<TrackListProps> = ({
     );
   };
 
-  const handleTagClick = (tag: string) => {
-    // Call the parent handler to toggle the filter
-    onFilterByTag(tag);
-  };
+  // const handleTagClick = (tag: string) => {
+  //   toggleTagFilter(tag);
+  // };
 
   // Handle energy range filtering
   const handleEnergyMinChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -398,9 +416,10 @@ const TrackList: React.FC<TrackListProps> = ({
   // Calculate active filter count for badge
   const activeFilterCount =
     activeTagFilters.length +
+    excludedTagFilters.length +
     (ratingFilters.length > 0 ? 1 : 0) +
-    (energyMinFilter !== null || energyMaxFilter !== null ? 1 : 0);
-  searchTerm.trim() !== "" ? 1 : 0;
+    (energyMinFilter !== null || energyMaxFilter !== null ? 1 : 0) +
+    (searchTerm.trim() !== "" ? 1 : 0);
 
   const handleCreatePlaylist = (name: string, description: string, isPublic: boolean) => {
     if (sortedTracks.length === 0) return;
@@ -651,17 +670,31 @@ const TrackList: React.FC<TrackListProps> = ({
               <div className={styles.tagFilters}>
                 {Array.from(allTags)
                   .sort()
-                  .map((tag) => (
-                    <button
-                      key={tag}
-                      className={`${styles.tagFilter} ${
-                        activeTagFilters.includes(tag) ? styles.active : ""
-                      }`}
-                      onClick={() => toggleTagFilter(tag)}
-                    >
-                      {tag}
-                    </button>
-                  ))}
+                  .map((tag) => {
+                    return (
+                      <button
+                        key={tag}
+                        className={`${styles.tagFilter} ${
+                          activeTagFilters.includes(tag) ? styles.active : ""
+                        } ${excludedTagFilters.includes(tag) ? styles.excluded : ""}`}
+                        onClick={() => onFilterByTag(tag)}
+                        title={
+                          activeTagFilters.includes(tag)
+                            ? `Click to exclude "${tag}"`
+                            : excludedTagFilters.includes(tag)
+                            ? `Click to remove "${tag}" filter`
+                            : `Click to include "${tag}"`
+                        }
+                      >
+                        {excludedTagFilters.includes(tag)
+                          ? "–"
+                          : activeTagFilters.includes(tag)
+                          ? "+"
+                          : ""}{" "}
+                        {tag}
+                      </button>
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -822,15 +855,17 @@ const TrackList: React.FC<TrackListProps> = ({
                           key={i}
                           className={`${styles.trackItemTag} ${
                             activeTagFilters.includes(tag) ? styles.activeTagFilter : ""
-                          }`}
+                          } ${excludedTagFilters.includes(tag) ? styles.excludedTagFilter : ""}`}
                           onClick={(e) => {
                             e.stopPropagation(); // Prevent track item click
-                            handleTagClick(tag);
+                            onFilterByTag(tag);
                           }}
                           title={
                             activeTagFilters.includes(tag)
-                              ? `Remove "${tag}" filter`
-                              : `Filter by "${tag}"`
+                              ? `Click to exclude "${tag}"`
+                              : excludedTagFilters.includes(tag)
+                              ? `Click to remove "${tag}" filter`
+                              : `Click to include "${tag}"`
                           }
                         >
                           {tag}

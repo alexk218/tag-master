@@ -22,7 +22,8 @@ interface TrackDetailsProps {
   onSetEnergy: (energy: number) => void;
   onRemoveTag: (categoryId: string, subcategoryId: string, tagId: string) => void;
   activeTagFilters: string[];
-  onFilterByTag?: (tag: string) => void;
+  excludedTagFilters: string[];
+  onFilterByTag: (tag: string) => void;
   onPlayTrack?: (uri: string) => void;
 }
 
@@ -40,6 +41,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   trackData,
   categories,
   activeTagFilters,
+  excludedTagFilters,
   onSetRating,
   onSetEnergy,
   onRemoveTag,
@@ -430,13 +432,6 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   // Handle removing energy rating
   const handleRemoveEnergy = () => {
     onSetEnergy(0);
-  };
-
-  // Handle tag filtering
-  const handleTagFilter = (tagName: string) => {
-    if (onFilterByTag) {
-      onFilterByTag(tagName);
-    }
   };
 
   const isPlaylistExcluded = (playlistId: string, playlistName: string): boolean => {
@@ -954,15 +949,22 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
 
                         <div className={styles.tagList}>
                           {subcategory.tags.map((tag) => {
-                            const isFiltered = activeTagFilters.includes(tag.name);
-
                             return (
                               <div
                                 key={tag.id}
                                 className={`${styles.tagItem} ${
-                                  isFiltered ? styles.tagFilter : ""
+                                  activeTagFilters.includes(tag.name) ? styles.tagFilter : ""
+                                } ${
+                                  excludedTagFilters.includes(tag.name) ? styles.tagExcluded : ""
                                 }`}
-                                onClick={() => handleTagFilter(tag.name)}
+                                onClick={() => onFilterByTag(tag.name)}
+                                title={
+                                  activeTagFilters.includes(tag.name)
+                                    ? `Click to exclude "${tag.name}"`
+                                    : excludedTagFilters.includes(tag.name)
+                                    ? `Click to remove "${tag.name}" filter`
+                                    : `Click to include "${tag.name}"`
+                                }
                               >
                                 <span className={styles.tagName}>{tag.name}</span>
                                 <button

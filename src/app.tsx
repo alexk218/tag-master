@@ -46,22 +46,13 @@ const App: React.FC = () => {
     importBackup,
   } = useTagData();
 
-  // State for current track
   const [currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null);
-
-  // State for the locked track (the one we're currently editing regardless of what's playing)
+  const [excludedTagFilters, setExcludedTagFilters] = useState<string[]>([]);
   const [lockedTrack, setLockedTrack] = useState<SpotifyTrack | null>(null);
-
-  // State to track whether we're locked to a specific track
   const [isLocked, setIsLocked] = useState(false);
-
-  // State for UI
   const [showTagManager, setShowTagManager] = useState(false);
   const [showExport, setShowExport] = useState(false);
-
-  // State for active tag filters
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
-
   const [showLocalTracksModal, setShowLocalTracksModal] = useState(false);
   const [localTracksForPlaylist, setLocalTracksForPlaylist] = useState<string[]>([]);
   const [createdPlaylistInfo, setCreatedPlaylistInfo] = useState<{
@@ -344,6 +335,20 @@ const App: React.FC = () => {
     };
   }, []);
 
+  const onFilterByTag = (tag: string) => {
+    if (activeTagFilters.includes(tag)) {
+      // Move from INCLUDE to EXCLUDE
+      setActiveTagFilters((prev) => prev.filter((t) => t !== tag));
+      setExcludedTagFilters((prev) => [...prev, tag]);
+    } else if (excludedTagFilters.includes(tag)) {
+      // Move from EXCLUDE to OFF
+      setExcludedTagFilters((prev) => prev.filter((t) => t !== tag));
+    } else {
+      // Move from OFF to INCLUDE
+      setActiveTagFilters((prev) => [...prev, tag]);
+    }
+  };
+
   // Function to handle locking/unlocking the track
   const toggleLock = () => {
     if (isLocked) {
@@ -358,6 +363,7 @@ const App: React.FC = () => {
 
   const clearTagFilters = () => {
     setActiveTagFilters([]);
+    setExcludedTagFilters([]);
   };
 
   // Function to handle a track selected from TracList for tagging
@@ -683,6 +689,7 @@ const App: React.FC = () => {
                   }
                   categories={tagData.categories}
                   activeTagFilters={activeTagFilters}
+                  excludedTagFilters={excludedTagFilters}
                   onSetRating={(rating) => setRating(activeTrack.uri, rating)}
                   onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
                   onRemoveTag={(categoryId, subcategoryId, tagId) =>
@@ -793,16 +800,9 @@ const App: React.FC = () => {
               tracks={getLegacyFormatTracks()}
               categories={tagData.categories}
               activeTagFilters={activeTagFilters}
-              activeTrackUri={activeTrack?.uri || null} // Pass the active track URI to highlight it
-              onFilterByTag={(tag) => {
-                setActiveTagFilters((prev) => {
-                  if (prev.includes(tag)) {
-                    return prev.filter((t) => t !== tag);
-                  } else {
-                    return [...prev, tag];
-                  }
-                });
-              }}
+              excludedTagFilters={excludedTagFilters}
+              activeTrackUri={activeTrack?.uri || null}
+              onFilterByTag={onFilterByTag}
               onClearTagFilters={clearTagFilters}
               onSelectTrack={(uri) => {
                 // Special handling for local files
