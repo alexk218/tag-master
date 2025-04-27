@@ -756,6 +756,94 @@ export function useTagData() {
     }
   };
 
+  const toggleTagForMultipleTracks = (
+    trackUris: string[],
+    categoryId: string,
+    subcategoryId: string,
+    tagId: string
+  ) => {
+    // Create a copy of the current tagData
+    const updatedTagData = { ...tagData };
+
+    // Check if all tracks have this tag
+    const allHaveTag = trackUris.every((uri) => {
+      const trackTags = updatedTagData.tracks[uri]?.tags || [];
+      return trackTags.some(
+        (t) => t.categoryId === categoryId && t.subcategoryId === subcategoryId && t.tagId === tagId
+      );
+    });
+
+    // Process each track
+    trackUris.forEach((uri) => {
+      // Ensure track data exists
+      if (!updatedTagData.tracks[uri]) {
+        updatedTagData.tracks[uri] = {
+          rating: 0,
+          energy: 0,
+          tags: [],
+        };
+      }
+
+      const trackData = updatedTagData.tracks[uri];
+      const hasTag = trackData.tags.some(
+        (t) => t.categoryId === categoryId && t.subcategoryId === subcategoryId && t.tagId === tagId
+      );
+
+      if (allHaveTag) {
+        // Remove tag if all have it
+        if (hasTag) {
+          const existingTagIndex = trackData.tags.findIndex(
+            (t) =>
+              t.categoryId === categoryId && t.subcategoryId === subcategoryId && t.tagId === tagId
+          );
+
+          updatedTagData.tracks[uri] = {
+            ...trackData,
+            tags: [
+              ...trackData.tags.slice(0, existingTagIndex),
+              ...trackData.tags.slice(existingTagIndex + 1),
+            ],
+          };
+
+          // Handle playlist scheduling/cancellation if needed
+          if (
+            updatedTagData.tracks[uri].tags.length === 0 &&
+            updatedTagData.tracks[uri].rating === 0 &&
+            updatedTagData.tracks[uri].energy === 0
+          ) {
+            cancelAddToTaggedPlaylist(uri);
+          }
+        }
+      } else {
+        // Add tag if not all have it
+        if (!hasTag) {
+          updatedTagData.tracks[uri] = {
+            ...trackData,
+            tags: [...trackData.tags, { categoryId, subcategoryId, tagId }],
+          };
+
+          // Schedule adding to TAGGED playlist if this makes the track non-empty
+          if (trackData.tags.length === 0 && trackData.rating === 0 && trackData.energy === 0) {
+            scheduleAddToTaggedPlaylist(uri);
+          }
+        }
+      }
+    });
+
+    // Clean up empty tracks
+    Object.keys(updatedTagData.tracks).forEach((uri) => {
+      const trackData = updatedTagData.tracks[uri];
+      if (trackData.rating === 0 && trackData.energy === 0 && trackData.tags.length === 0) {
+        // Remove empty track
+        const { [uri]: _, ...remainingTracks } = updatedTagData.tracks;
+        updatedTagData.tracks = remainingTracks;
+      }
+    });
+
+    // Update the state once with all changes
+    setTagData(updatedTagData);
+  };
+
   const setRating = (trackUri: string, rating: number) => {
     // Ensure track data exists
     const currentData = ensureTrackData(trackUri);
@@ -924,6 +1012,7 @@ export function useTagData() {
     toggleTrackTag,
     setRating,
     setEnergy,
+    toggleTagForMultipleTracks,
 
     // Category management
     addCategory,

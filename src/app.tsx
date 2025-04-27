@@ -33,6 +33,7 @@ const App: React.FC = () => {
     toggleTrackTag,
     setRating,
     setEnergy,
+    toggleTagForMultipleTracks,
     addCategory,
     removeCategory,
     renameCategory,
@@ -483,41 +484,13 @@ const App: React.FC = () => {
   };
 
   const toggleTagForAllTracks = (categoryId: string, subcategoryId: string, tagId: string) => {
-    // Check if all tracks have this tag
-    const allHaveTag = selectedTracks.every((track) => {
-      const trackTags = tagData.tracks[track.uri]?.tags || [];
-      return trackTags.some(
-        (tag) =>
-          tag.categoryId === categoryId &&
-          tag.subcategoryId === subcategoryId &&
-          tag.tagId === tagId
-      );
-    });
-
-    // If all have the tag, remove it from all. Otherwise, add it to all
-    selectedTracks.forEach((track) => {
-      // Get current tags for this track
-      const trackTags = tagData.tracks[track.uri]?.tags || [];
-      const hasTag = trackTags.some(
-        (tag) =>
-          tag.categoryId === categoryId &&
-          tag.subcategoryId === subcategoryId &&
-          tag.tagId === tagId
-      );
-
-      // Only toggle if the state would change
-      if (allHaveTag) {
-        // If all tracks have it, remove from all
-        if (hasTag) {
-          toggleTrackTag(track.uri, categoryId, subcategoryId, tagId);
-        }
-      } else {
-        // If not all tracks have it, add to those missing it
-        if (!hasTag) {
-          toggleTrackTag(track.uri, categoryId, subcategoryId, tagId);
-        }
-      }
-    });
+    // Use the new batch update function instead of calling toggleTrackTag for each track
+    toggleTagForMultipleTracks(
+      selectedTracks.map((track) => track.uri),
+      categoryId,
+      subcategoryId,
+      tagId
+    );
   };
 
   const cancelMultiTagging = () => {
