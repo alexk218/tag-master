@@ -46,6 +46,8 @@ interface TrackListProps {
   ) => void;
 }
 
+const FILTER_STATE_KEY = "tagmaster:filterState";
+
 const TrackList: React.FC<TrackListProps> = ({
   tracks,
   categories,
@@ -71,6 +73,7 @@ const TrackList: React.FC<TrackListProps> = ({
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [isOrFilterMode, setIsOrFilterMode] = useState(false);
   const [tagSearchTerm, setTagSearchTerm] = useState("");
+  const initialLoadCompleted = useRef(false);
 
   // Sort tags based on their position in the hierarchy
   const sortTags = (tags: Tag[]) => {
@@ -215,6 +218,78 @@ const TrackList: React.FC<TrackListProps> = ({
       console.log("No tracks available to fetch info for");
     }
   }, [tracks]);
+
+  // Load saved filter state on component mount
+  useEffect(() => {
+    // Only load once and skip if we've already done initial load
+    if (initialLoadCompleted.current) return;
+
+    try {
+      const savedFilters = localStorage.getItem(FILTER_STATE_KEY);
+      if (savedFilters) {
+        const filters = JSON.parse(savedFilters);
+
+        // For local state only - don't try to manipulate the props
+        if (filters.ratingFilters) setRatingFilters(filters.ratingFilters);
+        if (filters.energyMinFilter !== undefined) setEnergyMinFilter(filters.energyMinFilter);
+        if (filters.energyMaxFilter !== undefined) setEnergyMaxFilter(filters.energyMaxFilter);
+        if (filters.isOrFilterMode !== undefined) setIsOrFilterMode(filters.isOrFilterMode);
+        if (filters.searchTerm) setSearchTerm(filters.searchTerm);
+
+        console.log("Loaded filter state from localStorage:", filters);
+      }
+
+      initialLoadCompleted.current = true;
+    } catch (error) {
+      console.error("Error loading filter state:", error);
+      initialLoadCompleted.current = true;
+    }
+  }, []);
+
+  // 3. Update the useEffect for saving filters to localStorage
+  // Use a debounce approach to avoid excessive saves and potential render issues
+  const saveTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Clear any existing timeout to prevent double-saving
+    if (saveTimeoutRef.current) {
+      window.clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Create a new timeout
+    saveTimeoutRef.current = window.setTimeout(() => {
+      try {
+        const filterState = {
+          activeTagFilters,
+          excludedTagFilters,
+          ratingFilters,
+          energyMinFilter,
+          energyMaxFilter,
+          isOrFilterMode,
+          searchTerm,
+        };
+
+        localStorage.setItem(FILTER_STATE_KEY, JSON.stringify(filterState));
+      } catch (error) {
+        console.error("Error saving filter state:", error);
+      }
+    }, 500); // Debounce of 500ms
+
+    // Clean up the timeout on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [
+    activeTagFilters,
+    excludedTagFilters,
+    ratingFilters,
+    energyMinFilter,
+    energyMaxFilter,
+    isOrFilterMode,
+    searchTerm,
+  ]);
 
   useEffect(() => {
     // Reset display count when filters change
@@ -411,12 +486,16 @@ const TrackList: React.FC<TrackListProps> = ({
   // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm("");
+    setTagSearchTerm(""); // Clear tag search as well
     if (onClearTagFilters) {
       onClearTagFilters();
     }
     setRatingFilters([]);
     setEnergyMinFilter(null);
     setEnergyMaxFilter(null);
+
+    // Also remove from localStorage to ensure complete reset
+    localStorage.removeItem(FILTER_STATE_KEY);
   };
 
   // Calculate active filter count for badge

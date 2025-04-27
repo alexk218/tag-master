@@ -63,6 +63,26 @@ const App: React.FC = () => {
   const [isStorageLoaded, setIsStorageLoaded] = useState(false);
 
   useEffect(() => {
+    try {
+      const savedFilters = localStorage.getItem("tagmaster:filterState");
+      if (savedFilters) {
+        const filters = JSON.parse(savedFilters);
+
+        // Only set the tag filters if they exist in the saved state
+        if (filters.activeTagFilters && Array.isArray(filters.activeTagFilters)) {
+          setActiveTagFilters(filters.activeTagFilters);
+        }
+
+        if (filters.excludedTagFilters && Array.isArray(filters.excludedTagFilters)) {
+          setExcludedTagFilters(filters.excludedTagFilters);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading tag filters from localStorage:", error);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!document.getElementById("font-awesome-css")) {
       const link = document.createElement("link");
       link.id = "font-awesome-css";
