@@ -70,6 +70,7 @@ const TrackList: React.FC<TrackListProps> = ({
   const [energyMaxFilter, setEnergyMaxFilter] = useState<number | null>(null);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [isOrFilterMode, setIsOrFilterMode] = useState(false);
+  const [tagSearchTerm, setTagSearchTerm] = useState("");
 
   // Sort tags based on their position in the hierarchy
   const sortTags = (tags: Tag[]) => {
@@ -219,6 +220,11 @@ const TrackList: React.FC<TrackListProps> = ({
     // Reset display count when filters change
     setDisplayCount(30);
   }, [activeTagFilters, searchTerm, ratingFilters, energyMinFilter, energyMaxFilter]);
+
+  const filterTagBySearch = (tag: string) => {
+    if (!tagSearchTerm.trim()) return true;
+    return tag.toLowerCase().includes(tagSearchTerm.toLowerCase());
+  };
 
   // Filter tracks based on all applied filters
   const filteredTracks = Object.entries(tracks).filter(([uri, trackData]) => {
@@ -666,10 +672,23 @@ const TrackList: React.FC<TrackListProps> = ({
 
           {allTags.size > 0 && (
             <div className={styles.filterSection}>
-              <h3 className={styles.filterSectionTitle}>Tags</h3>
+              <div className={styles.filterSectionHeader}>
+                <h3 className={styles.filterSectionTitle}>Tags</h3>
+
+                <div className={styles.tagSearch}>
+                  <input
+                    type="text"
+                    placeholder="Search tags..."
+                    value={tagSearchTerm}
+                    onChange={(e) => setTagSearchTerm(e.target.value)}
+                    className={styles.tagSearchInput}
+                  />
+                </div>
+              </div>
               <div className={styles.tagFilters}>
                 {Array.from(allTags)
                   .sort()
+                  .filter(filterTagBySearch)
                   .map((tag) => {
                     return (
                       <button
