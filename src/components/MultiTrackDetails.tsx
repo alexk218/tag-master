@@ -13,6 +13,7 @@ interface MultiTrackDetailsProps {
   categories: Category[];
   onTagAllTracks: (categoryId: string, subcategoryId: string, tagId: string) => void;
   onCancelTagging: () => void;
+  onPlayTrack?: (uri: string) => void;
 }
 
 const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
@@ -21,6 +22,7 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
   categories,
   onTagAllTracks,
   onCancelTagging,
+  onPlayTrack,
 }) => {
   // Helper function to get tag name
   const getTagName = (categoryId: string, subcategoryId: string, tagId: string) => {
@@ -126,6 +128,18 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
                   <span className={styles.noTags}>No tags</span>
                 )}
               </div>
+              <button
+                className={styles.playButton}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent event bubbling
+                  if (onPlayTrack) onPlayTrack(track.uri);
+                }}
+                title={
+                  track.uri?.startsWith("spotify:local:") ? "Go to Local Files" : "Play this track"
+                }
+              >
+                {track.uri?.startsWith("spotify:local:") ? "Local" : "Play"}
+              </button>
             </div>
           ))}
         </div>
