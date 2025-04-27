@@ -827,7 +827,7 @@ const App: React.FC = () => {
                   }}
                   title="Switch to currently playing track"
                 >
-                  <span className={styles.buttonIcon}>↺</span> Switch to current
+                  <span className={styles.buttonIcon}></span> Switch to current
                 </button>
               )}
             </div>
