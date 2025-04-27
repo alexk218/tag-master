@@ -12,6 +12,7 @@ interface TagSelectorProps {
   onToggleTag: (categoryId: string, subcategoryId: string, tagId: string) => void;
   onOpenTagManager: () => void;
   isMultiTagging?: boolean;
+  isLockedTrack?: boolean;
 }
 
 const TagSelector: React.FC<TagSelectorProps> = ({
@@ -20,6 +21,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   onToggleTag,
   onOpenTagManager,
   isMultiTagging = false,
+  isLockedTrack = false,
 }) => {
   // Keep track of expanded categories and subcategories
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -170,9 +172,11 @@ const TagSelector: React.FC<TagSelectorProps> = ({
 
       {isMultiTagging && (
         <div className={styles.multiTaggingBanner}>
-          <span className={styles.multiTaggingIcon}>🏷️</span>
+          <span className={styles.multiTaggingIcon}>{isLockedTrack ? "🔒" : "🏷️"}</span>
           <span className={styles.multiTaggingText}>
-            Tags will be applied to all selected tracks
+            {isLockedTrack
+              ? "Tags will be applied to the locked track only"
+              : "Tags will be applied to all selected tracks"}
           </span>
         </div>
       )}

@@ -204,6 +204,75 @@
   height: 28px;
 }
 
-.playButton:hover {
-  background: rgba(255, 255, 255, 0.1);
+.unlockButton {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.unlockButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.lockedTrack {
+  background: rgba(30, 144, 255, 0.1);
+  border: 1px solid rgba(30, 144, 255, 0.3);
+}
+
+.lockedTrack:hover {
+  background: rgba(30, 144, 255, 0.15);
+}
+
+.lockIcon {
+  margin-right: 6px;
+  font-size: 12px;
+}
+
+.lockingBanner {
+  background-color: rgba(30, 144, 255, 0.15);
+  border: 1px solid rgba(30, 144, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lockingIcon {
+  font-size: 16px;
+}
+
+.lockingText {
+  font-size: 13px;
+  color: var(--spice-text);
+}
+
+.multiTaggingBanner {
+  background-color: rgba(30, 144, 255, 0.15);
+  border: 1px solid rgba(30, 144, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.multiTaggingIcon {
+  font-size: 16px;
+}
+
+.multiTaggingText {
+  font-size: 13px;
+  color: var(--spice-text);
 }

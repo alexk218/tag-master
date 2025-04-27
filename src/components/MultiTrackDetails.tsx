@@ -12,8 +12,16 @@ interface MultiTrackDetailsProps {
   trackTagsMap: Record<string, TrackTag[]>;
   categories: Category[];
   onTagAllTracks: (categoryId: string, subcategoryId: string, tagId: string) => void;
+  onTagSingleTrack?: (
+    trackUri: string,
+    categoryId: string,
+    subcategoryId: string,
+    tagId: string
+  ) => void;
   onCancelTagging: () => void;
   onPlayTrack?: (uri: string) => void;
+  lockedTrackUri?: string | null;
+  onLockTrack?: (uri: string | null) => void;
 }
 
 const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
@@ -21,8 +29,11 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
   trackTagsMap,
   categories,
   onTagAllTracks,
+  onTagSingleTrack,
   onCancelTagging,
   onPlayTrack,
+  lockedTrackUri,
+  onLockTrack,
 }) => {
   // Helper function to get tag name
   const getTagName = (categoryId: string, subcategoryId: string, tagId: string) => {
@@ -63,7 +74,39 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
   const commonTags = findCommonTags();
 
   const handleRemoveTag = (tag: TrackTag) => {
-    onTagAllTracks(tag.categoryId, tag.subcategoryId, tag.tagId);
+    if (lockedTrackUri && onTagSingleTrack) {
+      onTagSingleTrack(lockedTrackUri, tag.categoryId, tag.subcategoryId, tag.tagId);
+    } else {
+      onTagAllTracks(tag.categoryId, tag.subcategoryId, tag.tagId);
+    }
+  };
+
+  const handleTrackClick = (uri: string, e: React.MouseEvent) => {
+    // Don't trigger when clicking on play button or tags
+    if (
+      (e.target as HTMLElement).closest(`.${styles.playButton}`) ||
+      (e.target as HTMLElement).closest(`.${styles.tagItem}`)
+    ) {
+      return;
+    }
+
+    if (onLockTrack) {
+      // If already locked on this track, unlock it
+      if (lockedTrackUri === uri) {
+        onLockTrack(null);
+      } else {
+        onLockTrack(uri);
+      }
+    }
+  };
+
+  const handleTagClick = (trackUri: string, tag: TrackTag, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent track locking when clicking on tags
+
+    if (onTagSingleTrack) {
+      // Always apply to the specific track that owns the tag
+      onTagSingleTrack(trackUri, tag.categoryId, tag.subcategoryId, tag.tagId);
+    }
   };
 
   return (
@@ -72,11 +115,38 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
         <h2 className={styles.title}>Mass Tagging</h2>
         <div className={styles.summary}>
           <span className={styles.trackCount}>{tracks.length} tracks selected</span>
+          {lockedTrackUri && (
+            <button
+              className={styles.unlockButton}
+              onClick={() => onLockTrack && onLockTrack(null)}
+              title="Unlock to apply tags to all tracks"
+            >
+              🔓 Unlock
+            </button>
+          )}
           <button className={styles.cancelButton} onClick={onCancelTagging}>
             Cancel Mass Tagging
           </button>
         </div>
       </div>
+
+      {lockedTrackUri ? (
+        <div className={styles.lockingBanner}>
+          <span className={styles.lockingIcon}>🔒</span>
+          <span className={styles.lockingText}>
+            Tags will be applied to the locked track only. Click the track again or the "Unlock"
+            button to revert to mass tagging.
+          </span>
+        </div>
+      ) : (
+        <div className={styles.multiTaggingBanner}>
+          <span className={styles.multiTaggingIcon}>🏷️</span>
+          <span className={styles.multiTaggingText}>
+            Tags will be applied to all selected tracks. Click on a track to lock tagging to that
+            track only.
+          </span>
+        </div>
+      )}
 
       <div className={styles.commonTagsSection}>
         <h3 className={styles.sectionTitle}>Common Tags</h3>
@@ -87,7 +157,7 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
                 key={index}
                 className={styles.tagItem}
                 onClick={() => handleRemoveTag(tag)}
-                title="Click to remove this tag from all tracks"
+                title="Click to toggle this tag"
               >
                 {getTagName(tag.categoryId, tag.subcategoryId, tag.tagId)}
                 <span className={styles.removeTagIcon}>×</span>
@@ -103,8 +173,15 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
         <h3 className={styles.sectionTitle}>Selected Tracks</h3>
         <div className={styles.trackList}>
           {tracks.map((track) => (
-            <div key={track.uri} className={styles.trackItem}>
+            <div
+              key={track.uri}
+              className={`${styles.trackItem} ${
+                lockedTrackUri === track.uri ? styles.lockedTrack : ""
+              }`}
+              onClick={(e) => handleTrackClick(track.uri, e)}
+            >
               <div className={styles.trackInfo}>
+                {lockedTrackUri === track.uri && <span className={styles.lockIcon}>🔒</span>}
                 <span className={styles.trackName}>{track.name}</span>
                 <span className={styles.trackArtist}>
                   {track.artists.map((artist) => artist.name).join(", ")}
@@ -117,8 +194,8 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
                       <div
                         key={index}
                         className={styles.tagItem}
-                        onClick={() => onTagAllTracks(tag.categoryId, tag.subcategoryId, tag.tagId)}
-                        title="Click to toggle this tag on all tracks"
+                        onClick={(e) => handleTagClick(track.uri, tag, e)}
+                        title="Click to toggle this tag on this track"
                       >
                         {getTagName(tag.categoryId, tag.subcategoryId, tag.tagId)}
                       </div>
@@ -146,8 +223,15 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
       </div>
 
       <div className={styles.instructions}>
-        <p>Apply tags to all selected tracks using the tag selector below.</p>
-        <p>Click any existing tag to toggle it across all tracks.</p>
+        <p>
+          Apply tags to {lockedTrackUri ? "the locked track" : "all selected tracks"} using the tag
+          selector below.
+        </p>
+        <p>
+          {lockedTrackUri
+            ? "Click the locked track again to unlock it."
+            : "Click any track to lock tagging to that track only."}
+        </p>
       </div>
     </div>
   );
