@@ -13,6 +13,7 @@ interface CacheTrack {
 
 interface SpotifyTrack {
   id: string;
+  uri?: string;
   name: string;
   artists: string;
   album: string;
@@ -130,10 +131,34 @@ const MissingTracksPanel: React.FC = () => {
 
   // Find missing tracks by comparing Spotify tracks with local cache
   const findMissingTracks = (tracks: SpotifyTrack[], localTracksMap: Map<string, CacheTrack>) => {
-    const missing = tracks.filter((track) => !localTracksMap.has(track.id));
-    setMissingTracks(missing);
-    console.log(`Found ${missing.length} missing tracks`);
-    return missing;
+    // Filter out local files and tracks already in the local collection
+    const missing = tracks.filter((track) => {
+      // Skip tracks without an ID (shouldn't happen but just in case)
+      if (!track.id) return false;
+
+      // Skip tracks that are local files
+      if (track.uri && track.uri.startsWith("spotify:local:")) return false;
+
+      // Skip tracks that are already in the local collection
+      return !localTracksMap.has(track.id);
+    });
+
+    // Sort by added_at date in reverse order (newest first)
+    const sortedMissing = [...missing].sort((a, b) => {
+      // If dates are available, sort by date (newest first)
+      if (a.added_at && b.added_at) {
+        return new Date(b.added_at).getTime() - new Date(a.added_at).getTime();
+      }
+      // If one has a date and the other doesn't, prioritize the one with date
+      if (a.added_at) return -1;
+      if (b.added_at) return 1;
+      // Fallback to alphabetical by artist + title
+      return `${a.artists} - ${a.name}`.localeCompare(`${b.artists} - ${b.name}`);
+    });
+
+    setMissingTracks(sortedMissing);
+    console.log(`Found ${sortedMissing.length} missing tracks (excluding local files)`);
+    return sortedMissing;
   };
 
   // Load all data
@@ -156,9 +181,8 @@ const MissingTracksPanel: React.FC = () => {
         return;
       }
 
-      const tracks = (await loadMasterTracks()) || []; // Add default empty array
+      const tracks = (await loadMasterTracks()) || [];
 
-      // Fix the condition to check for tracks
       if (tracks && tracks.length > 0 && tracksMap.size > 0) {
         findMissingTracks(tracks, tracksMap);
       } else {
@@ -211,6 +235,14 @@ const MissingTracksPanel: React.FC = () => {
   // Load data on component mount
   useEffect(() => {
     loadData();
+
+    // Save that MissingTracksPanel is active
+    localStorage.setItem("tagify:activePanel", "missingTracks");
+
+    // Clean up function
+    return () => {
+      // We don't clear this when unmounting, allowing it to persist
+    };
   }, []);
 
   // Play a track
@@ -354,7 +386,11 @@ const MissingTracksPanel: React.FC = () => {
                   <div className={styles.trackInfo}>
                     <div className={styles.trackName}>{track.name}</div>
                     <div className={styles.trackArtist}>{track.artists}</div>
-                    <div className={styles.trackAlbum}>{track.album}</div>
+                    {track.added_at && (
+                      <div className={styles.trackDate}>
+                        Added: {new Date(track.added_at).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
                   <div className={styles.trackActions}>
                     <button

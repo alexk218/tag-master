@@ -79,7 +79,17 @@ const App: React.FC = () => {
   const [selectedTracks, setSelectedTracks] = useState<SpotifyTrack[]>([]);
   const [isMultiTagging, setIsMultiTagging] = useState(false);
   const [lockedMultiTrackUri, setLockedMultiTrackUri] = useState<string | null>(null);
-  const [showMissingTracks, setShowMissingTracks] = useState(false);
+  const [showMissingTracks, setShowMissingTracks] = useState(() => {
+    // Initialize from localStorage if available
+    return localStorage.getItem("tagify:activePanel") === "missingTracks";
+  });
+
+  useEffect(() => {
+    const activePanel = localStorage.getItem("tagify:activePanel");
+    if (activePanel === "missingTracks") {
+      setShowMissingTracks(true);
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -474,6 +484,18 @@ const App: React.FC = () => {
       }
     };
   }, [isMultiTagging]);
+
+  const handleToggleMissingTracks = () => {
+    const newState = !showMissingTracks;
+    setShowMissingTracks(newState);
+
+    // Save to localStorage
+    if (newState) {
+      localStorage.setItem("tagify:activePanel", "missingTracks");
+    } else {
+      localStorage.setItem("tagify:activePanel", "main");
+    }
+  };
 
   const findCommonTags = (trackUris: string[]): TrackTag[] => {
     if (trackUris.length === 0) return [];
@@ -1037,7 +1059,7 @@ const App: React.FC = () => {
         <div className={styles.appNavButtons}>
           <button
             className={styles.navButton}
-            onClick={() => setShowMissingTracks(!showMissingTracks)}
+            onClick={handleToggleMissingTracks}
             title="Show tracks in MASTER playlist missing from your local files"
           >
             {showMissingTracks ? "Hide Missing Tracks" : "Show Missing Tracks"}
