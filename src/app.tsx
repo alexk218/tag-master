@@ -33,6 +33,7 @@ const App: React.FC = () => {
     toggleTrackTag,
     setRating,
     setEnergy,
+    setBpm,
     toggleTagForMultipleTracks,
     addCategory,
     removeCategory,
@@ -616,6 +617,7 @@ const App: React.FC = () => {
       [uri: string]: {
         rating: number;
         energy: number;
+        bpm: number | null;
         tags: { tag: string; category: string }[];
       };
     } = {};
@@ -652,7 +654,8 @@ const App: React.FC = () => {
         // Create entry for this track
         result[uri] = {
           rating: track.rating || 0,
-          energy: track.energy || 0, // Don't default to 5 if energy is 0
+          energy: track.energy || 0,
+          bpm: track.bpm || null,
           tags: [],
         };
 
@@ -948,7 +951,7 @@ const App: React.FC = () => {
                 onLockTrack={setLockedMultiTrackUri}
               />
             ) : (
-              // TrackDetails for single track (THIS WAS MISSING)
+              // TrackDetails for single track
               activeTrack && (
                 <TrackDetails
                   track={activeTrack}
@@ -956,6 +959,7 @@ const App: React.FC = () => {
                     tagData.tracks[activeTrack.uri] || {
                       rating: 0,
                       energy: 0,
+                      bpm: null,
                       tags: [],
                     }
                   }
@@ -964,6 +968,7 @@ const App: React.FC = () => {
                   excludedTagFilters={excludedTagFilters}
                   onSetRating={(rating) => setRating(activeTrack.uri, rating)}
                   onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
+                  onSetBpm={(bpm) => setBpm(activeTrack.uri, bpm)}
                   onRemoveTag={(categoryId, subcategoryId, tagId) =>
                     toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
                   }

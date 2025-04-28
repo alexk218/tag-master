@@ -27,6 +27,7 @@ export interface TrackTag {
 export interface TrackData {
   rating: number;
   energy: number;
+  bpm: number | null;
   tags: TrackTag[];
 }
 
@@ -671,14 +672,14 @@ export function useTagData() {
   // Ensure track data exists for a given URI
   const ensureTrackData = (trackUri: string) => {
     if (!tagData.tracks[trackUri]) {
-      // Create a new track data structure
       const newTagData = {
         ...tagData,
         tracks: {
           ...tagData.tracks,
           [trackUri]: {
-            rating: 0, // Initialize with no rating
-            energy: 0, // Initialize with no energy level
+            rating: 0,
+            energy: 0,
+            bpm: null,
             tags: [],
           },
         },
@@ -689,8 +690,50 @@ export function useTagData() {
     return tagData;
   };
 
+  const setBpm = (trackUri: string, bpm: number | null) => {
+    // Ensure track data exists
+    const currentData = ensureTrackData(trackUri);
+    const trackData = currentData.tracks[trackUri];
+
+    // Check if this would make the track empty
+    if (
+      bpm === null &&
+      trackData.rating === 0 &&
+      trackData.energy === 0 &&
+      trackData.tags.length === 0
+    ) {
+      // Cancel any pending addition to TAGGED playlist
+      cancelAddToTaggedPlaylist(trackUri);
+
+      // Create new state by removing this track
+      const { [trackUri]: _, ...remainingTracks } = currentData.tracks;
+
+      setTagData({
+        ...currentData,
+        tracks: remainingTracks,
+      });
+    } else {
+      // Update state with modified track
+      setTagData({
+        ...currentData,
+        tracks: {
+          ...currentData.tracks,
+          [trackUri]: {
+            ...trackData,
+            bpm,
+          },
+        },
+      });
+    }
+  };
+
   const isTrackEmpty = (trackData: TrackData): boolean => {
-    return trackData.rating === 0 && trackData.energy === 0 && trackData.tags.length === 0;
+    return (
+      trackData.rating === 0 &&
+      trackData.energy === 0 &&
+      trackData.bpm === 0 &&
+      trackData.tags.length === 0
+    );
   };
 
   // Toggle a tag for a track
@@ -780,6 +823,7 @@ export function useTagData() {
         updatedTagData.tracks[uri] = {
           rating: 0,
           energy: 0,
+          bpm: 0,
           tags: [],
         };
       }
@@ -962,11 +1006,13 @@ export function useTagData() {
         .filter((name) => name !== "");
 
       const energyComment = data.energy > 0 ? `Energy ${data.energy} - ` : "";
+      const bpmComment = data.bpm !== null ? `BPM ${data.bpm} - ` : "";
 
       // Format for rekordbox
       exportResult.tracks[trackId] = {
         rating: data.rating,
         energy: data.energy,
+        bpm: data.bpm,
         tags: data.tags.map((tag) => ({
           categoryId: tag.categoryId,
           subcategoryId: tag.subcategoryId,
@@ -975,9 +1021,9 @@ export function useTagData() {
         })),
         rekordbox_comment:
           tagNames.length > 0
-            ? `${energyComment}${tagNames.join(", ")}`
-            : energyComment.length > 0
-            ? energyComment.slice(0, -3)
+            ? `${bpmComment}${energyComment}${tagNames.join(", ")}`
+            : (bpmComment + energyComment).length > 0
+            ? (bpmComment + energyComment).slice(0, -3)
             : "", // Remove trailing " - " if no tags
       };
     });
@@ -1012,6 +1058,7 @@ export function useTagData() {
     toggleTrackTag,
     setRating,
     setEnergy,
+    setBpm,
     toggleTagForMultipleTracks,
 
     // Category management

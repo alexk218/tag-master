@@ -11,8 +11,9 @@ interface Tag {
 }
 
 interface TrackData {
-  rating: number; // 0 means no rating // ! fix this - shouldn't store data for trakcs with 0 ratings/energy
-  energy: number; // 0 means no energy rating
+  rating: number;
+  energy: number;
+  bpm: number | null;
   tags: Tag[];
 }
 
@@ -74,6 +75,15 @@ const TrackList: React.FC<TrackListProps> = ({
   const [isOrFilterMode, setIsOrFilterMode] = useState(false);
   const [tagSearchTerm, setTagSearchTerm] = useState("");
   const initialLoadCompleted = useRef(false);
+  const [bpmMinFilter, setBpmMinFilter] = useState<number | null>(null);
+  const [bpmMaxFilter, setBpmMaxFilter] = useState<number | null>(null);
+
+  const allBpmValues = new Set<number>();
+  Object.values(tracks).forEach((track) => {
+    if (track.bpm !== null && track.bpm > 0) {
+      allBpmValues.add(track.bpm);
+    }
+  });
 
   // Sort tags based on their position in the hierarchy
   const sortTags = (tags: Tag[]) => {
@@ -141,10 +151,6 @@ const TrackList: React.FC<TrackListProps> = ({
             artists: parsedLocalFile.artist,
             albumName: parsedLocalFile.album,
           };
-
-          console.log(
-            `Parsed local file: ${uri} -> ${parsedLocalFile.title} by ${parsedLocalFile.artist}`
-          );
         } catch (error) {
           console.error("Error parsing local file URI:", uri, error);
           newTrackInfo[uri] = {
@@ -235,6 +241,8 @@ const TrackList: React.FC<TrackListProps> = ({
         if (filters.energyMaxFilter !== undefined) setEnergyMaxFilter(filters.energyMaxFilter);
         if (filters.isOrFilterMode !== undefined) setIsOrFilterMode(filters.isOrFilterMode);
         if (filters.searchTerm) setSearchTerm(filters.searchTerm);
+        if (filters.bpmMinFilter !== undefined) setBpmMinFilter(filters.bpmMinFilter);
+        if (filters.bpmMaxFilter !== undefined) setBpmMaxFilter(filters.bpmMaxFilter);
 
         console.log("Loaded filter state from localStorage:", filters);
       }
@@ -265,6 +273,8 @@ const TrackList: React.FC<TrackListProps> = ({
           ratingFilters,
           energyMinFilter,
           energyMaxFilter,
+          bpmMinFilter,
+          bpmMaxFilter,
           isOrFilterMode,
           searchTerm,
         };
@@ -287,6 +297,8 @@ const TrackList: React.FC<TrackListProps> = ({
     ratingFilters,
     energyMinFilter,
     energyMaxFilter,
+    bpmMinFilter,
+    bpmMaxFilter,
     isOrFilterMode,
     searchTerm,
   ]);
@@ -294,11 +306,32 @@ const TrackList: React.FC<TrackListProps> = ({
   useEffect(() => {
     // Reset display count when filters change
     setDisplayCount(30);
-  }, [activeTagFilters, searchTerm, ratingFilters, energyMinFilter, energyMaxFilter]);
+  }, [
+    activeTagFilters,
+    searchTerm,
+    ratingFilters,
+    energyMinFilter,
+    energyMaxFilter,
+    bpmMinFilter,
+    bpmMaxFilter,
+  ]);
 
   const filterTagBySearch = (tag: string) => {
     if (!tagSearchTerm.trim()) return true;
     return tag.toLowerCase().includes(tagSearchTerm.toLowerCase());
+  };
+
+  const handleRemoveFilter = (tag: string) => {
+    // Call onFilterByTag repeatedly until the tag is completely removed
+    if (activeTagFilters.includes(tag)) {
+      // If it's in active filters, we need to call onFilterByTag once
+      // to move it to excluded, then again to remove it completely
+      onFilterByTag(tag); // Moves to excluded
+      onFilterByTag(tag); // Removes completely
+    } else if (excludedTagFilters.includes(tag)) {
+      // If it's in excluded filters, we need to call onFilterByTag once to remove it completely
+      onFilterByTag(tag);
+    }
   };
 
   // Filter tracks based on all applied filters
@@ -314,7 +347,7 @@ const TrackList: React.FC<TrackListProps> = ({
     // If it's a local file that we don't have info for yet, keep it visible
     // This ensures local files appear while metadata is still loading
     if (!info && uri.startsWith("spotify:local:")) {
-      // Only apply tag/rating/energy filters since we can't search without metadata
+      // Only apply tag/rating/energy/bpm filters since we can't search without metadata
 
       // Tag filters - include and exclude logic
       const matchesIncludeTags =
@@ -339,6 +372,12 @@ const TrackList: React.FC<TrackListProps> = ({
       const matchesEnergyMin = energyMinFilter === null || trackData.energy >= energyMinFilter;
       const matchesEnergyMax = energyMaxFilter === null || trackData.energy <= energyMaxFilter;
 
+      // BPM range filter
+      const matchesBpmMin =
+        bpmMinFilter === null || (trackData.bpm !== null && trackData.bpm >= bpmMinFilter);
+      const matchesBpmMax =
+        bpmMaxFilter === null || (trackData.bpm !== null && trackData.bpm <= bpmMaxFilter);
+
       // If search term is empty, then return based on other filters
       // Otherwise, hide it since we can't search on local files without metadata yet
       return (
@@ -347,7 +386,9 @@ const TrackList: React.FC<TrackListProps> = ({
         matchesExcludeTags &&
         matchesRating &&
         matchesEnergyMin &&
-        matchesEnergyMax
+        matchesEnergyMax &&
+        matchesBpmMin &&
+        matchesBpmMax
       );
     }
 
@@ -381,15 +422,41 @@ const TrackList: React.FC<TrackListProps> = ({
     const matchesEnergyMin = energyMinFilter === null || trackData.energy >= energyMinFilter;
     const matchesEnergyMax = energyMaxFilter === null || trackData.energy <= energyMaxFilter;
 
+    // BPM range filter
+    const matchesBpmMin = bpmMinFilter === null || (trackData.bpm && trackData.bpm >= bpmMinFilter);
+    const matchesBpmMax = bpmMaxFilter === null || (trackData.bpm && trackData.bpm <= bpmMaxFilter);
+
     return (
       matchesSearch &&
       matchesIncludeTags &&
       matchesExcludeTags &&
       matchesRating &&
       matchesEnergyMin &&
-      matchesEnergyMax
+      matchesEnergyMax &&
+      matchesBpmMin &&
+      matchesBpmMax
     );
   });
+
+  const handleBpmMinChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value === "" ? null : parseInt(event.target.value);
+    setBpmMinFilter(value);
+
+    // If max is less than min, adjust max
+    if (value !== null && bpmMaxFilter !== null && value > bpmMaxFilter) {
+      setBpmMaxFilter(value);
+    }
+  };
+
+  const handleBpmMaxChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value === "" ? null : parseInt(event.target.value);
+    setBpmMaxFilter(value);
+
+    // If min is greater than max, adjust min
+    if (value !== null && bpmMinFilter !== null && bpmMinFilter > value) {
+      setBpmMinFilter(value);
+    }
+  };
 
   // Sort filtered tracks by track name
   const allSortedTracks = [...filteredTracks].sort((a, b) => {
@@ -426,6 +493,19 @@ const TrackList: React.FC<TrackListProps> = ({
       }
     };
   }, [sortedTracks.length, filteredTracks.length]);
+
+  const handleTrackItemTagClick = (tag: string) => {
+    if (activeTagFilters.includes(tag)) {
+      // If active, just remove it (don't move to excluded)
+      onFilterByTag(tag);
+    } else if (excludedTagFilters.includes(tag)) {
+      // If excluded, remove from excluded
+      onFilterByTag(tag);
+    } else {
+      // If not filtered, add to included
+      onFilterByTag(tag);
+    }
+  };
 
   const hasIncompleteTags = (trackData: any): boolean => {
     if (!trackData) return true;
@@ -505,6 +585,8 @@ const TrackList: React.FC<TrackListProps> = ({
     setRatingFilters([]);
     setEnergyMinFilter(null);
     setEnergyMaxFilter(null);
+    setBpmMinFilter(null);
+    setBpmMaxFilter(null);
 
     // Also remove from localStorage to ensure complete reset
     localStorage.removeItem(FILTER_STATE_KEY);
@@ -516,6 +598,7 @@ const TrackList: React.FC<TrackListProps> = ({
     excludedTagFilters.length +
     (ratingFilters.length > 0 ? 1 : 0) +
     (energyMinFilter !== null || energyMaxFilter !== null ? 1 : 0) +
+    (bpmMinFilter !== null || bpmMaxFilter !== null ? 1 : 0) + // Add this
     (searchTerm.trim() !== "" ? 1 : 0);
 
   const handleCreatePlaylist = (name: string, description: string, isPublic: boolean) => {
@@ -611,6 +694,32 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   };
 
+  const playAllFilteredTracks = () => {
+    if (filteredTracks.length === 0) return;
+
+    // Extract URIs from the filtered tracks
+    const trackUris = filteredTracks.map(([uri]) => uri);
+
+    // Filter out local files which can't be played via API
+    const playableTracks = trackUris.filter((uri) => !uri.startsWith("spotify:local:"));
+
+    if (playableTracks.length === 0) {
+      Spicetify.showNotification("No playable tracks match the filters", true);
+      return;
+    }
+
+    // Play first track
+    Spicetify.Player.playUri(playableTracks[0]);
+
+    // Add remaining tracks to queue - using the proper array format
+    if (playableTracks.length > 1) {
+      const tracksToQueue = playableTracks.slice(1).map((uri) => ({ uri }));
+      Spicetify.addToQueue(tracksToQueue);
+    }
+
+    Spicetify.showNotification(`Playing ${playableTracks.length} tracks`);
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -672,7 +781,18 @@ const TrackList: React.FC<TrackListProps> = ({
           </>
         )}
 
-        {/* Add Create Playlist button - always visible when there are tracks */}
+        {/* Play All button */}
+        {filteredTracks.length > 0 && (
+          <button
+            className={styles.playAllButton}
+            onClick={playAllFilteredTracks}
+            title={`Play all ${filteredTracks.length} tracks`}
+          >
+            Play All
+          </button>
+        )}
+
+        {/* Create Playlist button (existing) */}
         {filteredTracks.length > 0 && (
           <button
             className={styles.createPlaylistButton}
@@ -761,6 +881,50 @@ const TrackList: React.FC<TrackListProps> = ({
             </div>
           )}
 
+          {/* BPM Range Filter */}
+          {allBpmValues.size > 0 && (
+            <div className={styles.filterSection}>
+              <h3 className={styles.filterSectionTitle}>BPM Range</h3>
+              <div className={styles.energyRangeFilter}>
+                <div className={styles.rangeControl}>
+                  <label className={styles.rangeLabel}>From:</label>
+                  <select
+                    value={bpmMinFilter === null ? "" : bpmMinFilter.toString()}
+                    onChange={handleBpmMinChange}
+                    className={styles.rangeSelect}
+                  >
+                    <option value="">Any</option>
+                    {Array.from(allBpmValues)
+                      .sort((a, b) => a - b)
+                      .map((bpm) => (
+                        <option key={`min-${bpm}`} value={bpm}>
+                          {bpm}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className={styles.rangeControl}>
+                  <label className={styles.rangeLabel}>To:</label>
+                  <select
+                    value={bpmMaxFilter === null ? "" : bpmMaxFilter.toString()}
+                    onChange={handleBpmMaxChange}
+                    className={styles.rangeSelect}
+                  >
+                    <option value="">Any</option>
+                    {Array.from(allBpmValues)
+                      .sort((a, b) => a - b)
+                      .map((bpm) => (
+                        <option key={`max-${bpm}`} value={bpm}>
+                          {bpm}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
           {allTags.size > 0 && (
             <div className={styles.filterSection}>
               <div className={styles.filterSectionHeader}>
@@ -808,6 +972,40 @@ const TrackList: React.FC<TrackListProps> = ({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Active Filters Display */}
+      {(activeTagFilters.length > 0 || excludedTagFilters.length > 0) && (
+        <div className={styles.activeFiltersDisplay}>
+          {activeTagFilters.map((tag) => (
+            <span key={tag} className={styles.activeFilterTag}>
+              {tag}{" "}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveFilter(tag);
+                }}
+                className={styles.removeFilterButton}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {excludedTagFilters.map((tag) => (
+            <span key={tag} className={styles.excludedFilterTag}>
+              NOT {tag}{" "}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveFilter(tag);
+                }}
+                className={styles.removeFilterButton}
+              >
+                ×
+              </button>
+            </span>
+          ))}
         </div>
       )}
 
@@ -947,8 +1145,8 @@ const TrackList: React.FC<TrackListProps> = ({
                           <ReactStars
                             count={5}
                             value={data.rating}
-                            edit={false} // Make it read-only in the list view
-                            size={16} // Smaller size for the list
+                            edit={false}
+                            size={16}
                             isHalf={true}
                             emptyIcon={<i className="far fa-star"></i>}
                             halfIcon={<i className="fa fa-star-half-alt"></i>}
@@ -961,6 +1159,12 @@ const TrackList: React.FC<TrackListProps> = ({
 
                       {data.energy > 0 && (
                         <div className={styles.trackItemEnergy}>{data.energy}</div>
+                      )}
+
+                      {data.bpm !== null && data.bpm > 0 && (
+                        <div className={styles.trackItemBpm}>
+                          <span title="BPM">{data.bpm}</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -976,14 +1180,14 @@ const TrackList: React.FC<TrackListProps> = ({
                           } ${excludedTagFilters.includes(tag) ? styles.excludedTagFilter : ""}`}
                           onClick={(e) => {
                             e.stopPropagation(); // Prevent track item click
-                            onFilterByTag(tag);
+                            handleTrackItemTagClick(tag); // Use our new handler
                           }}
                           title={
                             activeTagFilters.includes(tag)
-                              ? `Click to exclude "${tag}"`
+                              ? `Click to remove "${tag}" from filters`
                               : excludedTagFilters.includes(tag)
-                              ? `Click to remove "${tag}" filter`
-                              : `Click to include "${tag}"`
+                              ? `Click to remove "${tag}" from excluded filters`
+                              : `Click to filter by "${tag}"`
                           }
                         >
                           {tag}

@@ -15,11 +15,13 @@ interface TrackDetailsProps {
   trackData: {
     rating: number;
     energy: number;
+    bpm: number | null;
     tags: TrackTag[];
   };
   categories: Category[];
   onSetRating: (rating: number) => void;
   onSetEnergy: (energy: number) => void;
+  onSetBpm: (bpm: number | null) => void;
   onRemoveTag: (categoryId: string, subcategoryId: string, tagId: string) => void;
   activeTagFilters: string[];
   excludedTagFilters: string[];
