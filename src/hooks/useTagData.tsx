@@ -690,6 +690,44 @@ export function useTagData() {
     return tagData;
   };
 
+  const fetchBPM = async (trackUri: string): Promise<number | null> => {
+    try {
+      // Skip local files
+      if (trackUri.startsWith("spotify:local:")) {
+        return null;
+      }
+
+      // Extract track ID
+      const trackId = trackUri.split(":").pop();
+      if (!trackId) return null;
+
+      // Fetch audio features from Spotify API
+      const audioFeatures = await Spicetify.CosmosAsync.get(
+        `https://api.spotify.com/v1/audio-features/${trackId}`
+      );
+
+      // Return rounded BPM value
+      if (audioFeatures && audioFeatures.tempo) {
+        return Math.round(audioFeatures.tempo);
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching BPM:", error);
+      return null;
+    }
+  };
+
+  const updateBPM = async (trackUri: string) => {
+    try {
+      const bpm = await fetchBPM(trackUri);
+      if (bpm !== null) {
+        setBpm(trackUri, bpm);
+      }
+    } catch (error) {
+      console.error("Error updating BPM:", error);
+    }
+  };
+
   const setBpm = (trackUri: string, bpm: number | null) => {
     // Ensure track data exists
     const currentData = ensureTrackData(trackUri);
@@ -727,11 +765,59 @@ export function useTagData() {
     }
   };
 
+  const backfillBPMData = async () => {
+    // Check if we have tracks that need BPM data
+    const tracksMissingBPM = Object.entries(tagData.tracks)
+      .filter(([uri, data]) => data.bpm === undefined || data.bpm === 0)
+      .map(([uri]) => uri);
+
+    if (tracksMissingBPM.length === 0) {
+      console.log("No tracks need BPM backfilling");
+      return;
+    }
+
+    console.log(`Backfilling BPM data for ${tracksMissingBPM.length} tracks...`);
+
+    // Process in smaller batches to avoid rate limiting
+    const batchSize = 10;
+    for (let i = 0; i < tracksMissingBPM.length; i += batchSize) {
+      const batch = tracksMissingBPM.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map(async (uri) => {
+          try {
+            const bpm = await fetchBPM(uri);
+            if (bpm !== null) {
+              // Update without triggering a full state refresh for each track
+              tagData.tracks[uri] = {
+                ...tagData.tracks[uri],
+                bpm,
+              };
+            }
+          } catch (error) {
+            console.error(`Error backfilling BPM for track ${uri}:`, error);
+          }
+        })
+      );
+
+      // Wait a second between batches to be nice to the API
+      if (i + batchSize < tracksMissingBPM.length) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+
+    // After all batches, update the state once
+    setTagData({ ...tagData });
+
+    // Save to localStorage
+    saveToLocalStorage(tagData);
+    console.log("BPM backfilling complete!");
+  };
+
   const isTrackEmpty = (trackData: TrackData): boolean => {
     return (
       trackData.rating === 0 &&
       trackData.energy === 0 &&
-      trackData.bpm === 0 &&
+      trackData.bpm === null &&
       trackData.tags.length === 0
     );
   };
@@ -766,6 +852,9 @@ export function useTagData() {
       // Schedule adding to TAGGED playlist if this makes the track non-empty
       if (updatedTags.length === 1 && trackData.rating === 0 && trackData.energy === 0) {
         scheduleAddToTaggedPlaylist(trackUri);
+
+        // Fetch BPM if this is the first time we're tagging this track
+        updateBPM(trackUri);
       }
     }
 
@@ -1060,6 +1149,7 @@ export function useTagData() {
     setEnergy,
     setBpm,
     toggleTagForMultipleTracks,
+    backfillBPMData,
 
     // Category management
     addCategory,

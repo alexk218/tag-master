@@ -11,6 +11,7 @@ interface DataManagerProps {
   onExportRekordbox: () => void;
   lastSaved: Date | null;
   taggedTracks: Record<string, any>;
+  onBackfillBPM?: () => void;
 }
 
 const DataManager: React.FC<DataManagerProps> = ({
@@ -19,12 +20,29 @@ const DataManager: React.FC<DataManagerProps> = ({
   onExportRekordbox,
   lastSaved,
   taggedTracks,
+  onBackfillBPM,
 }) => {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRefreshingPlaylists, setIsRefreshingPlaylists] = useState(false);
   const [showPlaylistSettings, setShowPlaylistSettings] = useState(false);
+  const [isBackfillingBPM, setIsBackfillingBPM] = useState(false);
+
+  const handleBackfillBPM = async () => {
+    if (!onBackfillBPM) return;
+
+    setIsBackfillingBPM(true);
+    try {
+      await onBackfillBPM();
+      Spicetify.showNotification("BPM data updated for all tracks!");
+    } catch (error) {
+      console.error("Error backfilling BPM data:", error);
+      Spicetify.showNotification("Error updating BPM data", true);
+    } finally {
+      setIsBackfillingBPM(false);
+    }
+  };
 
   const handlePlaylistSettingsSaved = async () => {
     // When settings change, we should refresh the cache
@@ -147,6 +165,16 @@ const DataManager: React.FC<DataManagerProps> = ({
         >
           {isRefreshingPlaylists ? "Refreshing..." : "Refresh Playlist Data"}
         </button>
+
+        {onBackfillBPM && (
+          <button
+            className={styles.actionButton}
+            onClick={handleBackfillBPM}
+            disabled={isBackfillingBPM}
+          >
+            {isBackfillingBPM ? "Updating BPMs..." : "Update Track BPMs"}
+          </button>
+        )}
 
         <button className={styles.actionButton} onClick={() => setShowPlaylistSettings(true)}>
           Playlist Settings

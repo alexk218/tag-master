@@ -47,6 +47,7 @@ const App: React.FC = () => {
     exportData,
     exportBackup,
     importBackup,
+    backfillBPMData,
   } = useTagData();
 
   const [currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null);
@@ -860,6 +861,7 @@ const App: React.FC = () => {
             onExportRekordbox={() => setShowExport(true)}
             lastSaved={lastSaved}
             taggedTracks={tagData.tracks}
+            onBackfillBPM={backfillBPMData}
           />
 
           <div className={styles.content}>
