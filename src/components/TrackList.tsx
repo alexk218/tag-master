@@ -847,92 +847,95 @@ const TrackList: React.FC<TrackListProps> = ({
             </div>
           )}
 
-          {allEnergyLevels.size > 0 && (
-            <div className={styles.filterSection}>
-              <h3 className={styles.filterSectionTitle}>Energy Level</h3>
-              <div className={styles.energyRangeFilter}>
-                <div className={styles.rangeControl}>
-                  <label className={styles.rangeLabel}>From:</label>
-                  <select
-                    value={energyMinFilter === null ? "" : energyMinFilter.toString()}
-                    onChange={handleEnergyMinChange}
-                    className={styles.rangeSelect}
-                  >
-                    <option value="">Any</option>
-                    {Array.from(allEnergyLevels)
-                      .sort((a, b) => a - b)
-                      .map((energy) => (
-                        <option key={`min-${energy}`} value={energy}>
-                          {energy}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+          {/* Wrap Energy and BPM filters in a horizontal container */}
+          <div className={styles.filterSectionsRow}>
+            {allEnergyLevels.size > 0 && (
+              <div className={styles.filterSection}>
+                <h3 className={styles.filterSectionTitle}>Energy Level</h3>
+                <div className={styles.energyRangeFilter}>
+                  <div className={styles.rangeControl}>
+                    <label className={styles.rangeLabel}>From:</label>
+                    <select
+                      value={energyMinFilter === null ? "" : energyMinFilter.toString()}
+                      onChange={handleEnergyMinChange}
+                      className={styles.rangeSelect}
+                    >
+                      <option value="">Any</option>
+                      {Array.from(allEnergyLevels)
+                        .sort((a, b) => a - b)
+                        .map((energy) => (
+                          <option key={`min-${energy}`} value={energy}>
+                            {energy}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
 
-                <div className={styles.rangeControl}>
-                  <label className={styles.rangeLabel}>To:</label>
-                  <select
-                    value={energyMaxFilter === null ? "" : energyMaxFilter.toString()}
-                    onChange={handleEnergyMaxChange}
-                    className={styles.rangeSelect}
-                  >
-                    <option value="">Any</option>
-                    {Array.from(allEnergyLevels)
-                      .sort((a, b) => a - b)
-                      .map((energy) => (
-                        <option key={`max-${energy}`} value={energy}>
-                          {energy}
-                        </option>
-                      ))}
-                  </select>
+                  <div className={styles.rangeControl}>
+                    <label className={styles.rangeLabel}>To:</label>
+                    <select
+                      value={energyMaxFilter === null ? "" : energyMaxFilter.toString()}
+                      onChange={handleEnergyMaxChange}
+                      className={styles.rangeSelect}
+                    >
+                      <option value="">Any</option>
+                      {Array.from(allEnergyLevels)
+                        .sort((a, b) => a - b)
+                        .map((energy) => (
+                          <option key={`max-${energy}`} value={energy}>
+                            {energy}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* BPM Range Filter */}
-          {allBpmValues.size > 0 && (
-            <div className={styles.filterSection}>
-              <h3 className={styles.filterSectionTitle}>BPM Range</h3>
-              <div className={styles.energyRangeFilter}>
-                <div className={styles.rangeControl}>
-                  <label className={styles.rangeLabel}>From:</label>
-                  <select
-                    value={bpmMinFilter === null ? "" : bpmMinFilter.toString()}
-                    onChange={handleBpmMinChange}
-                    className={styles.rangeSelect}
-                  >
-                    <option value="">Any</option>
-                    {Array.from(allBpmValues)
-                      .sort((a, b) => a - b)
-                      .map((bpm) => (
-                        <option key={`min-${bpm}`} value={bpm}>
-                          {bpm}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+            {/* BPM Range Filter */}
+            {allBpmValues.size > 0 && (
+              <div className={styles.filterSection}>
+                <h3 className={styles.filterSectionTitle}>BPM Range</h3>
+                <div className={styles.energyRangeFilter}>
+                  <div className={styles.rangeControl}>
+                    <label className={styles.rangeLabel}>From:</label>
+                    <select
+                      value={bpmMinFilter === null ? "" : bpmMinFilter.toString()}
+                      onChange={handleBpmMinChange}
+                      className={styles.rangeSelect}
+                    >
+                      <option value="">Any</option>
+                      {Array.from(allBpmValues)
+                        .sort((a, b) => a - b)
+                        .map((bpm) => (
+                          <option key={`min-${bpm}`} value={bpm}>
+                            {bpm}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
 
-                <div className={styles.rangeControl}>
-                  <label className={styles.rangeLabel}>To:</label>
-                  <select
-                    value={bpmMaxFilter === null ? "" : bpmMaxFilter.toString()}
-                    onChange={handleBpmMaxChange}
-                    className={styles.rangeSelect}
-                  >
-                    <option value="">Any</option>
-                    {Array.from(allBpmValues)
-                      .sort((a, b) => a - b)
-                      .map((bpm) => (
-                        <option key={`max-${bpm}`} value={bpm}>
-                          {bpm}
-                        </option>
-                      ))}
-                  </select>
+                  <div className={styles.rangeControl}>
+                    <label className={styles.rangeLabel}>To:</label>
+                    <select
+                      value={bpmMaxFilter === null ? "" : bpmMaxFilter.toString()}
+                      onChange={handleBpmMaxChange}
+                      className={styles.rangeSelect}
+                    >
+                      <option value="">Any</option>
+                      {Array.from(allBpmValues)
+                        .sort((a, b) => a - b)
+                        .map((bpm) => (
+                          <option key={`max-${bpm}`} value={bpm}>
+                            {bpm}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {allTags.size > 0 && (
             <div className={styles.filterSection}>

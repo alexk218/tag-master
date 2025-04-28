@@ -768,7 +768,7 @@ export function useTagData() {
   const backfillBPMData = async () => {
     // Check if we have tracks that need BPM data
     const tracksMissingBPM = Object.entries(tagData.tracks)
-      .filter(([uri, data]) => data.bpm === undefined || data.bpm === 0)
+      .filter(([, data]) => data.bpm === undefined || data.bpm === 0)
       .map(([uri]) => uri);
 
     if (tracksMissingBPM.length === 0) {

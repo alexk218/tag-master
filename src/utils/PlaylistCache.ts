@@ -1,4 +1,4 @@
-import { getPlaylistSettings, shouldExcludePlaylist } from "./PlaylistSettings";
+import { shouldExcludePlaylist } from "./PlaylistSettings";
 
 interface PlaylistInfo {
   id: string;
