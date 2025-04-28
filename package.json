@@ -10,7 +10,8 @@
   "devDependencies": {
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "spicetify-creator": "^1.0.17"
+    "spicetify-creator": "^1.0.17",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "prop-types": "^15.8.1",
