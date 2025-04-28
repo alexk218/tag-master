@@ -36,6 +36,7 @@ interface TrackListProps {
   excludedTagFilters: string[];
   activeTrackUri: string | null;
   onFilterByTag: (tag: string) => void;
+  onTrackListTagClick?: (tag: string) => void;
   onSelectTrack: (uri: string) => void;
   onTagTrack?: (uri: string) => void;
   onClearTagFilters?: () => void;
@@ -56,6 +57,7 @@ const TrackList: React.FC<TrackListProps> = ({
   excludedTagFilters,
   activeTrackUri,
   onFilterByTag,
+  onTrackListTagClick,
   onSelectTrack,
   onTagTrack,
   onClearTagFilters,
@@ -495,14 +497,18 @@ const TrackList: React.FC<TrackListProps> = ({
   }, [sortedTracks.length, filteredTracks.length]);
 
   const handleTrackItemTagClick = (tag: string) => {
+    // If we have the special track list tag click handler, use it
+    if (onTrackListTagClick) {
+      onTrackListTagClick(tag);
+      return;
+    }
+
+    // Otherwise fall back to the original logic
     if (activeTagFilters.includes(tag)) {
-      // If active, just remove it (don't move to excluded)
       onFilterByTag(tag);
     } else if (excludedTagFilters.includes(tag)) {
-      // If excluded, remove from excluded
       onFilterByTag(tag);
     } else {
-      // If not filtered, add to included
       onFilterByTag(tag);
     }
   };

@@ -535,6 +535,20 @@ const App: React.FC = () => {
     }
   };
 
+  const onTrackListTagClick = (tag: string) => {
+    if (activeTagFilters.includes(tag)) {
+      // Just remove from active filters (OFF)
+      setActiveTagFilters((prev) => prev.filter((t) => t !== tag));
+    } else if (excludedTagFilters.includes(tag)) {
+      // Move from excluded to active (INCLUDE)
+      setExcludedTagFilters((prev) => prev.filter((t) => t !== tag));
+      setActiveTagFilters((prev) => [...prev, tag]);
+    } else {
+      // Add to active filters (INCLUDE)
+      setActiveTagFilters((prev) => [...prev, tag]);
+    }
+  };
+
   // Function to handle locking/unlocking the track
   const toggleLock = () => {
     if (isLocked) {
@@ -1102,6 +1116,7 @@ const App: React.FC = () => {
               excludedTagFilters={excludedTagFilters}
               activeTrackUri={activeTrack?.uri || null}
               onFilterByTag={onFilterByTag}
+              onTrackListTagClick={onTrackListTagClick}
               onClearTagFilters={clearTagFilters}
               onSelectTrack={(uri) => {
                 // Special handling for local files
