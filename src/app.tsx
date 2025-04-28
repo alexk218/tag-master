@@ -12,6 +12,16 @@ import LocalTracksModal from "./components/LocalTracksModal";
 import { checkAndUpdateCacheIfNeeded } from "./utils/PlaylistCache";
 import MultiTrackDetails from "./components/MultiTrackDetails";
 
+interface SpicetifyHistoryLocation {
+  pathname: string;
+  search?: string;
+  state?: {
+    trackUri?: string;
+    trackUris?: string[];
+    [key: string]: any;
+  };
+}
+
 interface SpotifyTrack {
   uri: string;
   name: string;
@@ -231,15 +241,16 @@ const App: React.FC = () => {
 
       // Try from Spicetify.Platform.History.location if available
       if (!trackUri && Spicetify.Platform.History.location) {
-        const historyParams = new URLSearchParams(Spicetify.Platform.History.location.search);
+        const location = Spicetify.Platform.History.location as SpicetifyHistoryLocation;
+        const historyParams = new URLSearchParams(location.search);
         if (historyParams.has("uri")) {
           trackUri = historyParams.get("uri");
           console.log("Tagify: Found URI in History location search:", trackUri);
         }
 
         // Also check state
-        if (!trackUri && Spicetify.Platform.History.location.state?.trackUri) {
-          trackUri = Spicetify.Platform.History.location.state.trackUri;
+        if (!trackUri && location.state?.trackUri) {
+          trackUri = location.state.trackUri;
           console.log("Tagify: Found URI in History state:", trackUri);
         }
       }
@@ -255,15 +266,16 @@ const App: React.FC = () => {
 
       // Try from Spicetify.Platform.History.location if available
       if (!trackUrisParam && Spicetify.Platform.History.location) {
-        const historyParams = new URLSearchParams(Spicetify.Platform.History.location.search);
+        const location = Spicetify.Platform.History.location as SpicetifyHistoryLocation;
+        const historyParams = new URLSearchParams(location.search);
         if (historyParams.has("uris")) {
           trackUrisParam = historyParams.get("uris");
           console.log("Tagify: Found URIs in History location search:", trackUrisParam);
         }
 
         // Also check state
-        if (!trackUrisParam && Spicetify.Platform.History.location.state?.trackUris) {
-          trackUrisParam = JSON.stringify(Spicetify.Platform.History.location.state.trackUris);
+        if (!trackUrisParam && location.state?.trackUris) {
+          trackUrisParam = JSON.stringify(location.state.trackUris);
           console.log("Tagify: Found URIs in History state:", trackUrisParam);
         }
       }

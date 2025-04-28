@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styles from "./TagManager.module.css";
-import { Category, Subcategory, Tag } from "../hooks/useTagData";
+import { Category } from "../hooks/useTagData";
 
 interface TagManagerProps {
   categories: Category[];

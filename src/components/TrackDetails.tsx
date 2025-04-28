@@ -134,10 +134,12 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
         // Try to get source context from Spicetify
         let sourceContext = null;
         try {
-          if (Spicetify.Player && Spicetify.Player.data && Spicetify.Player.data.context) {
-            const playerContextUri = Spicetify.Player.data.context.uri;
+          if (Spicetify.Player && Spicetify.Player.data) {
+            const playerData = Spicetify.Player.data as any;
 
-            if (playerContextUri) {
+            if (playerData.context)
+            {
+              const playerContextUri = playerData.context.uri;
               // Store the context URI for navigation
               setContextUri(playerContextUri);
 
