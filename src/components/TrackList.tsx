@@ -36,6 +36,8 @@ interface TrackListProps {
   excludedTagFilters: string[];
   activeTrackUri: string | null;
   onFilterByTag: (tag: string) => void;
+  onRemoveFilter?: (tag: string) => void;
+  onToggleFilterType?: (tag: string, isExcluded: boolean) => void;
   onTrackListTagClick?: (tag: string) => void;
   onSelectTrack: (uri: string) => void;
   onTagTrack?: (uri: string) => void;
@@ -57,6 +59,8 @@ const TrackList: React.FC<TrackListProps> = ({
   excludedTagFilters,
   activeTrackUri,
   onFilterByTag,
+  onRemoveFilter,
+  onToggleFilterType,
   onTrackListTagClick,
   onSelectTrack,
   onTagTrack,
@@ -323,16 +327,15 @@ const TrackList: React.FC<TrackListProps> = ({
     return tag.toLowerCase().includes(tagSearchTerm.toLowerCase());
   };
 
+  const handleFilterTagClick = (tag: string, isExcluded: boolean) => {
+    if (onToggleFilterType) {
+      onToggleFilterType(tag, isExcluded);
+    }
+  };
+
   const handleRemoveFilter = (tag: string) => {
-    // Call onFilterByTag repeatedly until the tag is completely removed
-    if (activeTagFilters.includes(tag)) {
-      // If it's in active filters, we need to call onFilterByTag once
-      // to move it to excluded, then again to remove it completely
-      onFilterByTag(tag); // Moves to excluded
-      onFilterByTag(tag); // Removes completely
-    } else if (excludedTagFilters.includes(tag)) {
-      // If it's in excluded filters, we need to call onFilterByTag once to remove it completely
-      onFilterByTag(tag);
+    if (onRemoveFilter) {
+      onRemoveFilter(tag);
     }
   };
 
@@ -985,28 +988,38 @@ const TrackList: React.FC<TrackListProps> = ({
       {(activeTagFilters.length > 0 || excludedTagFilters.length > 0) && (
         <div className={styles.activeFiltersDisplay}>
           {activeTagFilters.map((tag) => (
-            <span key={tag} className={styles.activeFilterTag}>
+            <span
+              key={tag}
+              className={styles.activeFilterTag}
+              onClick={() => handleFilterTagClick(tag, false)} // Handle click on the tag
+            >
               {tag}{" "}
               <button
                 onClick={(e) => {
-                  e.stopPropagation();
+                  e.stopPropagation(); // Prevent triggering the parent's onClick
                   handleRemoveFilter(tag);
                 }}
                 className={styles.removeFilterButton}
+                title="Remove filter"
               >
                 ×
               </button>
             </span>
           ))}
           {excludedTagFilters.map((tag) => (
-            <span key={tag} className={styles.excludedFilterTag}>
-              NOT {tag}{" "}
+            <span
+              key={tag}
+              className={styles.excludedFilterTag}
+              onClick={() => handleFilterTagClick(tag, true)} // Handle click on the tag
+            >
+              {tag}{" "}
               <button
                 onClick={(e) => {
-                  e.stopPropagation();
+                  e.stopPropagation(); // Prevent triggering the parent's onClick
                   handleRemoveFilter(tag);
                 }}
                 className={styles.removeFilterButton}
+                title="Remove filter"
               >
                 ×
               </button>

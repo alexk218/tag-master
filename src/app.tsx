@@ -521,6 +521,29 @@ const App: React.FC = () => {
     Spicetify.Platform.History.push("/tagify");
   };
 
+  const handleRemoveFilter = (tag: string) => {
+    // Remove from active filters if it's there
+    if (activeTagFilters.includes(tag)) {
+      setActiveTagFilters((prev) => prev.filter((t) => t !== tag));
+    }
+    // Remove from excluded filters if it's there
+    else if (excludedTagFilters.includes(tag)) {
+      setExcludedTagFilters((prev) => prev.filter((t) => t !== tag));
+    }
+  };
+
+  const handleToggleFilterType = (tag: string, isExcluded: boolean) => {
+    if (isExcluded) {
+      // If excluded, move to included
+      setExcludedTagFilters((prev) => prev.filter((t) => t !== tag));
+      setActiveTagFilters((prev) => [...prev, tag]);
+    } else {
+      // If included, move to excluded
+      setActiveTagFilters((prev) => prev.filter((t) => t !== tag));
+      setExcludedTagFilters((prev) => [...prev, tag]);
+    }
+  };
+
   const onFilterByTag = (tag: string) => {
     if (activeTagFilters.includes(tag)) {
       // Move from INCLUDE to EXCLUDE
@@ -566,7 +589,7 @@ const App: React.FC = () => {
     setExcludedTagFilters([]);
   };
 
-  // Function to handle a track selected from TracList for tagging
+  // Function to handle a track selected from TrackList for tagging
   const handleTagTrack = async (uri: string) => {
     try {
       // Check if this is a local file
@@ -1116,6 +1139,8 @@ const App: React.FC = () => {
               excludedTagFilters={excludedTagFilters}
               activeTrackUri={activeTrack?.uri || null}
               onFilterByTag={onFilterByTag}
+              onRemoveFilter={handleRemoveFilter}
+              onToggleFilterType={handleToggleFilterType}
               onTrackListTagClick={onTrackListTagClick}
               onClearTagFilters={clearTagFilters}
               onSelectTrack={(uri) => {
