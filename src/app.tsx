@@ -498,52 +498,129 @@ const App: React.FC = () => {
   const playTrackViaQueue = (uri: string): Promise<boolean> => {
     return new Promise((resolve) => {
       try {
-        console.log("Playing track via queue:", uri);
+        // Special handling for local files
+        if (uri.startsWith("spotify:local:")) {
+          console.log("Attempting to play local file:", uri);
 
-        // Format for queue API - same for both local and Spotify tracks
-        const trackObject = [{ uri }];
+          // Format for queue API
+          const trackObject = [{ uri }];
 
-        // Check if Player is currently playing music
-        const isPlaying = Spicetify.Player.isPlaying();
+          // Check if Player is currently playing music
+          const isPlaying = Spicetify.Player.isPlaying();
 
-        // Always use queue approach to preserve existing queue
-        Spicetify.addToQueue(trackObject)
-          .then(() => {
-            // Need to wait a moment for queue to update
-            setTimeout(() => {
-              // If we're already playing something, skip to next track (which is our newly added track)
-              if (isPlaying) {
-                Spicetify.Player.next();
+          if (isPlaying) {
+            // Add track to queue and skip to it
+            Spicetify.addToQueue(trackObject)
+              .then(() => {
+                // Need to wait a moment for queue to update
+                setTimeout(() => {
+                  Spicetify.Player.next();
+                  Spicetify.showNotification("Playing local file");
+                  resolve(true);
+                }, 300);
+              })
+              .catch((err) => {
+                console.error("Failed to add local file to queue:", err);
+                // Navigate to Local Files as fallback
+                Spicetify.Platform.History.push("/collection/local-files");
+                Spicetify.showNotification(
+                  "Local files must be played from Local Files section",
+                  true
+                );
+                resolve(false);
+              });
+          } else {
+            // If nothing is playing, try direct playback first
+            Spicetify.Player.playUri(uri)
+              .then(() => {
+                Spicetify.showNotification("Playing local file");
+                resolve(true);
+              })
+              .catch((err) => {
+                console.error("Failed to play local file directly:", err);
+                // Navigate to Local Files as fallback
+                Spicetify.Platform.History.push("/collection/local-files");
+                Spicetify.showNotification(
+                  "Local files must be played from Local Files section",
+                  true
+                );
+                resolve(false);
+              });
+          }
+        } else {
+          // Regular Spotify track handling - use existing approach
+          const isPlaying = Spicetify.Player.isPlaying();
+
+          if (isPlaying) {
+            try {
+              // Add track to top of queue
+              const trackObject = [{ uri }];
+
+              // Queue access approach that should work
+              const queue = Spicetify.Queue;
+
+              if (queue && queue.nextTracks && queue.nextTracks.length > 0) {
+                // Queue has tracks, try to insert our track at the beginning
+                Spicetify.addToQueue(trackObject)
+                  .then(() => {
+                    // After adding to queue, play next
+                    Spicetify.Player.next();
+                    Spicetify.showNotification("Playing track while maintaining playlist flow");
+                    resolve(true);
+                  })
+                  .catch((err) => {
+                    console.error("Failed to add to queue", err);
+                    Spicetify.showNotification("Unable to play track, playing directly", true);
+
+                    // Fallback to direct play
+                    Spicetify.Player.playUri(uri)
+                      .then(() => resolve(true))
+                      .catch((playErr) => {
+                        console.error("Failed to play directly:", playErr);
+                        resolve(false);
+                      });
+                  });
               } else {
-                // If nothing is playing, we need to start playback
-                Spicetify.Player.play();
-              }
-              resolve(true);
-            }, 300);
-          })
-          .catch((err) => {
-            console.error("Failed to add to queue:", err);
+                // Queue is empty, simply add to queue and skip
+                Spicetify.addToQueue(trackObject)
+                  .then(() => {
+                    Spicetify.Player.next();
+                    resolve(true);
+                  })
+                  .catch((err) => {
+                    console.error("Failed to add to queue", err);
+                    Spicetify.showNotification("Unable to play track, playing directly", true);
 
-            // Special handling for local files that failed
-            if (uri.startsWith("spotify:local:")) {
-              // Navigate to Local Files as fallback
-              Spicetify.Platform.History.push("/collection/local-files");
-              Spicetify.showNotification(
-                "Local files must be played from Local Files section",
-                true
-              );
-            } else {
-              // For Spotify tracks, try direct playback as fallback (will clear queue)
-              console.warn("Falling back to direct playback (will clear queue)");
+                    // Fallback to direct play
+                    Spicetify.Player.playUri(uri)
+                      .then(() => resolve(true))
+                      .catch((playErr) => {
+                        console.error("Failed to play directly:", playErr);
+                        resolve(false);
+                      });
+                  });
+              }
+            } catch (error) {
+              console.error("Error manipulating queue:", error);
+
+              // Fallback to direct play
               Spicetify.Player.playUri(uri)
                 .then(() => resolve(true))
-                .catch((innerErr) => {
-                  console.error("Failed direct playback fallback:", innerErr);
+                .catch((playErr) => {
+                  console.error("Failed to play directly:", playErr);
                   resolve(false);
                 });
             }
-            resolve(false);
-          });
+          } else {
+            // No music playing, just play the track directly
+            Spicetify.Player.playUri(uri)
+              .then(() => resolve(true))
+              .catch((err) => {
+                console.error("Failed to play track:", err);
+                resolve(false);
+              });
+          }
+        }
       } catch (error) {
         console.error("Error in playTrackViaQueue:", error);
         resolve(false);
