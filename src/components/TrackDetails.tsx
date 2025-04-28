@@ -26,6 +26,7 @@ interface TrackDetailsProps {
   activeTagFilters: string[];
   excludedTagFilters: string[];
   onFilterByTag: (tag: string) => void;
+  onFilterByTagOnOff?: (tag: string) => void;
   onPlayTrack?: (uri: string) => void;
 }
 
@@ -48,6 +49,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
   onSetEnergy,
   onRemoveTag,
   onFilterByTag,
+  onFilterByTagOnOff,
   onPlayTrack,
 }) => {
   const [contextUri, setContextUri] = useState<string | null>(null);
@@ -342,6 +344,23 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
       return null;
     }
   }
+
+  const handleTagClick = (tag: string) => {
+    // If we have the special track list tag click handler, use it
+    if (onFilterByTagOnOff) {
+      onFilterByTagOnOff(tag);
+      return;
+    }
+
+    // Otherwise fall back to the original logic
+    if (activeTagFilters.includes(tag)) {
+      onFilterByTag(tag);
+    } else if (excludedTagFilters.includes(tag)) {
+      onFilterByTag(tag);
+    } else {
+      onFilterByTag(tag);
+    }
+  };
 
   const handlePlayTrack = () => {
     if (onPlayTrack && track.uri) {
@@ -959,10 +978,10 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                                 } ${
                                   excludedTagFilters.includes(tag.name) ? styles.tagExcluded : ""
                                 }`}
-                                onClick={() => onFilterByTag(tag.name)}
+                                onClick={() => handleTagClick(tag.name)}
                                 title={
                                   activeTagFilters.includes(tag.name)
-                                    ? `Click to exclude "${tag.name}"`
+                                    ? `Click to remove filter for "${tag.name}"`
                                     : excludedTagFilters.includes(tag.name)
                                     ? `Click to remove "${tag.name}" filter`
                                     : `Click to include "${tag.name}"`

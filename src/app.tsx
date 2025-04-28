@@ -558,7 +558,8 @@ const App: React.FC = () => {
     }
   };
 
-  const onTrackListTagClick = (tag: string) => {
+  // Toggle tags between ON/OFF - no EXCLUDE
+  const onFilterByTagOnOff = (tag: string) => {
     if (activeTagFilters.includes(tag)) {
       // Just remove from active filters (OFF)
       setActiveTagFilters((prev) => prev.filter((t) => t !== tag));
@@ -1011,6 +1012,7 @@ const App: React.FC = () => {
                   onRemoveTag={(categoryId, subcategoryId, tagId) =>
                     toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
                   }
+                  onFilterByTagOnOff={onFilterByTagOnOff}
                   onFilterByTag={onFilterByTag}
                   onPlayTrack={(uri) => {
                     // Special handling for local files
@@ -1141,7 +1143,7 @@ const App: React.FC = () => {
               onFilterByTag={onFilterByTag}
               onRemoveFilter={handleRemoveFilter}
               onToggleFilterType={handleToggleFilterType}
-              onTrackListTagClick={onTrackListTagClick}
+              onTrackListTagClick={onFilterByTagOnOff}
               onClearTagFilters={clearTagFilters}
               onSelectTrack={(uri) => {
                 // Special handling for local files
