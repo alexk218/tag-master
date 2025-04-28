@@ -39,7 +39,7 @@ interface TrackListProps {
   onRemoveFilter?: (tag: string) => void;
   onToggleFilterType?: (tag: string, isExcluded: boolean) => void;
   onTrackListTagClick?: (tag: string) => void;
-  onSelectTrack: (uri: string) => void;
+  onPlayTrack: (uri: string) => void;
   onTagTrack?: (uri: string) => void;
   onClearTagFilters?: () => void;
   onCreatePlaylist?: (
@@ -62,7 +62,7 @@ const TrackList: React.FC<TrackListProps> = ({
   onRemoveFilter,
   onToggleFilterType,
   onTrackListTagClick,
-  onSelectTrack,
+  onPlayTrack,
   onTagTrack,
   onClearTagFilters,
   onCreatePlaylist,
@@ -703,30 +703,68 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   };
 
-  const playAllFilteredTracks = () => {
+  const playAllFilteredTracks = async () => {
     if (filteredTracks.length === 0) return;
 
     // Extract URIs from the filtered tracks
     const trackUris = filteredTracks.map(([uri]) => uri);
 
-    // Filter out local files which can't be played via API
-    const playableTracks = trackUris.filter((uri) => !uri.startsWith("spotify:local:"));
+    // Separate local and Spotify tracks
+    const localFileTracks = trackUris.filter((uri) => uri.startsWith("spotify:local:"));
+    const spotifyTracks = trackUris.filter((uri) => !uri.startsWith("spotify:local:"));
 
-    if (playableTracks.length === 0) {
+    // Check if we have any playable tracks
+    if (spotifyTracks.length === 0 && localFileTracks.length === 0) {
       Spicetify.showNotification("No playable tracks match the filters", true);
       return;
     }
 
-    // Play first track
-    Spicetify.Player.playUri(playableTracks[0]);
+    // Start with Spotify tracks if available, otherwise try local files
+    const firstTrackToPlay = spotifyTracks.length > 0 ? spotifyTracks[0] : localFileTracks[0];
+    let playSuccess = false;
 
-    // Add remaining tracks to queue - using the proper array format
-    if (playableTracks.length > 1) {
-      const tracksToQueue = playableTracks.slice(1).map((uri) => ({ uri }));
-      Spicetify.addToQueue(tracksToQueue);
+    try {
+      // Start playback with first track
+      await Spicetify.Player.playUri(firstTrackToPlay);
+      playSuccess = true;
+    } catch (error) {
+      console.error("Error playing first track:", error);
+
+      // If first track was a Spotify track, try again with next track
+      if (!firstTrackToPlay.startsWith("spotify:local:") && trackUris.length > 1) {
+        try {
+          await Spicetify.Player.playUri(trackUris[1]);
+          playSuccess = true;
+        } catch (secondError) {
+          console.error("Error playing second track:", secondError);
+        }
+      }
     }
 
-    Spicetify.showNotification(`Playing ${playableTracks.length} tracks`);
+    if (!playSuccess) {
+      Spicetify.showNotification("Failed to start playback", true);
+      return;
+    }
+
+    // Prepare all tracks for queue, in order of Spotify tracks first, then local files
+    const remainingTracks = [...spotifyTracks.slice(1), ...localFileTracks];
+
+    // Add remaining tracks to queue if there are any
+    if (remainingTracks.length > 0) {
+      try {
+        const tracksToQueue = remainingTracks.map((uri) => ({ uri }));
+        await Spicetify.addToQueue(tracksToQueue);
+        Spicetify.showNotification(
+          `Playing ${spotifyTracks.length + localFileTracks.length} tracks ` +
+            `(${localFileTracks.length} local files)`
+        );
+      } catch (error) {
+        console.error("Error adding tracks to queue:", error);
+        Spicetify.showNotification("Started playback but failed to queue all tracks", true);
+      }
+    } else {
+      Spicetify.showNotification(`Playing track`);
+    }
   };
 
   return (
@@ -1132,10 +1170,10 @@ const TrackList: React.FC<TrackListProps> = ({
                   <div className={styles.trackItemActions}>
                     <button
                       className={styles.actionButton}
-                      onClick={() => onSelectTrack(uri)}
-                      title={isLocalFile ? "Navigate to Local Files" : "Play this track"}
+                      onClick={() => onPlayTrack(uri)}
+                      title={"Play this track"}
                     >
-                      {isLocalFile ? "Go to Local Files" : "Play"}
+                      {"Play"}
                     </button>
 
                     {onTagTrack && (

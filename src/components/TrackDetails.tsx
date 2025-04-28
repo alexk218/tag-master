@@ -137,8 +137,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
           if (Spicetify.Player && Spicetify.Player.data) {
             const playerData = Spicetify.Player.data as any;
 
-            if (playerData.context)
-            {
+            if (playerData.context) {
               const playerContextUri = playerData.context.uri;
               // Store the context URI for navigation
               setContextUri(playerContextUri);
@@ -739,11 +738,9 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
             <button
               className={styles.playButton}
               onClick={handlePlayTrack}
-              title={
-                track.uri?.startsWith("spotify:local:") ? "Go to Local Files" : "Play this track"
-              }
+              title={"Play this track"}
             >
-              {track.uri?.startsWith("spotify:local:") ? "Go to Local Files" : "Play"}
+              {"Play"}
             </button>
           </div>
           <div className={styles.trackInfo}>
@@ -826,6 +823,7 @@ const TrackDetails: React.FC<TrackDetailsProps> = ({
                     </div>
                   )}
 
+                  {/* Spotify genre tags */}
                   {/* {trackMetadata.genres.length > 0 && (
                     <div className={styles.metadataGenres}>
                       <span className={styles.metadataLabel}>Genres:</span>{" "}
