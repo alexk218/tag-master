@@ -211,11 +211,9 @@ const MultiTrackDetails: React.FC<MultiTrackDetailsProps> = ({
                   e.stopPropagation(); // Prevent event bubbling
                   if (onPlayTrack) onPlayTrack(track.uri);
                 }}
-                title={
-                  track.uri?.startsWith("spotify:local:") ? "Go to Local Files" : "Play this track"
-                }
+                title={"Play this track"}
               >
-                {track.uri?.startsWith("spotify:local:") ? "Local" : "Play"}
+                {"Play"}
               </button>
             </div>
           ))}
