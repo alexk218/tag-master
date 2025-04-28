@@ -6,6 +6,7 @@ import TrackList from "./components/TrackList";
 import TagManager from "./components/TagManager";
 import ExportPanel from "./components/ExportPanel";
 import DataManager from "./components/DataManager";
+import MissingTracksPanel from "./components/MissingTracksPanel";
 import { TrackTag, useTagData } from "./hooks/useTagData";
 import { parseLocalFileUri } from "./utils/LocalFileParser";
 import LocalTracksModal from "./components/LocalTracksModal";
@@ -78,6 +79,7 @@ const App: React.FC = () => {
   const [selectedTracks, setSelectedTracks] = useState<SpotifyTrack[]>([]);
   const [isMultiTagging, setIsMultiTagging] = useState(false);
   const [lockedMultiTrackUri, setLockedMultiTrackUri] = useState<string | null>(null);
+  const [showMissingTracks, setShowMissingTracks] = useState(false);
 
   useEffect(() => {
     try {
@@ -1030,6 +1032,17 @@ const App: React.FC = () => {
             </span>
           </div>
         )}
+
+        {/* Add MissingTracks button */}
+        <div className={styles.appNavButtons}>
+          <button
+            className={styles.navButton}
+            onClick={() => setShowMissingTracks(!showMissingTracks)}
+            title="Show tracks in MASTER playlist missing from your local files"
+          >
+            {showMissingTracks ? "Hide Missing Tracks" : "Show Missing Tracks"}
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -1047,111 +1060,120 @@ const App: React.FC = () => {
             onBackfillBPM={backfillBPMData}
           />
 
-          <div className={styles.content}>
-            {isMultiTagging && selectedTracks.length > 0 ? (
-              <MultiTrackDetails
-                tracks={selectedTracks}
-                trackTagsMap={Object.fromEntries(
-                  selectedTracks.map((track) => [track.uri, tagData.tracks[track.uri]?.tags || []])
-                )}
-                categories={tagData.categories}
-                onTagAllTracks={toggleTagForAllTracks}
-                onTagSingleTrack={toggleTagForSingleTrack}
-                onCancelTagging={cancelMultiTagging}
-                onPlayTrack={(uri) => {
-                  playTrackViaQueue(uri);
-                }}
-                lockedTrackUri={lockedMultiTrackUri}
-                onLockTrack={setLockedMultiTrackUri}
-              />
-            ) : (
-              // TrackDetails for single track
-              activeTrack && (
-                <TrackDetails
-                  track={activeTrack}
-                  trackData={
-                    tagData.tracks[activeTrack.uri] || {
-                      rating: 0,
-                      energy: 0,
-                      bpm: null,
-                      tags: [],
-                    }
-                  }
+          {/* Conditional rendering based on showMissingTracks state */}
+          {showMissingTracks ? (
+            <MissingTracksPanel />
+          ) : (
+            <div className={styles.content}>
+              {isMultiTagging && selectedTracks.length > 0 ? (
+                <MultiTrackDetails
+                  tracks={selectedTracks}
+                  trackTagsMap={Object.fromEntries(
+                    selectedTracks.map((track) => [
+                      track.uri,
+                      tagData.tracks[track.uri]?.tags || [],
+                    ])
+                  )}
                   categories={tagData.categories}
-                  activeTagFilters={activeTagFilters}
-                  excludedTagFilters={excludedTagFilters}
-                  onSetRating={(rating) => setRating(activeTrack.uri, rating)}
-                  onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
-                  onSetBpm={(bpm) => setBpm(activeTrack.uri, bpm)}
-                  onRemoveTag={(categoryId, subcategoryId, tagId) =>
-                    toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
-                  }
-                  onFilterByTagOnOff={onFilterByTagOnOff}
-                  onFilterByTag={onFilterByTag}
+                  onTagAllTracks={toggleTagForAllTracks}
+                  onTagSingleTrack={toggleTagForSingleTrack}
+                  onCancelTagging={cancelMultiTagging}
                   onPlayTrack={(uri) => {
                     playTrackViaQueue(uri);
                   }}
+                  lockedTrackUri={lockedMultiTrackUri}
+                  onLockTrack={setLockedMultiTrackUri}
                 />
-              )
-            )}
-            {/* TagSelector */}
-            {(activeTrack || (isMultiTagging && selectedTracks.length > 0)) && (
-              <TagSelector
-                track={
-                  // If in multi-tagging with locked track, show that track as current
-                  isMultiTagging && lockedMultiTrackUri
-                    ? selectedTracks.find((t) => t.uri === lockedMultiTrackUri) || selectedTracks[0]
-                    : activeTrack || selectedTracks[0]
-                }
-                categories={tagData.categories}
-                trackTags={
-                  isMultiTagging
-                    ? lockedMultiTrackUri
-                      ? // If locked to a specific track, only show its tags
-                        tagData.tracks[lockedMultiTrackUri]?.tags || []
-                      : // Otherwise show common tags
-                        findCommonTags(selectedTracks.map((track) => track.uri))
-                    : tagData.tracks[activeTrack?.uri || ""]?.tags || []
-                }
-                onToggleTag={(categoryId, subcategoryId, tagId) =>
-                  isMultiTagging
-                    ? lockedMultiTrackUri
-                      ? // If locked to a specific track, only toggle tags for that
-                        toggleTagForSingleTrack(
-                          lockedMultiTrackUri,
-                          categoryId,
-                          subcategoryId,
-                          tagId
-                        )
-                      : // Otherwise toggle for all tracks
-                        toggleTagForAllTracks(categoryId, subcategoryId, tagId)
-                    : toggleTrackTag(activeTrack!.uri, categoryId, subcategoryId, tagId)
-                }
-                onOpenTagManager={() => setShowTagManager(true)}
-                isMultiTagging={isMultiTagging}
-                isLockedTrack={!!lockedMultiTrackUri}
-              />
-            )}
+              ) : (
+                // TrackDetails for single track
+                activeTrack && (
+                  <TrackDetails
+                    track={activeTrack}
+                    trackData={
+                      tagData.tracks[activeTrack.uri] || {
+                        rating: 0,
+                        energy: 0,
+                        bpm: null,
+                        tags: [],
+                      }
+                    }
+                    categories={tagData.categories}
+                    activeTagFilters={activeTagFilters}
+                    excludedTagFilters={excludedTagFilters}
+                    onSetRating={(rating) => setRating(activeTrack.uri, rating)}
+                    onSetEnergy={(energy) => setEnergy(activeTrack.uri, energy)}
+                    onSetBpm={(bpm) => setBpm(activeTrack.uri, bpm)}
+                    onRemoveTag={(categoryId, subcategoryId, tagId) =>
+                      toggleTrackTag(activeTrack.uri, categoryId, subcategoryId, tagId)
+                    }
+                    onFilterByTagOnOff={onFilterByTagOnOff}
+                    onFilterByTag={onFilterByTag}
+                    onPlayTrack={(uri) => {
+                      playTrackViaQueue(uri);
+                    }}
+                  />
+                )
+              )}
+              {/* TagSelector */}
+              {(activeTrack || (isMultiTagging && selectedTracks.length > 0)) && (
+                <TagSelector
+                  track={
+                    // If in multi-tagging with locked track, show that track as current
+                    isMultiTagging && lockedMultiTrackUri
+                      ? selectedTracks.find((t) => t.uri === lockedMultiTrackUri) ||
+                        selectedTracks[0]
+                      : activeTrack || selectedTracks[0]
+                  }
+                  categories={tagData.categories}
+                  trackTags={
+                    isMultiTagging
+                      ? lockedMultiTrackUri
+                        ? // If locked to a specific track, only show its tags
+                          tagData.tracks[lockedMultiTrackUri]?.tags || []
+                        : // Otherwise show common tags
+                          findCommonTags(selectedTracks.map((track) => track.uri))
+                      : tagData.tracks[activeTrack?.uri || ""]?.tags || []
+                  }
+                  onToggleTag={(categoryId, subcategoryId, tagId) =>
+                    isMultiTagging
+                      ? lockedMultiTrackUri
+                        ? // If locked to a specific track, only toggle tags for that
+                          toggleTagForSingleTrack(
+                            lockedMultiTrackUri,
+                            categoryId,
+                            subcategoryId,
+                            tagId
+                          )
+                        : // Otherwise toggle for all tracks
+                          toggleTagForAllTracks(categoryId, subcategoryId, tagId)
+                      : toggleTrackTag(activeTrack!.uri, categoryId, subcategoryId, tagId)
+                  }
+                  onOpenTagManager={() => setShowTagManager(true)}
+                  isMultiTagging={isMultiTagging}
+                  isLockedTrack={!!lockedMultiTrackUri}
+                />
+              )}
 
-            {/* List of tagged tracks */}
-            <TrackList
-              tracks={getLegacyFormatTracks()}
-              categories={tagData.categories}
-              activeTagFilters={activeTagFilters}
-              excludedTagFilters={excludedTagFilters}
-              activeTrackUri={activeTrack?.uri || null}
-              onFilterByTag={onFilterByTag}
-              onRemoveFilter={handleRemoveFilter}
-              onToggleFilterType={handleToggleFilterType}
-              onTrackListTagClick={onFilterByTagOnOff}
-              onClearTagFilters={clearTagFilters}
-              onPlayTrack={(uri) => {
-                playTrackViaQueue(uri);
-              }}
-              onTagTrack={handleTagTrack}
-              onCreatePlaylist={createPlaylistFromFilters}
-            />
-          </div>
+              {/* List of tagged tracks */}
+              <TrackList
+                tracks={getLegacyFormatTracks()}
+                categories={tagData.categories}
+                activeTagFilters={activeTagFilters}
+                excludedTagFilters={excludedTagFilters}
+                activeTrackUri={activeTrack?.uri || null}
+                onFilterByTag={onFilterByTag}
+                onRemoveFilter={handleRemoveFilter}
+                onToggleFilterType={handleToggleFilterType}
+                onTrackListTagClick={onFilterByTagOnOff}
+                onClearTagFilters={clearTagFilters}
+                onPlayTrack={(uri) => {
+                  playTrackViaQueue(uri);
+                }}
+                onTagTrack={handleTagTrack}
+                onCreatePlaylist={createPlaylistFromFilters}
+              />
+            </div>
+          )}
 
           {/* Hierarchical tag manager modal */}
           {showTagManager && (

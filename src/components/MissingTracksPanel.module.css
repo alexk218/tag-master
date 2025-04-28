@@ -1,0 +1,378 @@
+.container {
+  background: var(--spice-card);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.searchBox {
+  position: relative;
+  max-width: 300px;
+  width: 100%;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  font-size: 14px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.settingsButton {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.settingsButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.settingsPanel {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.settingsPanel h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.settingRow label {
+  font-size: 14px;
+  color: var(--spice-subtext);
+}
+
+.settingInput {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  font-size: 14px;
+  width: 100%;
+}
+
+.settingInput:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.settingButtons {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.saveButton {
+  background: #1e90ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.saveButton:hover {
+  background: #1a7ee0;
+}
+
+.cancelButton {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.settingHelp {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--spice-subtext);
+}
+
+.settingHelp code {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: var(--spice-subtext);
+}
+
+.loadingSpinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: #1e90ff;
+  animation: spin 1s infinite linear;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.errorContainer {
+  background: rgba(255, 59, 48, 0.1);
+  border-left: 3px solid #ff3b30;
+  border-radius: 4px;
+  padding: 16px;
+  margin: 24px 0;
+}
+
+.errorTitle {
+  color: #ff3b30;
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.errorMessage {
+  margin-bottom: 16px;
+}
+
+.errorHelp {
+  font-size: 14px;
+  color: var(--spice-subtext);
+}
+
+.errorHelp code {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.configButton {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s ease;
+}
+
+.configButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cacheInfo {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--spice-subtext);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cacheInfo p {
+  margin: 0;
+}
+
+.cacheDate,
+.cacheStats,
+.missingCount {
+  color: var(--spice-text);
+  font-weight: 500;
+}
+
+.missingCount {
+  color: #ff9500;
+}
+
+.trackListHeader {
+  display: grid;
+  grid-template-columns: 3fr 2fr 2fr 1fr;
+  gap: 16px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px 4px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.trackList {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.trackItem {
+  display: grid;
+  grid-template-columns: 3fr 2fr 2fr 1fr;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  transition: background 0.2s ease;
+  align-items: center;
+}
+
+.trackItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.trackTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--spice-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackArtist {
+  font-size: 14px;
+  color: var(--spice-subtext);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackAlbum {
+  font-size: 14px;
+  color: var(--spice-subtext);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.playButton {
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.playButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: var(--spice-subtext);
+  font-style: italic;
+}
+
+.exportSection {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.exportButton {
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--spice-text);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.exportButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.exportHelp {
+  color: var(--spice-subtext);
+  font-size: 13px;
+  margin: 0;
+}
