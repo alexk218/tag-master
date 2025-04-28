@@ -498,62 +498,52 @@ const App: React.FC = () => {
   const playTrackViaQueue = (uri: string): Promise<boolean> => {
     return new Promise((resolve) => {
       try {
-        // For local files, we need special handling
-        if (uri.startsWith("spotify:local:")) {
-          console.log("Attempting to play local file via queue:", uri);
+        console.log("Playing track via queue:", uri);
 
-          // Format for queue API
-          const trackObject = [{ uri }];
+        // Format for queue API - same for both local and Spotify tracks
+        const trackObject = [{ uri }];
 
-          // Check if Player is currently playing music
-          const isPlaying = Spicetify.Player.isPlaying();
+        // Check if Player is currently playing music
+        const isPlaying = Spicetify.Player.isPlaying();
 
-          if (isPlaying) {
-            // Add track to queue and skip to it
-            Spicetify.addToQueue(trackObject)
-              .then(() => {
-                // Need to wait a moment for queue to update
-                setTimeout(() => {
-                  Spicetify.Player.next();
-                  resolve(true);
-                }, 300);
-              })
-              .catch((err) => {
-                console.error("Failed to add local file to queue:", err);
-                // Navigate to Local Files as fallback
-                Spicetify.Platform.History.push("/collection/local-files");
-                Spicetify.showNotification(
-                  "Local files must be played from Local Files section",
-                  true
-                );
-                resolve(false);
-              });
-          } else {
-            // If nothing is playing, try direct playback
-            Spicetify.Player.playUri(uri)
-              .then(() => {
-                resolve(true);
-              })
-              .catch((err) => {
-                console.error("Failed to play local file directly:", err);
-                // Navigate to Local Files as fallback
-                Spicetify.Platform.History.push("/collection/local-files");
-                Spicetify.showNotification(
-                  "Local files must be played from Local Files section",
-                  true
-                );
-                resolve(false);
-              });
-          }
-        } else {
-          // Regular Spotify track - play directly
-          Spicetify.Player.playUri(uri)
-            .then(() => resolve(true))
-            .catch((err) => {
-              console.error("Failed to play track:", err);
-              resolve(false);
-            });
-        }
+        // Always use queue approach to preserve existing queue
+        Spicetify.addToQueue(trackObject)
+          .then(() => {
+            // Need to wait a moment for queue to update
+            setTimeout(() => {
+              // If we're already playing something, skip to next track (which is our newly added track)
+              if (isPlaying) {
+                Spicetify.Player.next();
+              } else {
+                // If nothing is playing, we need to start playback
+                Spicetify.Player.play();
+              }
+              resolve(true);
+            }, 300);
+          })
+          .catch((err) => {
+            console.error("Failed to add to queue:", err);
+
+            // Special handling for local files that failed
+            if (uri.startsWith("spotify:local:")) {
+              // Navigate to Local Files as fallback
+              Spicetify.Platform.History.push("/collection/local-files");
+              Spicetify.showNotification(
+                "Local files must be played from Local Files section",
+                true
+              );
+            } else {
+              // For Spotify tracks, try direct playback as fallback (will clear queue)
+              console.warn("Falling back to direct playback (will clear queue)");
+              Spicetify.Player.playUri(uri)
+                .then(() => resolve(true))
+                .catch((innerErr) => {
+                  console.error("Failed direct playback fallback:", innerErr);
+                  resolve(false);
+                });
+            }
+            resolve(false);
+          });
       } catch (error) {
         console.error("Error in playTrackViaQueue:", error);
         resolve(false);
