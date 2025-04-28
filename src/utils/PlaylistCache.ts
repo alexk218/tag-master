@@ -297,6 +297,8 @@ export async function refreshPlaylistCache(): Promise<number> {
     // Save the new cache
     savePlaylistCache(newCache);
 
+    await scanLocalFilesInPlaylists();
+
     console.log(
       `Tagify: Refreshed playlist cache with ${
         Object.keys(newCache.tracks).length
@@ -326,7 +328,108 @@ export async function checkAndUpdateCacheIfNeeded(): Promise<void> {
   if (Object.keys(cache.tracks).length === 0 || now - cache.lastUpdated > oneDayMs) {
     console.log("Tagify: Playlist cache is outdated, updating...");
     await refreshPlaylistCache();
+
+    // Also scan for local files
+    await scanLocalFilesInPlaylists();
   } else {
     console.log("Tagify: Playlist cache is up to date");
+  }
+}
+
+export async function scanLocalFilesInPlaylists(): Promise<number> {
+  try {
+    console.log("Tagify: Scanning playlists for local files...");
+
+    // Get user profile
+    const userProfile = await Spicetify.CosmosAsync.get("https://api.spotify.com/v1/me");
+    const userId = userProfile.id;
+
+    if (!userId) {
+      throw new Error("Could not get user ID");
+    }
+
+    // Get the current cache
+    const cache = getPlaylistCache();
+    let localFilesAdded = 0;
+
+    // Get all user's playlists - reuse code from refreshPlaylistCache where possible
+    const playlists: Array<{
+      id: string;
+      name: string;
+      owner: { id: string; display_name: string };
+    }> = [];
+
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await Spicetify.CosmosAsync.get(
+        `https://api.spotify.com/v1/me/playlists?limit=50&offset=${offset}`
+      );
+
+      if (response && response.items && response.items.length > 0) {
+        playlists.push(...response.items);
+        offset += response.items.length;
+        hasMore = response.items.length === 50;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    console.log(`Tagify: Found ${playlists.length} playlists to scan for local files`);
+
+    // For each playlist, look for local files
+    for (const playlist of playlists) {
+      // Skip the "Local Files" special playlist
+      if (playlist.name === "Local Files") continue;
+
+      try {
+        // Try to get the playlist using the Spotify internal API
+        const playlistTracks = await Spicetify.Platform.PlaylistAPI.getContents(playlist.id);
+
+        if (playlistTracks && playlistTracks.items) {
+          // Look for local tracks in the items
+          for (const item of playlistTracks.items) {
+            if (item.uri && item.uri.startsWith("spotify:local:")) {
+              // Found a local track in this playlist
+
+              // Add it to the cache
+              if (!cache.tracks[item.uri]) {
+                cache.tracks[item.uri] = [];
+              }
+
+              // Check if this playlist is already in the track's list
+              const existingIndex = cache.tracks[item.uri].findIndex((p) => p.id === playlist.id);
+
+              if (existingIndex === -1) {
+                // Add the playlist to the track's list
+                cache.tracks[item.uri].push({
+                  id: playlist.id,
+                  name: playlist.name,
+                  owner: playlist.owner.id === userId ? "You" : playlist.owner.display_name,
+                });
+
+                localFilesAdded++;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Tagify: Error scanning playlist ${playlist.name} for local files:`, error);
+      }
+    }
+
+    // Update the cache timestamp
+    cache.lastUpdated = Date.now();
+
+    // Save the updated cache
+    savePlaylistCache(cache);
+
+    console.log(`Tagify: Added ${localFilesAdded} local file playlist references to cache`);
+
+    return localFilesAdded;
+  } catch (error) {
+    console.error("Tagify: Error finding local files in playlists:", error);
+    return 0;
   }
 }
