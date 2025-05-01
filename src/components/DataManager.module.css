@@ -12,11 +12,27 @@
   margin-bottom: 16px;
 }
 
+.headerButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .title {
   font-size: 18px;
   margin: 0;
   font-weight: 700;
   color: var(--spice-text);
+}
+
+.missingTracksButton {
+  background-color: #1976d2; /* Slightly different blue */
+  color: white;
+}
+
+.missingTracksButton:hover {
+  background-color: #1565c0; /* Darker on hover */
+  opacity: 0.95;
 }
 
 .lastSaved {

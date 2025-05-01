@@ -129,12 +129,34 @@ const DataManager: React.FC<DataManagerProps> = ({
     <div className={styles.container}>
       <div className={styles.header}>
         <h3 className={styles.title}>Data Management</h3>
-        <button
-          className={`${styles.actionButton} ${styles.rekordboxButton}`}
-          onClick={onExportRekordbox}
-        >
-          Export for rekordbox
-        </button>
+        <div className={styles.headerButtons}>
+          <button
+            className={`${styles.actionButton} ${styles.missingTracksButton}`}
+            onClick={() => {
+              // Get current state and toggle it
+              const currentState = localStorage.getItem("tagify:activePanel") === "missingTracks";
+              const newState = !currentState;
+
+              // Save new state to localStorage
+              localStorage.setItem("tagify:activePanel", newState ? "missingTracks" : "main");
+
+              // Trigger app state change via custom event
+              window.dispatchEvent(
+                new CustomEvent("tagify:toggleMissingTracks", { detail: { show: newState } })
+              );
+            }}
+          >
+            {localStorage.getItem("tagify:activePanel") === "missingTracks"
+              ? "Hide Missing Tracks"
+              : "Show Missing Tracks"}
+          </button>
+          <button
+            className={`${styles.actionButton} ${styles.rekordboxButton}`}
+            onClick={onExportRekordbox}
+          >
+            Export for rekordbox
+          </button>
+        </div>
       </div>
 
       {lastSaved && (

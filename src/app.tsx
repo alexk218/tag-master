@@ -485,17 +485,33 @@ const App: React.FC = () => {
     };
   }, [isMultiTagging]);
 
-  const handleToggleMissingTracks = () => {
-    const newState = !showMissingTracks;
-    setShowMissingTracks(newState);
+  useEffect(() => {
+    // Event listener for toggling missing tracks panel from DataManager
+    const handleToggleMissingTracks = (event: CustomEvent<{ show: boolean }>) => {
+      const { show } = event.detail;
+      setShowMissingTracks(show);
+    };
 
-    // Save to localStorage
-    if (newState) {
-      localStorage.setItem("tagify:activePanel", "missingTracks");
-    } else {
-      localStorage.setItem("tagify:activePanel", "main");
+    // Use proper typing with "as EventListener"
+    window.addEventListener(
+      "tagify:toggleMissingTracks",
+      handleToggleMissingTracks as EventListener
+    );
+
+    // Check if we should show missing tracks panel on load
+    const activePanel = localStorage.getItem("tagify:activePanel");
+    if (activePanel === "missingTracks") {
+      setShowMissingTracks(true);
     }
-  };
+
+    // Cleanup
+    return () => {
+      window.removeEventListener(
+        "tagify:toggleMissingTracks",
+        handleToggleMissingTracks as EventListener
+      );
+    };
+  }, []);
 
   const findCommonTags = (trackUris: string[]): TrackTag[] => {
     if (trackUris.length === 0) return [];
@@ -1054,17 +1070,6 @@ const App: React.FC = () => {
             </span>
           </div>
         )}
-
-        {/* Add MissingTracks button */}
-        <div className={styles.appNavButtons}>
-          <button
-            className={styles.navButton}
-            onClick={handleToggleMissingTracks}
-            title="Show tracks in MASTER playlist missing from your local files"
-          >
-            {showMissingTracks ? "Hide Missing Tracks" : "Show Missing Tracks"}
-          </button>
-        </div>
       </div>
 
       {isLoading ? (

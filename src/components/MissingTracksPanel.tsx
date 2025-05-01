@@ -398,7 +398,7 @@ const MissingTracksPanel: React.FC = () => {
                       onClick={() => playTrack(track.id)}
                       title="Play track"
                     >
-                      ▶
+                      {"Play"}
                     </button>
                   </div>
                 </div>
