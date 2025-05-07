@@ -12,6 +12,10 @@ import { parseLocalFileUri } from "./utils/LocalFileParser";
 import LocalTracksModal from "./components/LocalTracksModal";
 import { checkAndUpdateCacheIfNeeded } from "./utils/PlaylistCache";
 import MultiTrackDetails from "./components/MultiTrackDetails";
+import { trackService } from "./services/trackService";
+import { useSpicetifyHistory } from "./hooks/useSpicetifyHistory";
+import { useLocalStorage } from "./hooks/useLocalStorage";
+import { useCustomEvents } from "./hooks/useCustomEvents";
 
 interface SpicetifyHistoryLocation {
   pathname: string;
@@ -34,9 +38,10 @@ interface SpotifyTrack {
 // Constants for localStorage keys
 const LOCK_STATE_KEY = "tagify:lockState";
 const LOCKED_TRACK_KEY = "tagify:lockedTrack";
+const ACTIVE_PANEL_KEY = "tagify:activePanel";
+const FILTER_STATE_KEY = "tagify:filterState";
 
-const App: React.FC = () => {
-  // Get tag data management functions from our custom hook
+function App() {
   const {
     tagData,
     lastSaved,
@@ -81,11 +86,11 @@ const App: React.FC = () => {
   const [lockedMultiTrackUri, setLockedMultiTrackUri] = useState<string | null>(null);
   const [showMissingTracks, setShowMissingTracks] = useState(() => {
     // Initialize from localStorage if available
-    return localStorage.getItem("tagify:activePanel") === "missingTracks";
+    return localStorage.getItem(ACTIVE_PANEL_KEY) === "missingTracks";
   });
 
   useEffect(() => {
-    const activePanel = localStorage.getItem("tagify:activePanel");
+    const activePanel = localStorage.getItem(ACTIVE_PANEL_KEY);
     if (activePanel === "missingTracks") {
       setShowMissingTracks(true);
     }
@@ -93,7 +98,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      const savedFilters = localStorage.getItem("tagify:filterState");
+      const savedFilters = localStorage.getItem(FILTER_STATE_KEY);
       if (savedFilters) {
         const filters = JSON.parse(savedFilters);
 
@@ -499,7 +504,7 @@ const App: React.FC = () => {
     );
 
     // Check if we should show missing tracks panel on load
-    const activePanel = localStorage.getItem("tagify:activePanel");
+    const activePanel = localStorage.getItem(ACTIVE_PANEL_KEY);
     if (activePanel === "missingTracks") {
       setShowMissingTracks(true);
     }
@@ -674,7 +679,6 @@ const App: React.FC = () => {
     subcategoryId: string,
     tagId: string
   ) => {
-    // This is simpler than the all-tracks version since we're only modifying one track
     toggleTrackTag(trackUri, categoryId, subcategoryId, tagId);
   };
 
@@ -1233,6 +1237,6 @@ const App: React.FC = () => {
       )}
     </div>
   );
-};
+}
 
 export default App;
