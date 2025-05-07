@@ -121,8 +121,7 @@ const defaultTagData: TagDataStructure = {
         {
           name: "Scene-based moods",
           id: "scene-moods",
-          tags: [
-          ],
+          tags: [],
         },
       ],
     },
@@ -184,9 +183,7 @@ const defaultTagData: TagDataStructure = {
         {
           name: "Production techniques",
           id: "production-techniques",
-          tags: [
-            { name: "Bouncy", id: "bouncy" },
-          ],
+          tags: [{ name: "Bouncy", id: "bouncy" }],
         },
       ],
     },
@@ -735,6 +732,28 @@ export function useTagData() {
     console.log("BPM backfilling complete!");
   };
 
+  const findCommonTags = (trackUris: string[]): TrackTag[] => {
+    if (trackUris.length === 0) return [];
+
+    // Get tags from the first track
+    const firstTrackTags = tagData.tracks[trackUris[0]]?.tags || [];
+
+    if (trackUris.length === 1) return firstTrackTags;
+
+    // Check which tags exist in all tracks
+    return firstTrackTags.filter((tag) => {
+      return trackUris.every((uri) => {
+        const trackTags = tagData.tracks[uri]?.tags || [];
+        return trackTags.some(
+          (t) =>
+            t.categoryId === tag.categoryId &&
+            t.subcategoryId === tag.subcategoryId &&
+            t.tagId === tag.tagId
+        );
+      });
+    });
+  };
+
   const isTrackEmpty = (trackData: TrackData): boolean => {
     return (
       trackData.rating === 0 &&
@@ -1072,6 +1091,7 @@ export function useTagData() {
     setBpm,
     toggleTagForMultipleTracks,
     backfillBPMData,
+    findCommonTags,
 
     // Category management
     addCategory,
