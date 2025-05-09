@@ -88,7 +88,6 @@ const TrackList: React.FC<TrackListProps> = ({
     false
   );
   const [tagSearchTerm, setTagSearchTerm] = useLocalStorage<string>("tagify:tagListSearchTerm", "");
-  const initialLoadCompleted = useRef(false);
   const [bpmMinFilter, setBpmMinFilter] = useLocalStorage<number | null>(
     "tagify:bpmMinFilter",
     null
