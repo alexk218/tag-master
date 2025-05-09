@@ -35,8 +35,10 @@
 }
 
 .refreshButton {
-  background-color: #1db954;
-  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
 }
 
 .refreshButton:hover {
@@ -95,10 +97,7 @@
 }
 
 .tracksList {
-  background-color: #282828;
-  border-radius: 8px;
-  overflow: hidden;
-  max-height: 600px;
+  max-height: calc(100vh - 280px);
   overflow-y: auto;
 }
 
@@ -156,36 +155,6 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* .activeTagFilter {
-  background: #1e90ff;
-  color: white;
-  font-weight: 600;
-}
-
-.activeTagFilter:hover {
-  background: #1a7ee0;
-  opacity: 0.95;
-} */
-
-
-/* .playButton {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #1db954;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.playButton:hover {
-  background-color: #1ed760;
-} */
-
 .loading {
   text-align: center;
   padding: 40px;
@@ -193,11 +162,11 @@
 }
 
 .error {
-  background-color: #e22134;
-  color: white;
+  background-color: rgba(255, 0, 0, 0.1);
+  border-left: 3px solid var(--spice-notification-error);
   padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  border-radius: 4px;
 }
 
 .noMissingTracks {
@@ -245,4 +214,46 @@
   color: #1db954;
   font-weight: bold;
   margin-top: 10px;
+}
+
+.cacheInfo {
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--spice-subtext);
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 8px 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cacheDate {
+  display: flex;
+  align-items: center;
+}
+
+.cacheDate::before {
+  content: "🕒";
+  margin-right: 6px;
+}
+
+.refreshing {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--spice-subtext);
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
 }

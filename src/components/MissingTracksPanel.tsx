@@ -19,6 +19,7 @@ const MissingTracksPanel: React.FC = () => {
     connectToServer,
     setMasterPlaylistId,
     createPlaylist,
+    cachedData,
   } = useMissingTracks();
 
   // Use custom event hook to listen for toggle events
@@ -31,10 +32,8 @@ const MissingTracksPanel: React.FC = () => {
     dependencies: [],
   });
 
-  // Load data on component mount
+  // Update localStorage flag when component mounts
   useEffect(() => {
-    loadData();
-
     // Save that MissingTracksPanel is active
     localStorage.setItem("tagify:activePanel", "missingTracks");
 
@@ -61,13 +60,34 @@ const MissingTracksPanel: React.FC = () => {
     setShowConfigInput(true);
   };
 
+  // Format a date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+
+    // If the date is today, show time only
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+      return `Today at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    }
+
+    // If the date is yesterday, show "Yesterday"
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    }
+
+    // Otherwise show full date
+    return date.toLocaleString();
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>Missing Tracks</h2>
         <div className={styles.headerButtons}>
           <button className={styles.refreshButton} onClick={loadData} disabled={isLoading}>
-            Refresh
+            {isLoading ? "Refreshing..." : "Refresh"}
           </button>
 
           <button className={styles.settingsButton} onClick={openServerSettings}>
@@ -87,6 +107,14 @@ const MissingTracksPanel: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {cachedData && (
+        <div className={styles.cacheInfo}>
+          <span className={styles.cacheDate}>
+            Last updated: {formatDate(cachedData.lastUpdated)}
+          </span>
+        </div>
+      )}
 
       {showConfigInput && (
         <div className={styles.configSection}>
@@ -112,7 +140,7 @@ const MissingTracksPanel: React.FC = () => {
 
       {error && <div className={styles.error}>{error}</div>}
 
-      {isLoading ? (
+      {isLoading && !missingTracks.length ? (
         <div className={styles.loading}>Loading...</div>
       ) : (
         <>
@@ -128,6 +156,7 @@ const MissingTracksPanel: React.FC = () => {
             <div className={styles.statItem}>
               <span className={styles.statLabel}>Missing Tracks:</span>
               <span className={styles.statValue}>{missingTracks.length} tracks</span>
+              {isLoading && <span className={styles.refreshing}>(refreshing in background)</span>}
             </div>
           </div>
 

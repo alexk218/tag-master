@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
 interface CacheTrack {
@@ -28,6 +28,15 @@ interface LocalTracksCache {
   tracks: CacheTrack[];
 }
 
+// Interface for our cached data structure
+interface CachedMissingTracksData {
+  masterTracks: SpotifyTrack[];
+  missingTracks: SpotifyTrack[];
+  localTracksCount: number;
+  lastUpdated: number; // timestamp
+  playlistId: string | null; // store the playlist ID
+}
+
 // Custom hook for missing tracks functionality
 export function useMissingTracks() {
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +50,30 @@ export function useMissingTracks() {
   );
   const [serverConnected, setServerConnected] = useState(false);
   const [showConfigInput, setShowConfigInput] = useState(false);
+  const [forceRefresh, setForceRefresh] = useState(false);
+
+  // Add a new state for cached data
+  const [cachedData, setCachedData] = useLocalStorage<CachedMissingTracksData | null>(
+    "tagify:missingTracksCache",
+    null
+  );
+
+  // Constants for cache expiration
+  const CACHE_EXPIRATION_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+  // Check if cache is valid
+  const isCacheValid = () => {
+    if (!cachedData) return false;
+
+    // Cache is invalid if data is older than expiration time
+    const isExpired = Date.now() - cachedData.lastUpdated > CACHE_EXPIRATION_MS;
+
+    // Cache is invalid if master playlist ID changed
+    const currentPlaylistId = localStorage.getItem("tagify:masterPlaylistId");
+    const playlistChanged = cachedData.playlistId !== currentPlaylistId;
+
+    return !isExpired && !playlistChanged && !forceRefresh;
+  };
 
   // Load all tracks in MASTER playlist
   const loadMasterTracks = async () => {
@@ -94,11 +127,72 @@ export function useMissingTracks() {
     }
   };
 
-  // Load local tracks cache from our local server
+  // Sanitize a URL string by removing extra quotes and escape characters
+  const sanitizeUrl = (url: string): string => {
+    // First, try to parse it in case it's been JSON stringified multiple times
+    let sanitized = url;
+
+    // Check if the URL is wrapped in quotes and/or has JSON escape characters
+    const jsonWrappedPattern = /^["']?(\\*["'])*(.+?)(\\*["'])*["']?$/;
+    const match = sanitized.match(jsonWrappedPattern);
+
+    if (match && match[2]) {
+      sanitized = match[2];
+    }
+
+    // Remove any remaining escape characters
+    sanitized = sanitized.replace(/\\/g, "");
+
+    // Remove any remaining quotes at the beginning or end
+    sanitized = sanitized.replace(/^["']+|["']+$/g, "");
+
+    // Make sure it's a valid URL format
+    if (!sanitized.startsWith("http://") && !sanitized.startsWith("https://")) {
+      if (sanitized.includes("localhost") || sanitized.match(/^\d+\.\d+\.\d+\.\d+/)) {
+        sanitized = "http://" + sanitized;
+      }
+    }
+
+    return sanitized;
+  };
   const loadLocalTracksCache = async () => {
     try {
+      // Sanitize the server URL to remove any extra quotes or escape characters
+      const sanitizedUrl = sanitizeUrl(serverUrl);
+
+      // If the URL changed after sanitization, update the state and localStorage
+      if (sanitizedUrl !== serverUrl) {
+        console.log(`Sanitized server URL from "${serverUrl}" to "${sanitizedUrl}"`);
+        setServerUrl(sanitizedUrl);
+        localStorage.setItem("tagify:localServerUrl", sanitizedUrl);
+      }
+
+      // Add a timeout to the fetch requests to avoid long hangs
+      const timeout = 8000; // 8 seconds timeout
+
+      // Function to create a promise that rejects after a timeout
+      const fetchWithTimeout = async (
+        url: string,
+        options: RequestInit = {}
+      ): Promise<Response> => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+          return response;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error instanceof Error ? error : new Error(`Request to ${url} failed`);
+        }
+      };
+
       // Check if server is running
-      const statusResponse = await fetch(`${serverUrl}/status`);
+      const statusResponse = await fetchWithTimeout(`${sanitizedUrl}/status`);
       if (!statusResponse.ok) {
         throw new Error(`Server status check failed: ${statusResponse.statusText}`);
       }
@@ -108,7 +202,7 @@ export function useMissingTracks() {
       setServerConnected(true);
 
       // Get the actual cache data
-      const response = await fetch(serverUrl);
+      const response = await fetchWithTimeout(sanitizedUrl);
       if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
       }
@@ -118,18 +212,22 @@ export function useMissingTracks() {
       // Convert to a Map for faster lookups by track_id
       const tracksMap = new Map<string, CacheTrack>();
       data.tracks.forEach((track) => {
-        tracksMap.set(track.track_id, track);
+        if (track.track_id) {
+          // Only add tracks with a valid track_id
+          tracksMap.set(track.track_id, track);
+        }
       });
 
       setLocalTracks(tracksMap);
-      console.log(`Loaded ${data.tracks.length} local tracks from cache`);
+      console.log(
+        `Loaded ${tracksMap.size} local tracks from cache (${data.tracks.length} total tracks)`
+      );
 
       return tracksMap;
     } catch (error) {
       console.error("Error loading local tracks cache:", error);
       setServerConnected(false);
-      setError("Failed to load local tracks cache. Is the local tracks server running?");
-      return new Map<string, CacheTrack>();
+      throw error; // Re-throw to handle in the calling function
     }
   };
 
@@ -165,10 +263,57 @@ export function useMissingTracks() {
     return sortedMissing;
   };
 
+  // Check the cache and load data if needed
+  useEffect(() => {
+    // First, check if the server URL needs to be sanitized
+    const savedServerUrl = localStorage.getItem("tagify:localServerUrl");
+    if (savedServerUrl) {
+      const sanitizedUrl = sanitizeUrl(savedServerUrl);
+      if (sanitizedUrl !== savedServerUrl) {
+        // The URL was malformed, update it
+        console.log(`Sanitized saved server URL from "${savedServerUrl}" to "${sanitizedUrl}"`);
+        localStorage.setItem("tagify:localServerUrl", sanitizedUrl);
+        setServerUrl(sanitizedUrl);
+      } else {
+        setServerUrl(savedServerUrl);
+      }
+    }
+
+    if (isCacheValid() && cachedData) {
+      // Use the cached data
+      console.log("Using cached missing tracks data");
+      setMasterTracks(cachedData.masterTracks);
+      setMissingTracks(cachedData.missingTracks);
+      setIsLoading(false);
+
+      // Still try to connect to the server in the background
+      loadLocalTracksCache()
+        .then((tracksMap) => {
+          // If the local tracks count changed significantly, trigger a refresh
+          const significantChange = Math.abs(tracksMap.size - cachedData.localTracksCount) > 5;
+          if (significantChange) {
+            console.log("Local tracks collection has changed significantly, refreshing data");
+            loadData(true);
+          }
+        })
+        .catch((err) => {
+          console.warn("Failed to connect to local tracks server in background", err);
+          // Don't show an error message here since we're using cached data
+          // Just set serverConnected to false
+          setServerConnected(false);
+        });
+    } else {
+      // Load fresh data
+      loadData();
+    }
+  }, []);
+
   // Load all data
-  const loadData = async () => {
-    setIsLoading(true);
-    setError(null);
+  const loadData = async (silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+      setError(null);
+    }
 
     try {
       // Load from cache first
@@ -177,28 +322,111 @@ export function useMissingTracks() {
         setServerUrl(savedServerUrl);
       }
 
-      const tracksMap = await loadLocalTracksCache();
+      let tracksMap;
+      try {
+        tracksMap = await loadLocalTracksCache();
+      } catch (e) {
+        console.error("Failed to connect to local tracks server:", e);
+
+        // If we have cached data and this is a server connection failure, we can use the cached data
+        if (cachedData && !silent) {
+          setError(
+            "Could not connect to local tracks server. Using cached data from " +
+              new Date(cachedData.lastUpdated).toLocaleString()
+          );
+          setMasterTracks(cachedData.masterTracks);
+          setMissingTracks(cachedData.missingTracks);
+          setIsLoading(false);
+          return;
+        } else {
+          // If no cached data, show the config input
+          setShowConfigInput(true);
+          setError(
+            "Failed to connect to local tracks server. Please check your connection and server settings."
+          );
+          setIsLoading(false);
+          return;
+        }
+      }
 
       if (tracksMap.size === 0) {
         setShowConfigInput(true);
-        setIsLoading(false);
+        if (!silent) {
+          setIsLoading(false);
+        }
         return;
       }
 
-      const tracks = (await loadMasterTracks()) || [];
+      let tracks;
+      try {
+        tracks = (await loadMasterTracks()) || [];
+      } catch (e) {
+        console.error("Failed to load master tracks:", e);
+
+        // If we have cached data, we can still use it
+        if (cachedData && !silent) {
+          setError(
+            "Could not load MASTER playlist. Using cached data from " +
+              new Date(cachedData.lastUpdated).toLocaleString()
+          );
+          setMasterTracks(cachedData.masterTracks);
+          setMissingTracks(cachedData.missingTracks);
+          setIsLoading(false);
+          return;
+        } else {
+          // No cached data, show error
+          setError("Failed to load MASTER playlist. Please check your playlist ID and try again.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const playlistId = localStorage.getItem("tagify:masterPlaylistId");
 
       if (tracks && tracks.length > 0 && tracksMap.size > 0) {
-        findMissingTracks(tracks, tracksMap);
+        const missingTracksList = findMissingTracks(tracks, tracksMap);
+
+        // Update the cache
+        const newCachedData: CachedMissingTracksData = {
+          masterTracks: tracks,
+          missingTracks: missingTracksList,
+          localTracksCount: tracksMap.size,
+          lastUpdated: Date.now(),
+          playlistId: playlistId,
+        };
+
+        setCachedData(newCachedData);
+        setForceRefresh(false);
       } else {
         // Set empty missing tracks if we don't have both data sources
         setMissingTracks([]);
       }
     } catch (error) {
       console.error("Error loading data:", error);
-      setError("An error occurred while loading data. See console for details.");
+      if (!silent) {
+        // Check if we have cached data to fall back on
+        if (cachedData) {
+          setError(
+            "An error occurred. Using cached data from " +
+              new Date(cachedData.lastUpdated).toLocaleString()
+          );
+          setMasterTracks(cachedData.masterTracks);
+          setMissingTracks(cachedData.missingTracks);
+        } else {
+          setError("An error occurred while loading data. See console for details.");
+        }
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
+  };
+
+  // Manually refresh data
+  const refreshData = () => {
+    setForceRefresh(true);
+    loadData();
   };
 
   // Connect to server with new URL
@@ -207,8 +435,14 @@ export function useMissingTracks() {
     setError(null);
 
     try {
-      // Save server URL to localStorage
-      localStorage.setItem("tagify:localServerUrl", serverUrl);
+      // Sanitize the URL before saving
+      const sanitizedUrl = sanitizeUrl(serverUrl);
+      if (sanitizedUrl !== serverUrl) {
+        setServerUrl(sanitizedUrl);
+      }
+
+      // Save server URL to localStorage - use the sanitized version
+      localStorage.setItem("tagify:localServerUrl", sanitizedUrl);
 
       await loadLocalTracksCache();
 
@@ -232,6 +466,8 @@ export function useMissingTracks() {
     );
     if (id) {
       localStorage.setItem("tagify:masterPlaylistId", id);
+      // Force refresh when playlist changes
+      setForceRefresh(true);
       loadData();
     }
   };
@@ -295,9 +531,17 @@ export function useMissingTracks() {
     masterTracks,
     localTracks,
     missingTracks,
-    loadData,
+    loadData: refreshData, // Expose refreshData as loadData for interface compatibility
     connectToServer,
     setMasterPlaylistId,
     createPlaylist,
+    cachedData: cachedData
+      ? {
+          lastUpdated: new Date(cachedData.lastUpdated).toLocaleString(),
+          tracksCount: cachedData.masterTracks.length,
+          missingCount: cachedData.missingTracks.length,
+          localCount: cachedData.localTracksCount,
+        }
+      : null,
   };
 }
