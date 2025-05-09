@@ -17,10 +17,6 @@ interface TrackData {
   tags: Tag[];
 }
 
-interface TracksObject {
-  [uri: string]: TrackData;
-}
-
 interface SpotifyTrackInfo {
   name: string;
   artists: string;
@@ -30,7 +26,7 @@ interface SpotifyTrackInfo {
 }
 
 interface TrackListProps {
-  tracks: TracksObject;
+  tracks: { [uri: string]: TrackData };
   categories: Category[];
   activeTagFilters: string[];
   excludedTagFilters: string[];
@@ -552,16 +548,12 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   });
 
-  // Toggle a rating filter - now adds/removes from array
+  // Toggle a rating filter
   const toggleRatingFilter = (rating: number) => {
     setRatingFilters((prev) =>
       prev.includes(rating) ? prev.filter((r) => r !== rating) : [...prev, rating]
     );
   };
-
-  // const handleTagClick = (tag: string) => {
-  //   toggleTagFilter(tag);
-  // };
 
   // Handle energy range filtering
   const handleEnergyMinChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -587,7 +579,7 @@ const TrackList: React.FC<TrackListProps> = ({
   // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm("");
-    setTagSearchTerm(""); // Clear tag search as well
+    setTagSearchTerm("");
     if (onClearTagFilters) {
       onClearTagFilters();
     }
@@ -597,7 +589,6 @@ const TrackList: React.FC<TrackListProps> = ({
     setBpmMinFilter(null);
     setBpmMaxFilter(null);
 
-    // Also remove from localStorage to ensure complete reset
     localStorage.removeItem(FILTER_STATE_KEY);
   };
 
@@ -769,6 +760,7 @@ const TrackList: React.FC<TrackListProps> = ({
 
   return (
     <div className={styles.container}>
+      {/* HEADER */}
       <div className={styles.header}>
         <div className={styles.titleSection}>
           <h2 className={styles.title}>Tagged Tracks</h2>
@@ -789,6 +781,7 @@ const TrackList: React.FC<TrackListProps> = ({
         </div>
       </div>
 
+      {/* FILTER CONTROLS */}
       <div className={styles.filterControls}>
         <button
           className={`${styles.filterToggle} ${showFilterOptions ? styles.filterToggleActive : ""}`}
@@ -839,7 +832,7 @@ const TrackList: React.FC<TrackListProps> = ({
           </button>
         )}
 
-        {/* Create Playlist button (existing) */}
+        {/* Create Playlist button */}
         {filteredTracks.length > 0 && (
           <button
             className={styles.createPlaylistButton}
@@ -885,7 +878,7 @@ const TrackList: React.FC<TrackListProps> = ({
             </div>
           )}
 
-          {/* Wrap Energy and BPM filters in a horizontal container */}
+          {/* Energy and BPM filters in a horizontal container */}
           <div className={styles.filterSectionsRow}>
             {allEnergyLevels.size > 0 && (
               <div className={styles.filterSection}>
@@ -1032,7 +1025,7 @@ const TrackList: React.FC<TrackListProps> = ({
             <span
               key={tag}
               className={styles.activeFilterTag}
-              onClick={() => handleFilterTagClick(tag, false)} // Handle click on the tag
+              onClick={() => handleFilterTagClick(tag, false)}
             >
               {tag}{" "}
               <button

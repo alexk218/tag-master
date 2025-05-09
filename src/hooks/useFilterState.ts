@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useLocalStorage } from "./useLocalStorage";
 
 export function useFilterState() {
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
