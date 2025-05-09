@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import styles from "./TagSelector.module.css";
 import { Category, TrackTag } from "../hooks/useTagData";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
 interface TagSelectorProps {
   track: {
@@ -23,35 +24,45 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   isMultiTagging = false,
   isLockedTrack = false,
 }) => {
-  // Keep track of expanded categories and subcategories
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
-  const [areAllExpanded, setAreAllExpanded] = useState(false);
+  // Store arrays in localStorage and convert to Sets when needed
+  const [expandedCategoryIds, setExpandedCategoryIds] = useLocalStorage<string[]>(
+    "tagify:expandedCategories",
+    []
+  );
+  const [expandedSubcategoryIds, setExpandedSubcategoryIds] = useLocalStorage<string[]>(
+    "tagify:expandedSubcategories",
+    []
+  );
+  const [areAllExpanded, setAreAllExpanded] = useLocalStorage<boolean>(
+    "tagify:areAllExpanded",
+    false
+  );
+  const [searchTerm, setSearchTerm] = useLocalStorage<string>("tagify:tagSearchTerm", "");
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Create Set objects from the stored arrays for efficient lookups
+  const expandedCategories = new Set(expandedCategoryIds);
+  const expandedSubcategories = new Set(expandedSubcategoryIds);
 
   // Toggle category expansion
   const toggleCategory = (categoryId: string) => {
-    setExpandedCategories((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(categoryId)) {
-        newSet.delete(categoryId);
+    setExpandedCategoryIds((prev) => {
+      if (prev.includes(categoryId)) {
+        return prev.filter((id) => id !== categoryId);
       } else {
-        newSet.add(categoryId);
+        return [...prev, categoryId];
       }
-      return newSet;
     });
   };
 
   // Toggle subcategory expansion
   const toggleSubcategory = (subcategoryId: string) => {
-    setExpandedSubcategories((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(subcategoryId)) {
-        newSet.delete(subcategoryId);
+    setExpandedSubcategoryIds((prev) => {
+      if (prev.includes(subcategoryId)) {
+        return prev.filter((id) => id !== subcategoryId);
       } else {
-        newSet.add(subcategoryId);
+        return [...prev, subcategoryId];
       }
-      return newSet;
     });
   };
 
@@ -62,15 +73,15 @@ const TagSelector: React.FC<TagSelectorProps> = ({
       category.subcategories.map((subcategory) => subcategory.id)
     );
 
-    setExpandedCategories(new Set(allCategoryIds));
-    setExpandedSubcategories(new Set(allSubcategoryIds));
+    setExpandedCategoryIds(allCategoryIds);
+    setExpandedSubcategoryIds(allSubcategoryIds);
     setAreAllExpanded(true);
   };
 
   // Function to collapse all categories and subcategories
   const collapseAll = () => {
-    setExpandedCategories(new Set());
-    setExpandedSubcategories(new Set());
+    setExpandedCategoryIds([]);
+    setExpandedSubcategoryIds([]);
     setAreAllExpanded(false);
   };
 
@@ -91,9 +102,6 @@ const TagSelector: React.FC<TagSelectorProps> = ({
     );
   };
 
-  // Filter functionality
-  const [searchTerm, setSearchTerm] = useState("");
-
   // Filter function for tags
   const filterTag = (tagName: string) => {
     if (!searchTerm) return true;
@@ -105,8 +113,8 @@ const TagSelector: React.FC<TagSelectorProps> = ({
     if (!searchTerm) return;
 
     // Find categories and subcategories that contain matching tags
-    const matchingCategories = new Set<string>();
-    const matchingSubcategories = new Set<string>();
+    const matchingCategoryIds: string[] = [];
+    const matchingSubcategoryIds: string[] = [];
 
     categories.forEach((category) => {
       let categoryHasMatches = false;
@@ -117,20 +125,20 @@ const TagSelector: React.FC<TagSelectorProps> = ({
         );
 
         if (hasMatchingTags) {
-          matchingSubcategories.add(subcategory.id);
+          matchingSubcategoryIds.push(subcategory.id);
           categoryHasMatches = true;
         }
       });
 
       if (categoryHasMatches) {
-        matchingCategories.add(category.id);
+        matchingCategoryIds.push(category.id);
       }
     });
 
     // Expand matching categories and subcategories
-    setExpandedCategories(matchingCategories);
-    setExpandedSubcategories(matchingSubcategories);
-  }, [searchTerm, categories]);
+    setExpandedCategoryIds(matchingCategoryIds);
+    setExpandedSubcategoryIds(matchingSubcategoryIds);
+  }, [searchTerm, categories, setExpandedCategoryIds, setExpandedSubcategoryIds]);
 
   return (
     <div className={styles.container} ref={containerRef}>
