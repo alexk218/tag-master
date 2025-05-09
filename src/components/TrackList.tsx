@@ -4,6 +4,7 @@ import { parseLocalFileUri } from "../utils/LocalFileParser";
 import { Category } from "../hooks/useTagData";
 import CreatePlaylistModal from "./CreatePlaylistModal";
 import ReactStars from "react-rating-stars-component";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
 interface Tag {
   tag: string;
@@ -46,8 +47,6 @@ interface TrackListProps {
   ) => void;
 }
 
-const FILTER_STATE_KEY = "tagify:filterState";
-
 const TrackList: React.FC<TrackListProps> = ({
   tracks,
   categories,
@@ -64,21 +63,40 @@ const TrackList: React.FC<TrackListProps> = ({
   onCreatePlaylist,
 }) => {
   const [trackInfo, setTrackInfo] = useState<{ [uri: string]: SpotifyTrackInfo }>({});
-  const [searchTerm, setSearchTerm] = useState("");
+  // Use the local filter state hook for search term
+  const [searchTerm, setSearchTerm] = useLocalStorage<string>("tagify:trackSearchTerm", "");
   const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
   const [displayCount, setDisplayCount] = useState<number>(30); // Initial batch size
   const observerRef = useRef<HTMLDivElement>(null);
 
-  // Advanced filtering states
-  const [ratingFilters, setRatingFilters] = useState<number[]>([]);
-  const [energyMinFilter, setEnergyMinFilter] = useState<number | null>(null);
-  const [energyMaxFilter, setEnergyMaxFilter] = useState<number | null>(null);
-  const [showFilterOptions, setShowFilterOptions] = useState(false);
-  const [isOrFilterMode, setIsOrFilterMode] = useState(false);
-  const [tagSearchTerm, setTagSearchTerm] = useState("");
+  // Advanced filtering states - now using useLocalStorage
+  const [ratingFilters, setRatingFilters] = useLocalStorage<number[]>("tagify:ratingFilters", []);
+  const [energyMinFilter, setEnergyMinFilter] = useLocalStorage<number | null>(
+    "tagify:energyMinFilter",
+    null
+  );
+  const [energyMaxFilter, setEnergyMaxFilter] = useLocalStorage<number | null>(
+    "tagify:energyMaxFilter",
+    null
+  );
+  const [showFilterOptions, setShowFilterOptions] = useLocalStorage<boolean>(
+    "tagify:showFilterOptions",
+    false
+  );
+  const [isOrFilterMode, setIsOrFilterMode] = useLocalStorage<boolean>(
+    "tagify:isOrFilterMode",
+    false
+  );
+  const [tagSearchTerm, setTagSearchTerm] = useLocalStorage<string>("tagify:tagListSearchTerm", "");
   const initialLoadCompleted = useRef(false);
-  const [bpmMinFilter, setBpmMinFilter] = useState<number | null>(null);
-  const [bpmMaxFilter, setBpmMaxFilter] = useState<number | null>(null);
+  const [bpmMinFilter, setBpmMinFilter] = useLocalStorage<number | null>(
+    "tagify:bpmMinFilter",
+    null
+  );
+  const [bpmMaxFilter, setBpmMaxFilter] = useLocalStorage<number | null>(
+    "tagify:bpmMaxFilter",
+    null
+  );
 
   const allBpmValues = new Set<number>();
   Object.values(tracks).forEach((track) => {
@@ -226,84 +244,6 @@ const TrackList: React.FC<TrackListProps> = ({
       console.log("No tracks available to fetch info for");
     }
   }, [tracks]);
-
-  // Load saved filter state on component mount
-  useEffect(() => {
-    // Only load once and skip if we've already done initial load
-    if (initialLoadCompleted.current) return;
-
-    try {
-      const savedFilters = localStorage.getItem(FILTER_STATE_KEY);
-      if (savedFilters) {
-        const filters = JSON.parse(savedFilters);
-
-        // For local state only - don't try to manipulate the props
-        if (filters.ratingFilters) setRatingFilters(filters.ratingFilters);
-        if (filters.energyMinFilter !== undefined) setEnergyMinFilter(filters.energyMinFilter);
-        if (filters.energyMaxFilter !== undefined) setEnergyMaxFilter(filters.energyMaxFilter);
-        if (filters.isOrFilterMode !== undefined) setIsOrFilterMode(filters.isOrFilterMode);
-        if (filters.searchTerm) setSearchTerm(filters.searchTerm);
-        if (filters.bpmMinFilter !== undefined) setBpmMinFilter(filters.bpmMinFilter);
-        if (filters.bpmMaxFilter !== undefined) setBpmMaxFilter(filters.bpmMaxFilter);
-
-        console.log("Loaded filter state from localStorage:", filters);
-      }
-
-      initialLoadCompleted.current = true;
-    } catch (error) {
-      console.error("Error loading filter state:", error);
-      initialLoadCompleted.current = true;
-    }
-  }, []);
-
-  // 3. Update the useEffect for saving filters to localStorage
-  // Use a debounce approach to avoid excessive saves and potential render issues
-  const saveTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    // Clear any existing timeout to prevent double-saving
-    if (saveTimeoutRef.current) {
-      window.clearTimeout(saveTimeoutRef.current);
-    }
-
-    // Create a new timeout
-    saveTimeoutRef.current = window.setTimeout(() => {
-      try {
-        const filterState = {
-          activeTagFilters,
-          excludedTagFilters,
-          ratingFilters,
-          energyMinFilter,
-          energyMaxFilter,
-          bpmMinFilter,
-          bpmMaxFilter,
-          isOrFilterMode,
-          searchTerm,
-        };
-
-        localStorage.setItem(FILTER_STATE_KEY, JSON.stringify(filterState));
-      } catch (error) {
-        console.error("Error saving filter state:", error);
-      }
-    }, 500); // Debounce of 500ms
-
-    // Clean up the timeout on unmount
-    return () => {
-      if (saveTimeoutRef.current) {
-        window.clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [
-    activeTagFilters,
-    excludedTagFilters,
-    ratingFilters,
-    energyMinFilter,
-    energyMaxFilter,
-    bpmMinFilter,
-    bpmMaxFilter,
-    isOrFilterMode,
-    searchTerm,
-  ]);
 
   useEffect(() => {
     // Reset display count when filters change
@@ -503,13 +443,7 @@ const TrackList: React.FC<TrackListProps> = ({
     }
 
     // Otherwise fall back to the original logic
-    if (activeTagFilters.includes(tag)) {
-      onFilterByTag(tag);
-    } else if (excludedTagFilters.includes(tag)) {
-      onFilterByTag(tag);
-    } else {
-      onFilterByTag(tag);
-    }
+    onFilterByTag(tag);
   };
 
   const hasIncompleteTags = (trackData: any): boolean => {
@@ -548,7 +482,7 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   });
 
-  // Toggle a rating filter
+  // Toggle a rating filter - now adds/removes from array
   const toggleRatingFilter = (rating: number) => {
     setRatingFilters((prev) =>
       prev.includes(rating) ? prev.filter((r) => r !== rating) : [...prev, rating]
@@ -579,7 +513,7 @@ const TrackList: React.FC<TrackListProps> = ({
   // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm("");
-    setTagSearchTerm("");
+    setTagSearchTerm(""); // Clear tag search as well
     if (onClearTagFilters) {
       onClearTagFilters();
     }
@@ -588,8 +522,6 @@ const TrackList: React.FC<TrackListProps> = ({
     setEnergyMaxFilter(null);
     setBpmMinFilter(null);
     setBpmMaxFilter(null);
-
-    localStorage.removeItem(FILTER_STATE_KEY);
   };
 
   // Calculate active filter count for badge
@@ -598,7 +530,7 @@ const TrackList: React.FC<TrackListProps> = ({
     excludedTagFilters.length +
     (ratingFilters.length > 0 ? 1 : 0) +
     (energyMinFilter !== null || energyMaxFilter !== null ? 1 : 0) +
-    (bpmMinFilter !== null || bpmMaxFilter !== null ? 1 : 0) + // Add this
+    (bpmMinFilter !== null || bpmMaxFilter !== null ? 1 : 0) +
     (searchTerm.trim() !== "" ? 1 : 0);
 
   const handleCreatePlaylist = (name: string, description: string, isPublic: boolean) => {
@@ -694,6 +626,7 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   };
 
+  // Play all tracks
   const playAllFilteredTracks = async () => {
     if (filteredTracks.length === 0) return;
 
@@ -715,7 +648,7 @@ const TrackList: React.FC<TrackListProps> = ({
     let playSuccess = false;
 
     try {
-      // Start playback with first track
+      // Play the first track directly
       await Spicetify.Player.playUri(firstTrackToPlay);
       playSuccess = true;
     } catch (error) {
@@ -727,7 +660,7 @@ const TrackList: React.FC<TrackListProps> = ({
           await Spicetify.Player.playUri(trackUris[1]);
           playSuccess = true;
         } catch (secondError) {
-          console.error("Error playing second track:", secondError);
+          console.error("Failed to play second track:", secondError);
         }
       }
     }
