@@ -305,3 +305,148 @@
   font-size: 0.8em;
   transition: transform 0.3s;
 }
+
+.fuzzyMatchContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fileInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.fileName {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.progress {
+  font-size: 0.9em;
+  color: var(--spice-subtext);
+}
+
+.matchesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--spice-button-disabled);
+  border-radius: 4px;
+}
+
+.matchOption {
+  display: flex;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: var(--spice-card);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.matchOption:hover {
+  background-color: var(--spice-highlight);
+}
+
+.matchNumber {
+  margin-right: 10px;
+  font-weight: bold;
+  min-width: 20px;
+}
+
+.matchContent {
+  flex: 1;
+}
+
+.matchTitle {
+  font-weight: 500;
+}
+
+.matchAlbum {
+  font-size: 0.9em;
+  color: var(--spice-subtext);
+  margin-top: 2px;
+}
+
+.confidence {
+  margin-top: 4px;
+  font-size: 0.8em;
+  color: var(--spice-text);
+}
+
+.loadingMatches {
+  text-align: center;
+  padding: 20px;
+  color: var(--spice-subtext);
+}
+
+.noMatches {
+  text-align: center;
+  padding: 20px;
+  color: var(--spice-subtext);
+  font-style: italic;
+}
+
+.matchingComplete {
+  text-align: center;
+  padding: 20px;
+}
+
+.summaryContainer {
+  padding: 16px;
+}
+
+.selectionsPreview {
+  margin: 16px 0;
+  border: 1px solid var(--spice-button-disabled);
+  border-radius: 4px;
+  padding: 12px;
+  background-color: var(--spice-card);
+}
+
+.selectionsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.selectionItem {
+  padding: 8px;
+  border-bottom: 1px solid var(--spice-button-disabled);
+}
+
+.selectionItem:last-child {
+  border-bottom: none;
+}
+
+.selectionFile {
+  font-weight: 500;
+}
+
+.selectionTrackId {
+  font-size: 0.9em;
+  color: var(--spice-subtext);
+  margin-top: 2px;
+}
+
+.moreSelections {
+  text-align: center;
+  padding: 8px;
+  font-style: italic;
+  color: var(--spice-subtext);
+}
+
+.selectionConfidence {
+  font-size: 0.8em;
+  margin-top: 2px;
+}
+
+.matchText {
+  flex: 1;
+}

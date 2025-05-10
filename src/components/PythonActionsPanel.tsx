@@ -13,6 +13,14 @@ interface ActionInfo {
   data: any;
 }
 
+type Match = {
+  track_id: string;
+  artist: string;
+  title: string;
+  album: string;
+  ratio: number;
+};
+
 const ActionButton: React.FC<ActionButtonProps> = ({ label, onClick, disabled, className }) => (
   <button
     className={`${styles.actionButton} ${className || ""}`}
@@ -42,6 +50,22 @@ const PythonActionsPanel: React.FC = () => {
   const [serverStatus, setServerStatus] = useState<"unknown" | "connected" | "disconnected">(
     "unknown"
   );
+
+  const [userMatchSelections, setUserMatchSelections] = useState<
+    { fileName: string; trackId: string; confidence: number }[]
+  >([]);
+  const [skippedFiles, setSkippedFiles] = useState<string[]>([]);
+  const [fuzzyMatchingState, setFuzzyMatchingState] = useState<{
+    isActive: boolean;
+    currentFileIndex: number;
+    matches: Match[];
+    isLoading: boolean;
+  }>({
+    isActive: false,
+    currentFileIndex: 0,
+    matches: [],
+    isLoading: false,
+  });
 
   // Paths from localStorage or default values
   const [paths, setPaths] = useState({
@@ -162,8 +186,36 @@ const PythonActionsPanel: React.FC = () => {
 
       const result = await response.json();
 
-      // Check if this is an analysis result that needs confirmation
-      if (result.needs_confirmation) {
+      // Check if this is an embed-metadata operation that requires fuzzy matching
+      if (
+        action === "embed-metadata" &&
+        result.needs_confirmation &&
+        result.requires_fuzzy_matching &&
+        !data.confirmed
+      ) {
+        // Set up for fuzzy matching process
+        setAnalysisResults(result);
+        setIsAwaitingConfirmation(true);
+        setCurrentAction({
+          name: action,
+          data: requestData,
+        });
+        setUserMatchSelections([]);
+        setSkippedFiles([]);
+        setFuzzyMatchingState({
+          isActive: true,
+          currentFileIndex: 0,
+          matches: [],
+          isLoading: false,
+        });
+
+        // Show notification about analysis completion
+        Spicetify.showNotification(
+          `Found ${result.details.files_to_process.length} files to process.`
+        );
+      }
+      // For other analysis operations that need confirmation
+      else if (result.needs_confirmation && !data.confirmed) {
         setAnalysisResults(result);
         setIsAwaitingConfirmation(true);
         setCurrentAction({
@@ -171,12 +223,11 @@ const PythonActionsPanel: React.FC = () => {
           data: requestData,
         });
 
-        // Do not set result yet - we'll set it after confirmation
-
         // Show notification about analysis completion
         Spicetify.showNotification(`Analysis complete. Please review and confirm.`);
-      } else {
-        // Regular result - process normally
+      }
+      // Regular result - process normally
+      else {
         setResults((prev) => ({
           ...prev,
           [action]: { success: result.success, message: result.message || JSON.stringify(result) },
@@ -202,32 +253,56 @@ const PythonActionsPanel: React.FC = () => {
     }
   };
 
-  // New function to handle confirmation
+  // Handle confirmation
   const confirmAction = async () => {
     if (!currentAction) return;
 
     const { name, data } = currentAction;
 
-    // Add confirmation flag to the data
+    // Add confirmation flag and user selections to the data
     const confirmData = {
       ...data,
       confirmed: true,
     };
 
+    if (name === "embed-metadata") {
+      // Include the user-selected matches for embed-metadata
+      confirmData.userSelections = userMatchSelections;
+      confirmData.skippedFiles = skippedFiles;
+    }
+
     // Reset states
     setAnalysisResults(null);
     setIsAwaitingConfirmation(false);
     setCurrentAction(null);
+    setUserMatchSelections([]);
+    setSkippedFiles([]);
+    setFuzzyMatchingState({
+      isActive: false,
+      currentFileIndex: 0,
+      matches: [],
+      isLoading: false,
+    });
 
     // Perform the action with confirmation
     await performAction(name, confirmData);
   };
 
-  // New function to cancel confirmation
+  // Cancel confirmation
   const cancelAction = () => {
+    // Reset all states
     setAnalysisResults(null);
     setIsAwaitingConfirmation(false);
     setCurrentAction(null);
+    setUserMatchSelections([]);
+    setSkippedFiles([]);
+    setFuzzyMatchingState({
+      isActive: false,
+      currentFileIndex: 0,
+      matches: [],
+      isLoading: false,
+    });
+
     Spicetify.showNotification("Operation cancelled");
   };
 
@@ -253,9 +328,240 @@ const PythonActionsPanel: React.FC = () => {
     }));
   };
 
+  const FuzzyMatchConfirmation = () => {
+    const files = analysisResults?.details?.files_to_process || [];
+    const currentFile = files[fuzzyMatchingState.currentFileIndex];
+
+    useEffect(() => {
+      // Load matches for the current file when the index changes
+      if (currentFile && fuzzyMatchingState.isActive) {
+        setFuzzyMatchingState((prev) => ({ ...prev, isLoading: true }));
+
+        // Call backend to get matches
+        fetch(`${serverUrl}/api/fuzzy-match-track`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            fileName: currentFile,
+            masterTracksDir: paths.masterTracksDir,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              setFuzzyMatchingState((prev) => ({
+                ...prev,
+                matches: data.matches || [],
+                isLoading: false,
+              }));
+            } else {
+              console.error("Error fetching matches:", data.message);
+              setFuzzyMatchingState((prev) => ({
+                ...prev,
+                matches: [],
+                isLoading: false,
+              }));
+              Spicetify.showNotification(`Error getting matches: ${data.message}`, true);
+            }
+          })
+          .catch((error) => {
+            console.error("Error in fuzzy match fetch:", error);
+            setFuzzyMatchingState((prev) => ({
+              ...prev,
+              matches: [],
+              isLoading: false,
+            }));
+            Spicetify.showNotification("Failed to fetch matches", true);
+          });
+      }
+    }, [fuzzyMatchingState.currentFileIndex, fuzzyMatchingState.isActive, currentFile]);
+
+    const handleSelectMatch = (match: any) => {
+      // Add selection to the tracked selections
+      setUserMatchSelections((prev) => [
+        ...prev,
+        {
+          fileName: currentFile,
+          trackId: match.track_id,
+          confidence: match.ratio,
+        },
+      ]);
+
+      // Move to next file or complete if done
+      if (fuzzyMatchingState.currentFileIndex < files.length - 1) {
+        setFuzzyMatchingState((prev) => ({
+          ...prev,
+          currentFileIndex: prev.currentFileIndex + 1,
+          matches: [],
+        }));
+      } else {
+        // All files processed, ready for final confirmation
+        setFuzzyMatchingState((prev) => ({
+          ...prev,
+          isActive: false,
+        }));
+      }
+    };
+
+    const handleSkip = () => {
+      // Add file to skipped files list
+      setSkippedFiles((prev) => [...prev, currentFile]);
+
+      // Move to next file or complete if done
+      if (fuzzyMatchingState.currentFileIndex < files.length - 1) {
+        setFuzzyMatchingState((prev) => ({
+          ...prev,
+          currentFileIndex: prev.currentFileIndex + 1,
+          matches: [],
+        }));
+      } else {
+        // All files processed, ready for final confirmation
+        setFuzzyMatchingState((prev) => ({
+          ...prev,
+          isActive: false,
+        }));
+      }
+    };
+
+    const processedFilesCount = userMatchSelections.length + skippedFiles.length;
+
+    // Render the main fuzzy matching UI
+    return (
+      <div className={styles.fuzzyMatchContainer}>
+        <h3>
+          Match Files with Tracks ({processedFilesCount} of {files.length} complete)
+        </h3>
+
+        {currentFile ? (
+          <>
+            <div className={styles.fileInfo}>
+              <div className={styles.fileName}>
+                <strong>Current file:</strong> {currentFile}
+              </div>
+              <div className={styles.progress}>
+                File {fuzzyMatchingState.currentFileIndex + 1} of {files.length}
+              </div>
+            </div>
+
+            {fuzzyMatchingState.isLoading ? (
+              <div className={styles.loadingMatches}>Loading potential matches...</div>
+            ) : (
+              <div className={styles.matchesList}>
+                <div className={styles.matchOption} onClick={handleSkip}>
+                  <div className={styles.matchNumber}>0.</div>
+                  <div className={styles.matchText}>Skip this file (no match)</div>
+                </div>
+
+                {fuzzyMatchingState.matches.map((match, index) => (
+                  <div
+                    key={match.track_id}
+                    className={styles.matchOption}
+                    onClick={() => handleSelectMatch(match)}
+                  >
+                    <div className={styles.matchNumber}>{index + 1}.</div>
+                    <div className={styles.matchContent}>
+                      <div className={styles.matchTitle}>
+                        {match.artist} - {match.title}
+                      </div>
+                      <div className={styles.matchAlbum}>{match.album}</div>
+                      <div className={styles.confidence}>
+                        Confidence: {(match.ratio * 100).toFixed(2)}%
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {fuzzyMatchingState.matches.length === 0 && !fuzzyMatchingState.isLoading && (
+                  <div className={styles.noMatches}>No potential matches found.</div>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className={styles.matchingComplete}>
+            <p>All files have been processed!</p>
+            <p>Selected matches for {userMatchSelections.length} files.</p>
+            <p>Skipped {skippedFiles.length} files.</p>
+            <button className={styles.confirmButton} onClick={confirmAction}>
+              Confirm and Embed Metadata
+            </button>
+            <button className={styles.cancelButton} onClick={cancelAction}>
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Render the confirmation UI when needed
   const renderConfirmation = () => {
     if (!isAwaitingConfirmation || !analysisResults) return null;
+
+    // For embed-metadata action with fuzzy matching
+    if (
+      currentAction?.name === "embed-metadata" &&
+      analysisResults.requires_fuzzy_matching &&
+      fuzzyMatchingState.isActive
+    ) {
+      return (
+        <div className={styles.confirmationPanel}>
+          <FuzzyMatchConfirmation />
+        </div>
+      );
+    }
+
+    // For embed-metadata action when fuzzy matching is complete or for final confirmation
+    if (
+      currentAction?.name === "embed-metadata" &&
+      analysisResults.requires_fuzzy_matching &&
+      !fuzzyMatchingState.isActive &&
+      (userMatchSelections.length > 0 || skippedFiles.length > 0)
+    ) {
+      return (
+        <div className={styles.confirmationPanel}>
+          <h3>Confirm Metadata Embedding</h3>
+          <div className={styles.summaryContainer}>
+            <p>Ready to embed metadata for {userMatchSelections.length} files.</p>
+            <p>{skippedFiles.length} files were skipped.</p>
+
+            {userMatchSelections.length > 0 && (
+              <div className={styles.selectionsPreview}>
+                <h4>Selected Matches:</h4>
+                <div className={styles.selectionsContent}>
+                  {userMatchSelections.slice(0, 5).map((selection, index) => (
+                    <div key={index} className={styles.selectionItem}>
+                      <div className={styles.selectionFile}>{selection.fileName}</div>
+                      <div className={styles.selectionTrackId}>{selection.trackId}</div>
+                      <div className={styles.selectionConfidence}>
+                        Confidence: {(selection.confidence * 100).toFixed(2)}%
+                      </div>
+                    </div>
+                  ))}
+                  {userMatchSelections.length > 5 && (
+                    <div className={styles.moreSelections}>
+                      ... and {userMatchSelections.length - 5} more matches
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className={styles.confirmationButtons}>
+              <button className={styles.confirmButton} onClick={confirmAction}>
+                Confirm and Embed Metadata
+              </button>
+              <button className={styles.cancelButton} onClick={cancelAction}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className={styles.confirmationPanel}>
@@ -364,31 +670,27 @@ const PythonActionsPanel: React.FC = () => {
             </p>
 
             {/* Paginated Association Changes */}
-            {analysisResults.analyses.associations.samples.length > 0 && (
+            {(analysisResults.details?.all_changes || analysisResults.details?.samples) && (
               <div className={styles.sampleChanges}>
-                <h5>
-                  Track Association Changes (
-                  {analysisResults.analyses.associations.tracks_with_changes.length})
-                </h5>
+                <h5>Track Association Changes ({analysisResults.details.tracks_with_changes})</h5>
                 <div className={styles.trackList}>
                   {renderPaginatedList(
-                    analysisResults.analyses.associations.all_changes ||
-                      analysisResults.analyses.associations.samples,
+                    analysisResults.details.all_changes || analysisResults.details.samples,
                     "associations",
                     (item) => (
                       <div className={styles.trackItem}>
                         <div>{item.track}</div>
-                        {item.add_to.length > 0 && (
+                        {item.add_to && item.add_to.length > 0 && (
                           <div className={styles.addTo}>+ Adding to: {item.add_to.join(", ")}</div>
                         )}
-                        {item.remove_from.length > 0 && (
+                        {item.remove_from && item.remove_from.length > 0 && (
                           <div className={styles.removeFrom}>
                             - Removing from: {item.remove_from.join(", ")}
                           </div>
                         )}
                       </div>
                     ),
-                    analysisResults.analyses.associations.tracks_with_changes.length
+                    analysisResults.details.tracks_with_changes
                   )}
                 </div>
               </div>
