@@ -9,6 +9,7 @@ import DataManager from "./components/DataManager";
 import MissingTracksPanel from "./components/MissingTracksPanel";
 import MultiTrackDetails from "./components/MultiTrackDetails";
 import LocalTracksModal from "./components/LocalTracksModal";
+import PythonActionsPanel from "./components/PythonActionsPanel";
 import { useTagData } from "./hooks/useTagData";
 import { useTrackState } from "./hooks/useTrackState";
 import { useFilterState } from "./hooks/useFilterState";
@@ -85,6 +86,8 @@ function App() {
   const [showMissingTracks, setShowMissingTracks] = useState(() => {
     return localStorage.getItem("tagify:activePanel") === "missingTracks";
   });
+
+  const [showPythonActions, setShowPythonActions] = useState(false);
 
   useFontAwesome();
 
@@ -312,6 +315,11 @@ function App() {
         taggedTracks={tagData.tracks}
         onBackfillBPM={backfillBPMData}
       />
+
+      {showPythonActions && <PythonActionsPanel />}
+      <button onClick={() => setShowPythonActions(!showPythonActions)}>
+        {showPythonActions ? "Hide Python Actions" : "Show Python Actions"}
+      </button>
 
       {renderContent()}
 

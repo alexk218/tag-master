@@ -1,0 +1,232 @@
+.container {
+  padding: 20px;
+  background-color: var(--spice-card);
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.statusIndicator {
+  margin-bottom: 16px;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.statusDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.connected {
+  color: #2ecc71;
+}
+
+.connected .statusDot {
+  background-color: #2ecc71;
+}
+
+.disconnected {
+  color: #e74c3c;
+}
+
+.disconnected .statusDot {
+  background-color: #e74c3c;
+}
+
+.unknown {
+  color: #f39c12;
+}
+
+.unknown .statusDot {
+  background-color: #f39c12;
+}
+
+.settings,
+.actions,
+.results {
+  margin-bottom: 24px;
+}
+
+.formGroup {
+  margin-bottom: 12px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.formGroup input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--spice-button-disabled);
+  background: var(--spice-main);
+  color: var(--spice-text);
+}
+
+.actionGroup {
+  margin-bottom: 16px;
+}
+
+.actionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.actionButton {
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: var(--spice-button);
+  color: var(--spice-text);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.actionButton:hover {
+  background: var(--spice-button-active);
+}
+
+.actionButton:disabled {
+  background: var(--spice-button-disabled);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.dangerButton {
+  background: #e74c3c;
+}
+
+.dangerButton:hover {
+  background: #c0392b;
+}
+
+.warning {
+  color: #f39c12;
+  font-style: italic;
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
+.result {
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.success {
+  background: rgba(46, 204, 113, 0.2);
+  border-left: 4px solid #2ecc71;
+}
+
+.error {
+  background: rgba(231, 76, 60, 0.2);
+  border-left: 4px solid #e74c3c;
+}
+
+/* Confirmation Panel Styles */
+.confirmationPanel {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: var(--spice-highlight-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--spice-button);
+}
+
+.confirmationPanel h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: var(--spice-text);
+}
+
+.confirmationPanel h4 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  color: var(--spice-text);
+}
+
+.confirmationPanel h5 {
+  margin-top: 12px;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+  color: var(--spice-text);
+}
+
+.confirmationButtons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.confirmButton,
+.cancelButton {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.confirmButton {
+  background-color: #1db954;
+  color: white;
+}
+
+.confirmButton:hover {
+  background-color: #1ed760;
+}
+
+.cancelButton {
+  background-color: #e3e3e3;
+  color: #333;
+}
+
+.cancelButton:hover {
+  background-color: #d1d1d1;
+}
+
+.sampleChanges {
+  margin-bottom: 16px;
+}
+
+.trackList,
+.itemList {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--spice-button-disabled);
+  border-radius: 4px;
+  padding: 8px;
+  background-color: var(--spice-card);
+}
+
+.trackItem,
+.item {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--spice-button-disabled);
+}
+
+.trackItem:last-child,
+.item:last-child,
+.moreTracks,
+.moreItems {
+  border-bottom: none;
+}
+
+.moreTracks,
+.moreItems {
+  color: var(--spice-subtext);
+  font-style: italic;
+  padding: 4px 8px;
+}
+
+.allAnalyses,
+.specificAnalysis {
+  margin-bottom: 16px;
+}
