@@ -332,52 +332,79 @@ const PythonActionsPanel: React.FC = () => {
     const files = analysisResults?.details?.files_to_process || [];
     const currentFile = files[fuzzyMatchingState.currentFileIndex];
 
+    // This useEffect had the issue - it was triggering excessive requests
     useEffect(() => {
-      // Load matches for the current file when the index changes
-      if (currentFile && fuzzyMatchingState.isActive) {
-        setFuzzyMatchingState((prev) => ({ ...prev, isLoading: true }));
+      // Only fetch if we have a current file, are in active matching mode, and not already loading
+      if (currentFile && fuzzyMatchingState.isActive && !fuzzyMatchingState.isLoading) {
+        setFuzzyMatchingState((prev) => ({ ...prev, isLoading: true, matches: [] }));
 
-        // Call backend to get matches
-        fetch(`${serverUrl}/api/fuzzy-match-track`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            fileName: currentFile,
-            masterTracksDir: paths.masterTracksDir,
-          }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              setFuzzyMatchingState((prev) => ({
-                ...prev,
-                matches: data.matches || [],
-                isLoading: false,
-              }));
-            } else {
-              console.error("Error fetching matches:", data.message);
+        // Add a small delay to prevent hitting rate limits
+        const timeoutId = setTimeout(() => {
+          console.log(`Fetching matches for file: ${currentFile}`); // Add logging
+
+          // Add a timeout for the fetch request
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+          fetch(`${serverUrl}/api/fuzzy-match-track`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              fileName: currentFile,
+              masterTracksDir: paths.masterTracksDir,
+            }),
+            signal: controller.signal,
+          })
+            .then((response) => {
+              clearTimeout(timeoutId); // Clear the timeout
+              if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+              }
+              return response.json();
+            })
+            .then((data) => {
+              console.log("Received data:", data); // Add logging
+              if (data.success) {
+                setFuzzyMatchingState((prev) => ({
+                  ...prev,
+                  matches: data.matches || [],
+                  isLoading: false,
+                }));
+              } else {
+                console.error("Error in API response:", data.message);
+                setFuzzyMatchingState((prev) => ({
+                  ...prev,
+                  matches: [],
+                  isLoading: false, // Important! Reset loading state on error
+                }));
+                Spicetify.showNotification(`Error getting matches: ${data.message}`, true);
+              }
+            })
+            .catch((error) => {
+              console.error("Error in fuzzy match fetch:", error);
               setFuzzyMatchingState((prev) => ({
                 ...prev,
                 matches: [],
-                isLoading: false,
+                isLoading: false, // Important! Reset loading state on error
               }));
-              Spicetify.showNotification(`Error getting matches: ${data.message}`, true);
-            }
-          })
-          .catch((error) => {
-            console.error("Error in fuzzy match fetch:", error);
-            setFuzzyMatchingState((prev) => ({
-              ...prev,
-              matches: [],
-              isLoading: false,
-            }));
-            Spicetify.showNotification("Failed to fetch matches", true);
-          });
+              Spicetify.showNotification(`Failed to fetch matches: ${error.message}`, true);
+            });
+        }, 300);
+
+        return () => {
+          clearTimeout(timeoutId);
+        };
       }
-    }, [fuzzyMatchingState.currentFileIndex, fuzzyMatchingState.isActive, currentFile]);
+    }, [
+      currentFile,
+      fuzzyMatchingState.isActive,
+      fuzzyMatchingState.isLoading,
+      serverUrl,
+      paths.masterTracksDir,
+    ]);
 
     const handleSelectMatch = (match: any) => {
       // Add selection to the tracked selections
