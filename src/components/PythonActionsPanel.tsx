@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import styles from "./PythonActionsPanel.module.css";
 
 interface ActionButtonProps {
@@ -20,6 +20,12 @@ type Match = {
   album: string;
   ratio: number;
 };
+
+interface MatchSelection {
+  fileName: string;
+  trackId: string;
+  confidence: number;
+}
 
 const ActionButton: React.FC<ActionButtonProps> = ({ label, onClick, disabled, className }) => (
   <button
@@ -73,6 +79,16 @@ const PythonActionsPanel: React.FC = () => {
     playlistsDir: localStorage.getItem("tagify:playlistsDir") || "",
     cacheDir: localStorage.getItem("tagify:cacheDir") || "",
   });
+
+  const [matchPage, setMatchPage] = useState(1);
+  const [autoMatchPage, setAutoMatchPage] = useState(1);
+  const [skippedPage, setSkippedPage] = useState(1);
+  const itemsPerPage = 20;
+
+  const getPagedItems = <T,>(items: T[], page: number, perPage: number): T[] => {
+    const startIndex = (page - 1) * perPage;
+    return items.slice(startIndex, startIndex + perPage);
+  };
 
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [isAwaitingConfirmation, setIsAwaitingConfirmation] = useState(false);
@@ -327,142 +343,90 @@ const PythonActionsPanel: React.FC = () => {
     }));
   };
 
+  useEffect(() => {
+    // When the analysis results come in, show how many files were auto-matched
+    if (analysisResults && analysisResults.details && analysisResults.details.auto_matched_files) {
+      const autoMatchedCount = analysisResults.details.auto_matched_files.length;
+      if (autoMatchedCount > 0) {
+        Spicetify.showNotification(
+          `Auto-matched ${autoMatchedCount} files with high confidence!`,
+          false,
+          3000
+        );
+      }
+    }
+  }, [analysisResults]);
+
   const FuzzyMatchConfirmation = () => {
     const files = analysisResults?.details?.files_to_process || [];
     const currentFile = files[fuzzyMatchingState.currentFileIndex];
 
-    // Use refs with proper typing
-    const fetchInProgressRef = useRef<boolean>(false);
-    const abortControllerRef = useRef<AbortController | null>(null);
+    // Local state to track matches independently from React's state updates
+    const [localMatches, setLocalMatches] = useState<any[]>([]);
+    const [isLocalLoading, setIsLocalLoading] = useState(false);
+    const [hasCalledAPI, setHasCalledAPI] = useState(false);
 
-    // Handle file processing separately from the effect
+    // This effect will run once per file
     useEffect(() => {
-      // Process the current file
-      const processCurrentFile = () => {
-        if (
-          !currentFile ||
-          !fuzzyMatchingState.isActive ||
-          fuzzyMatchingState.isLoading ||
-          fetchInProgressRef.current
-        ) {
-          return;
-        }
+      const fetchMatches = async () => {
+        // Exit early if no file or already called API for this file
+        if (!currentFile || hasCalledAPI) return;
 
-        console.log(`Starting to process file: ${currentFile}`);
+        console.log(`Fetching matches for ${currentFile} (independent fetch)`);
+        setIsLocalLoading(true);
+        setHasCalledAPI(true);
 
-        // Set loading state and mark fetch as in progress
-        setFuzzyMatchingState((prev) => ({ ...prev, isLoading: true, matches: [] }));
-        fetchInProgressRef.current = true;
+        try {
+          const sanitizedUrl = serverUrl.replace(/^["'](.*)["']$/, "$1").trim();
 
-        // Set up abort controller
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-
-        // Create new controller
-        abortControllerRef.current = new AbortController();
-
-        const sanitizedUrl = serverUrl.replace(/^["'](.*)["']$/, "$1").trim();
-        console.log(`Using sanitized URL: ${sanitizedUrl}`);
-
-        // Set up timeout for the fetch
-        const timeoutId = setTimeout(() => {
-          console.log("Request timed out after 15 seconds");
-          if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-          }
-
-          // Reset the in-progress flag
-          fetchInProgressRef.current = false;
-
-          // Handle timeout by skipping to next file
-          handleSkip();
-          Spicetify.showNotification("Request timed out, skipping file", true);
-        }, 15000);
-
-        // Make the fetch request
-        console.log("Sending fetch request to API");
-
-        fetch(`${sanitizedUrl}/api/fuzzy-match-track`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            fileName: currentFile,
-            masterTracksDir: paths.masterTracksDir,
-          }),
-          signal: abortControllerRef.current.signal,
-        })
-          .then((response) => {
-            clearTimeout(timeoutId);
-            console.log(`Received response with status: ${response.status}`);
-            if (!response.ok) {
-              throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-          })
-          .then((data) => {
-            console.log("Received match data:", data);
-            fetchInProgressRef.current = false;
-
-            if (data.success) {
-              setFuzzyMatchingState((prev) => ({
-                ...prev,
-                matches: data.matches || [],
-                isLoading: false,
-              }));
-            } else {
-              throw new Error(data.message || "Unknown error");
-            }
-          })
-          .catch((error: Error) => {
-            clearTimeout(timeoutId);
-            fetchInProgressRef.current = false;
-
-            if (error.name === "AbortError") {
-              console.log("Request was aborted");
-            } else {
-              console.error("Error in fuzzy match fetch:", error);
-              setFuzzyMatchingState((prev) => ({
-                ...prev,
-                matches: [],
-                isLoading: false,
-              }));
-              Spicetify.showNotification(`Error: ${error.message}`, true);
-            }
+          // Use a simpler fetch approach
+          const response = await fetch(`${sanitizedUrl}/api/fuzzy-match-track`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              fileName: currentFile,
+              masterTracksDir: paths.masterTracksDir,
+            }),
           });
-      };
 
-      // Process the current file when conditions are right
-      processCurrentFile();
+          console.log(`Received response with status ${response.status}`);
 
-      // Cleanup function
-      return () => {
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Fetch received data:", data);
+
+            if (data && data.success && data.matches) {
+              console.log(`Found ${data.matches.length} matches via fetch`);
+              setLocalMatches(data.matches);
+            } else {
+              console.error("Invalid response format:", data);
+              setLocalMatches([]);
+            }
+          } else {
+            console.error(`Fetch request failed with status: ${response.status}`);
+            setLocalMatches([]);
+          }
+        } catch (error) {
+          console.error("Error in fetch:", error);
+          setLocalMatches([]);
+        } finally {
+          setIsLocalLoading(false);
         }
       };
-    }, [
-      currentFile,
-      fuzzyMatchingState.currentFileIndex,
-      fuzzyMatchingState.isActive,
-      fuzzyMatchingState.isLoading,
-    ]);
 
-    // Define the type for a match
-    interface Match {
-      track_id: string;
-      ratio: number;
-      artist: string;
-      title: string;
-      album: string;
-    }
+      fetchMatches();
+    }, [currentFile]); // Only run when currentFile changes
 
-    // Handle selecting a match - move this outside the effect
-    const handleSelectMatch = (match: Match) => {
-      // Add selection to the tracked selections
+    // Reset the hasCalledAPI flag when moving to a new file
+    useEffect(() => {
+      setHasCalledAPI(false);
+      setLocalMatches([]);
+    }, [fuzzyMatchingState.currentFileIndex]);
+
+    const handleSelectMatch = (match: any) => {
+      // Add selection to tracked selections
       setUserMatchSelections((prev) => [
         ...prev,
         {
@@ -472,65 +436,112 @@ const PythonActionsPanel: React.FC = () => {
         },
       ]);
 
-      // Move to next file or complete if done
+      // Move to next file
       if (fuzzyMatchingState.currentFileIndex < files.length - 1) {
         setFuzzyMatchingState((prev) => ({
           ...prev,
           currentFileIndex: prev.currentFileIndex + 1,
           matches: [],
-          isLoading: false, // Reset loading state
         }));
       } else {
-        // All files processed, ready for final confirmation
+        // All files processed
         setFuzzyMatchingState((prev) => ({
           ...prev,
           isActive: false,
-          isLoading: false, // Reset loading state
         }));
       }
     };
 
-    // Handle skipping a file - move this outside the effect
     const handleSkip = () => {
-      // Add file to skipped files list
+      // Add file to skipped files
       setSkippedFiles((prev) => [...prev, currentFile]);
 
-      // Move to next file or complete if done
+      // Move to next file
       if (fuzzyMatchingState.currentFileIndex < files.length - 1) {
         setFuzzyMatchingState((prev) => ({
           ...prev,
           currentFileIndex: prev.currentFileIndex + 1,
           matches: [],
-          isLoading: false, // Reset loading state
         }));
       } else {
-        // All files processed, ready for final confirmation
+        // All files processed
         setFuzzyMatchingState((prev) => ({
           ...prev,
           isActive: false,
-          isLoading: false, // Reset loading state
         }));
       }
     };
-
-    // Add a manual skip button to handle timeouts or errors
-    const renderLoadingWithSkip = () => (
-      <div className={styles.loadingMatches}>
-        <div>Loading potential matches...</div>
-        <button className={styles.skipButton} onClick={handleSkip}>
-          Skip this file
-        </button>
-      </div>
-    );
 
     const processedFilesCount = userMatchSelections.length + skippedFiles.length;
 
-    // Render the main fuzzy matching UI
+    // Debug output to see what's happening
+    console.log("Current state:", {
+      currentFile,
+      isLocalLoading,
+      hasCalledAPI,
+      matchCount: localMatches.length,
+      currentFileIndex: fuzzyMatchingState.currentFileIndex,
+      filesLength: files.length,
+    });
+
     return (
       <div className={styles.fuzzyMatchContainer}>
         <h3>
           Match Files with Tracks ({processedFilesCount} of {files.length} complete)
         </h3>
+
+        {analysisResults &&
+          analysisResults.details &&
+          analysisResults.details.auto_matched_files &&
+          analysisResults.details.auto_matched_files.length > 0 && (
+            <div className={styles.autoMatchedSection}>
+              <h4>Auto-matched Files ({analysisResults.details.auto_matched_files.length})</h4>
+              <p>These files were automatically matched with high confidence (75%+):</p>
+              <div className={styles.autoMatchedList}>
+                {analysisResults.details.auto_matched_files.slice(0, 5).map(
+                  (
+                    match: {
+                      fileName:
+                        | string
+                        | number
+                        | bigint
+                        | boolean
+                        | React.ReactElement<unknown, string | React.JSXElementConstructor<any>>
+                        | Iterable<React.ReactNode>
+                        | React.ReactPortal
+                        | Promise<
+                            | string
+                            | number
+                            | bigint
+                            | boolean
+                            | React.ReactPortal
+                            | React.ReactElement<unknown, string | React.JSXElementConstructor<any>>
+                            | Iterable<React.ReactNode>
+                            | null
+                            | undefined
+                          >
+                        | null
+                        | undefined;
+                      confidence: number;
+                    },
+                    index: React.Key | null | undefined
+                  ) => (
+                    <div key={index} className={styles.autoMatchedItem}>
+                      <span className={styles.fileName}>{match.fileName}</span>
+                      <span className={styles.confidence}>
+                        {(match.confidence * 100).toFixed(0)}% confidence
+                      </span>
+                    </div>
+                  )
+                )}
+                {analysisResults.details.auto_matched_files.length > 5 && (
+                  <div className={styles.moreMatches}>
+                    ...and {analysisResults.details.auto_matched_files.length - 5} more
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
         {currentFile ? (
           <>
@@ -543,8 +554,19 @@ const PythonActionsPanel: React.FC = () => {
               </div>
             </div>
 
-            {fuzzyMatchingState.isLoading ? (
-              renderLoadingWithSkip()
+            {isLocalLoading ? (
+              <div className={styles.loadingMatches}>
+                <div>Loading potential matches...</div>
+                <button
+                  className={styles.skipButton}
+                  onClick={() => {
+                    setIsLocalLoading(false);
+                    handleSkip();
+                  }}
+                >
+                  Skip this file
+                </button>
+              </div>
             ) : (
               <div className={styles.matchesList}>
                 <div className={styles.matchOption} onClick={handleSkip}>
@@ -552,9 +574,9 @@ const PythonActionsPanel: React.FC = () => {
                   <div className={styles.matchText}>Skip this file (no match)</div>
                 </div>
 
-                {fuzzyMatchingState.matches.map((match, index) => (
+                {localMatches.map((match, index) => (
                   <div
-                    key={match.track_id}
+                    key={match.track_id || index}
                     className={styles.matchOption}
                     onClick={() => handleSelectMatch(match)}
                   >
@@ -571,9 +593,33 @@ const PythonActionsPanel: React.FC = () => {
                   </div>
                 ))}
 
-                {fuzzyMatchingState.matches.length === 0 && !fuzzyMatchingState.isLoading && (
-                  <div className={styles.noMatches}>No potential matches found.</div>
+                {localMatches.length === 0 && !isLocalLoading && hasCalledAPI && (
+                  <div className={styles.noMatches}>
+                    <p>No potential matches found.</p>
+                    <button
+                      className={styles.retryButton}
+                      onClick={() => {
+                        setHasCalledAPI(false); // Allow retrying
+                      }}
+                    >
+                      Retry
+                    </button>
+                  </div>
                 )}
+
+                {/* Show debug info for easier troubleshooting */}
+                <div
+                  className={styles.debugInfo}
+                  style={{ marginTop: "20px", fontSize: "12px", color: "#999" }}
+                >
+                  <p>
+                    Debug: API called: {hasCalledAPI ? "Yes" : "No"}, Loading:{" "}
+                    {isLocalLoading ? "Yes" : "No"}, Matches: {localMatches.length}
+                  </p>
+                  <p>
+                    File index: {fuzzyMatchingState.currentFileIndex}, Total files: {files.length}
+                  </p>
+                </div>
               </div>
             )}
           </>
@@ -625,11 +671,11 @@ const PythonActionsPanel: React.FC = () => {
             <p>Ready to embed metadata for {userMatchSelections.length} files.</p>
             <p>{skippedFiles.length} files were skipped.</p>
 
-            {userMatchSelections.length > 0 && (
-              <div className={styles.selectionsPreview}>
-                <h4>Selected Matches:</h4>
-                <div className={styles.selectionsContent}>
-                  {userMatchSelections.slice(0, 5).map((selection, index) => (
+            <div className={styles.selectionsContent}>
+              {userMatchSelections &&
+                userMatchSelections.length > 0 &&
+                getPagedItems(userMatchSelections, matchPage, itemsPerPage).map(
+                  (selection: MatchSelection, index: number) => (
                     <div key={index} className={styles.selectionItem}>
                       <div className={styles.selectionFile}>{selection.fileName}</div>
                       <div className={styles.selectionTrackId}>{selection.trackId}</div>
@@ -637,10 +683,121 @@ const PythonActionsPanel: React.FC = () => {
                         Confidence: {(selection.confidence * 100).toFixed(2)}%
                       </div>
                     </div>
-                  ))}
-                  {userMatchSelections.length > 5 && (
-                    <div className={styles.moreSelections}>
-                      ... and {userMatchSelections.length - 5} more matches
+                  )
+                )}
+
+              {/* Pagination controls */}
+              {userMatchSelections && userMatchSelections.length > itemsPerPage && (
+                <div className={styles.paginationControls}>
+                  <button
+                    disabled={matchPage === 1}
+                    onClick={() => setMatchPage((prev) => Math.max(1, prev - 1))}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {matchPage} of {Math.ceil(userMatchSelections.length / itemsPerPage)}
+                  </span>
+                  <button
+                    disabled={matchPage >= Math.ceil(userMatchSelections.length / itemsPerPage)}
+                    onClick={() => setMatchPage((prev) => prev + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Auto-matched files section */}
+            {analysisResults.details?.auto_matched_files &&
+              analysisResults.details.auto_matched_files.length > 0 && (
+                <div className={styles.autoMatchedPreview}>
+                  <h4>Auto-Matched Files:</h4>
+                  <div className={styles.selectionsContent}>
+                    {getPagedItems<any>(
+                      Array.isArray(analysisResults.details.auto_matched_files)
+                        ? analysisResults.details.auto_matched_files
+                        : [],
+                      autoMatchPage,
+                      itemsPerPage
+                    ).map((match, index: number) => {
+                      // Cast the match to MatchSelection type
+                      const typedMatch = match as MatchSelection;
+                      return (
+                        <div key={index} className={styles.selectionItem}>
+                          <div className={styles.selectionFile}>{typedMatch.fileName}</div>
+                          <div className={styles.selectionTrackId}>{typedMatch.trackId}</div>
+                          <div className={styles.selectionConfidence}>
+                            Confidence: {(typedMatch.confidence * 100).toFixed(2)}%
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Pagination for auto-matched files */}
+                    {Array.isArray(analysisResults.details.auto_matched_files) &&
+                      analysisResults.details.auto_matched_files.length > itemsPerPage && (
+                        <div className={styles.paginationControls}>
+                          <button
+                            disabled={autoMatchPage === 1}
+                            onClick={() => setAutoMatchPage((prev) => Math.max(1, prev - 1))}
+                          >
+                            Previous
+                          </button>
+                          <span>
+                            Page {autoMatchPage} of{" "}
+                            {Math.ceil(
+                              analysisResults.details.auto_matched_files.length / itemsPerPage
+                            )}
+                          </span>
+                          <button
+                            disabled={
+                              autoMatchPage >=
+                              Math.ceil(
+                                analysisResults.details.auto_matched_files.length / itemsPerPage
+                              )
+                            }
+                            onClick={() => setAutoMatchPage((prev) => prev + 1)}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              )}
+
+            {/* Skipped files section */}
+            {skippedFiles && skippedFiles.length > 0 && (
+              <div className={styles.skippedFilesPreview}>
+                <h4>Skipped Files:</h4>
+                <div className={styles.selectionsContent}>
+                  {getPagedItems(skippedFiles, skippedPage, itemsPerPage).map(
+                    (fileName: string, index: number) => (
+                      <div key={index} className={styles.skippedItem}>
+                        {fileName}
+                      </div>
+                    )
+                  )}
+
+                  {/* Pagination for skipped files */}
+                  {skippedFiles.length > itemsPerPage && (
+                    <div className={styles.paginationControls}>
+                      <button
+                        disabled={skippedPage === 1}
+                        onClick={() => setSkippedPage((prev) => Math.max(1, prev - 1))}
+                      >
+                        Previous
+                      </button>
+                      <span>
+                        Page {skippedPage} of {Math.ceil(skippedFiles.length / itemsPerPage)}
+                      </span>
+                      <button
+                        disabled={skippedPage >= Math.ceil(skippedFiles.length / itemsPerPage)}
+                        onClick={() => setSkippedPage((prev) => prev + 1)}
+                      >
+                        Next
+                      </button>
                     </div>
                   )}
                 </div>
