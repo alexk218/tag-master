@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "./PythonActionsPanel.module.css";
 
 interface ActionButtonProps {
@@ -170,7 +170,6 @@ const PythonActionsPanel: React.FC = () => {
       };
 
       console.log(`Sending request to ${action}:`, requestData);
-
       const response = await fetch(`${serverUrl.replace(/^["'](.*)["']$/, "$1")}/api/${action}`, {
         method: "POST",
         headers: {
@@ -332,81 +331,137 @@ const PythonActionsPanel: React.FC = () => {
     const files = analysisResults?.details?.files_to_process || [];
     const currentFile = files[fuzzyMatchingState.currentFileIndex];
 
-    // This useEffect had the issue - it was triggering excessive requests
+    // Use refs with proper typing
+    const fetchInProgressRef = useRef<boolean>(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    // Handle file processing separately from the effect
     useEffect(() => {
-      // Only fetch if we have a current file, are in active matching mode, and not already loading
-      if (currentFile && fuzzyMatchingState.isActive && !fuzzyMatchingState.isLoading) {
+      // Process the current file
+      const processCurrentFile = () => {
+        if (
+          !currentFile ||
+          !fuzzyMatchingState.isActive ||
+          fuzzyMatchingState.isLoading ||
+          fetchInProgressRef.current
+        ) {
+          return;
+        }
+
+        console.log(`Starting to process file: ${currentFile}`);
+
+        // Set loading state and mark fetch as in progress
         setFuzzyMatchingState((prev) => ({ ...prev, isLoading: true, matches: [] }));
+        fetchInProgressRef.current = true;
 
-        // Add a small delay to prevent hitting rate limits
+        // Set up abort controller
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+
+        // Create new controller
+        abortControllerRef.current = new AbortController();
+
+        const sanitizedUrl = serverUrl.replace(/^["'](.*)["']$/, "$1").trim();
+        console.log(`Using sanitized URL: ${sanitizedUrl}`);
+
+        // Set up timeout for the fetch
         const timeoutId = setTimeout(() => {
-          console.log(`Fetching matches for file: ${currentFile}`); // Add logging
+          console.log("Request timed out after 15 seconds");
+          if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+          }
 
-          // Add a timeout for the fetch request
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+          // Reset the in-progress flag
+          fetchInProgressRef.current = false;
 
-          fetch(`${serverUrl}/api/fuzzy-match-track`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              fileName: currentFile,
-              masterTracksDir: paths.masterTracksDir,
-            }),
-            signal: controller.signal,
+          // Handle timeout by skipping to next file
+          handleSkip();
+          Spicetify.showNotification("Request timed out, skipping file", true);
+        }, 15000);
+
+        // Make the fetch request
+        console.log("Sending fetch request to API");
+
+        fetch(`${sanitizedUrl}/api/fuzzy-match-track`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            fileName: currentFile,
+            masterTracksDir: paths.masterTracksDir,
+          }),
+          signal: abortControllerRef.current.signal,
+        })
+          .then((response) => {
+            clearTimeout(timeoutId);
+            console.log(`Received response with status: ${response.status}`);
+            if (!response.ok) {
+              throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
           })
-            .then((response) => {
-              clearTimeout(timeoutId); // Clear the timeout
-              if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-              }
-              return response.json();
-            })
-            .then((data) => {
-              console.log("Received data:", data); // Add logging
-              if (data.success) {
-                setFuzzyMatchingState((prev) => ({
-                  ...prev,
-                  matches: data.matches || [],
-                  isLoading: false,
-                }));
-              } else {
-                console.error("Error in API response:", data.message);
-                setFuzzyMatchingState((prev) => ({
-                  ...prev,
-                  matches: [],
-                  isLoading: false, // Important! Reset loading state on error
-                }));
-                Spicetify.showNotification(`Error getting matches: ${data.message}`, true);
-              }
-            })
-            .catch((error) => {
+          .then((data) => {
+            console.log("Received match data:", data);
+            fetchInProgressRef.current = false;
+
+            if (data.success) {
+              setFuzzyMatchingState((prev) => ({
+                ...prev,
+                matches: data.matches || [],
+                isLoading: false,
+              }));
+            } else {
+              throw new Error(data.message || "Unknown error");
+            }
+          })
+          .catch((error: Error) => {
+            clearTimeout(timeoutId);
+            fetchInProgressRef.current = false;
+
+            if (error.name === "AbortError") {
+              console.log("Request was aborted");
+            } else {
               console.error("Error in fuzzy match fetch:", error);
               setFuzzyMatchingState((prev) => ({
                 ...prev,
                 matches: [],
-                isLoading: false, // Important! Reset loading state on error
+                isLoading: false,
               }));
-              Spicetify.showNotification(`Failed to fetch matches: ${error.message}`, true);
-            });
-        }, 300);
+              Spicetify.showNotification(`Error: ${error.message}`, true);
+            }
+          });
+      };
 
-        return () => {
-          clearTimeout(timeoutId);
-        };
-      }
+      // Process the current file when conditions are right
+      processCurrentFile();
+
+      // Cleanup function
+      return () => {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      };
     }, [
       currentFile,
+      fuzzyMatchingState.currentFileIndex,
       fuzzyMatchingState.isActive,
       fuzzyMatchingState.isLoading,
-      serverUrl,
-      paths.masterTracksDir,
     ]);
 
-    const handleSelectMatch = (match: any) => {
+    // Define the type for a match
+    interface Match {
+      track_id: string;
+      ratio: number;
+      artist: string;
+      title: string;
+      album: string;
+    }
+
+    // Handle selecting a match - move this outside the effect
+    const handleSelectMatch = (match: Match) => {
       // Add selection to the tracked selections
       setUserMatchSelections((prev) => [
         ...prev,
@@ -423,16 +478,19 @@ const PythonActionsPanel: React.FC = () => {
           ...prev,
           currentFileIndex: prev.currentFileIndex + 1,
           matches: [],
+          isLoading: false, // Reset loading state
         }));
       } else {
         // All files processed, ready for final confirmation
         setFuzzyMatchingState((prev) => ({
           ...prev,
           isActive: false,
+          isLoading: false, // Reset loading state
         }));
       }
     };
 
+    // Handle skipping a file - move this outside the effect
     const handleSkip = () => {
       // Add file to skipped files list
       setSkippedFiles((prev) => [...prev, currentFile]);
@@ -443,15 +501,27 @@ const PythonActionsPanel: React.FC = () => {
           ...prev,
           currentFileIndex: prev.currentFileIndex + 1,
           matches: [],
+          isLoading: false, // Reset loading state
         }));
       } else {
         // All files processed, ready for final confirmation
         setFuzzyMatchingState((prev) => ({
           ...prev,
           isActive: false,
+          isLoading: false, // Reset loading state
         }));
       }
     };
+
+    // Add a manual skip button to handle timeouts or errors
+    const renderLoadingWithSkip = () => (
+      <div className={styles.loadingMatches}>
+        <div>Loading potential matches...</div>
+        <button className={styles.skipButton} onClick={handleSkip}>
+          Skip this file
+        </button>
+      </div>
+    );
 
     const processedFilesCount = userMatchSelections.length + skippedFiles.length;
 
@@ -474,7 +544,7 @@ const PythonActionsPanel: React.FC = () => {
             </div>
 
             {fuzzyMatchingState.isLoading ? (
-              <div className={styles.loadingMatches}>Loading potential matches...</div>
+              renderLoadingWithSkip()
             ) : (
               <div className={styles.matchesList}>
                 <div className={styles.matchOption} onClick={handleSkip}>
