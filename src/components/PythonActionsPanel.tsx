@@ -53,6 +53,9 @@ const PythonActionsPanel: React.FC = () => {
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [isAwaitingConfirmation, setIsAwaitingConfirmation] = useState(false);
   const [currentAction, setCurrentAction] = useState<ActionInfo | null>(null);
+  const [paginationState, setPaginationState] = useState<
+    Record<string, { page: number; pageSize: number }>
+  >({});
 
   // Check server connection on load and when serverUrl changes
   useEffect(() => {
@@ -228,6 +231,28 @@ const PythonActionsPanel: React.FC = () => {
     Spicetify.showNotification("Operation cancelled");
   };
 
+  const getPagination = (section: string) => {
+    if (!paginationState[section]) {
+      // Default pagination: start with 20 items, page 1
+      setPaginationState((prev) => ({
+        ...prev,
+        [section]: { page: 1, pageSize: 20 },
+      }));
+      return { page: 1, pageSize: 20 };
+    }
+    return paginationState[section];
+  };
+
+  const loadMoreItems = (section: string) => {
+    setPaginationState((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        page: prev[section]?.page + 1 || 2,
+      },
+    }));
+  };
+
   // Render the confirmation UI when needed
   const renderConfirmation = () => {
     if (!isAwaitingConfirmation || !analysisResults) return null;
@@ -246,6 +271,45 @@ const PythonActionsPanel: React.FC = () => {
               {analysisResults.analyses.playlists.unchanged} unchanged
             </p>
 
+            {/* Paginated Playlists to Add */}
+            {analysisResults.analyses.playlists.details.to_add.length > 0 && (
+              <div className={styles.sampleChanges}>
+                <h5>
+                  Playlists to Add ({analysisResults.analyses.playlists.details.to_add.length})
+                </h5>
+                <div className={styles.itemList}>
+                  {renderPaginatedList(
+                    analysisResults.analyses.playlists.details.to_add,
+                    "playlists-add",
+                    (item) => (
+                      <div className={styles.item}>{item.name}</div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Paginated Playlists to Update */}
+            {analysisResults.analyses.playlists.details.to_update.length > 0 && (
+              <div className={styles.sampleChanges}>
+                <h5>
+                  Playlists to Update ({analysisResults.analyses.playlists.details.to_update.length}
+                  )
+                </h5>
+                <div className={styles.itemList}>
+                  {renderPaginatedList(
+                    analysisResults.analyses.playlists.details.to_update,
+                    "playlists-update",
+                    (item) => (
+                      <div className={styles.item}>
+                        {item.old_name} → {item.name}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
             <h4>Track Changes</h4>
             <p>
               {analysisResults.analyses.tracks.added} tracks to add,
@@ -253,73 +317,40 @@ const PythonActionsPanel: React.FC = () => {
               {analysisResults.analyses.tracks.unchanged} unchanged
             </p>
 
-            {analysisResults.analyses.tracks.to_add_sample.length > 0 && (
+            {/* Paginated Tracks to Add */}
+            {analysisResults.analyses.tracks.to_add_total > 0 && (
               <div className={styles.sampleChanges}>
-                <h5>Sample Tracks to Add</h5>
+                <h5>Tracks to Add ({analysisResults.analyses.tracks.to_add_total})</h5>
                 <div className={styles.trackList}>
-                  {analysisResults.analyses.tracks.to_add_sample.map(
-                    (
-                      track: {
-                        artists:
-                          | string
-                          | number
-                          | bigint
-                          | boolean
-                          | React.ReactElement<unknown, string | React.JSXElementConstructor<any>>
-                          | Iterable<React.ReactNode>
-                          | React.ReactPortal
-                          | Promise<
-                              | string
-                              | number
-                              | bigint
-                              | boolean
-                              | React.ReactPortal
-                              | React.ReactElement<
-                                  unknown,
-                                  string | React.JSXElementConstructor<any>
-                                >
-                              | Iterable<React.ReactNode>
-                              | null
-                              | undefined
-                            >
-                          | null
-                          | undefined;
-                        title:
-                          | string
-                          | number
-                          | bigint
-                          | boolean
-                          | React.ReactElement<unknown, string | React.JSXElementConstructor<any>>
-                          | Iterable<React.ReactNode>
-                          | React.ReactPortal
-                          | Promise<
-                              | string
-                              | number
-                              | bigint
-                              | boolean
-                              | React.ReactPortal
-                              | React.ReactElement<
-                                  unknown,
-                                  string | React.JSXElementConstructor<any>
-                                >
-                              | Iterable<React.ReactNode>
-                              | null
-                              | undefined
-                            >
-                          | null
-                          | undefined;
-                      },
-                      index: React.Key | null | undefined
-                    ) => (
-                      <div key={index} className={styles.trackItem}>
-                        {track.artists} - {track.title}
+                  {renderPaginatedList(
+                    analysisResults.analyses.tracks.all_tracks_to_add ||
+                      analysisResults.analyses.tracks.to_add_sample,
+                    "tracks-add",
+                    (track) => (
+                      <div className={styles.trackItem}>
+                        {track.artists} - {track.title} {track.is_local ? "(LOCAL)" : ""}
                       </div>
-                    )
+                    ),
+                    analysisResults.analyses.tracks.to_add_total
                   )}
-                  {analysisResults.analyses.tracks.to_add_total > 20 && (
-                    <div className={styles.moreTracks}>
-                      ...and {analysisResults.analyses.tracks.to_add_total - 20} more tracks
-                    </div>
+                </div>
+              </div>
+            )}
+
+            {/* Paginated Tracks to Update */}
+            {analysisResults.analyses.tracks.to_update_total > 0 && (
+              <div className={styles.sampleChanges}>
+                <h5>Tracks to Update ({analysisResults.analyses.tracks.to_update_total})</h5>
+                <div className={styles.trackList}>
+                  {renderPaginatedList(
+                    analysisResults.analyses.tracks.all_tracks_to_update || [],
+                    "tracks-update",
+                    (track) => (
+                      <div className={styles.trackItem}>
+                        {track.old_artists} - {track.old_title} → {track.artists} - {track.title}
+                      </div>
+                    ),
+                    analysisResults.analyses.tracks.to_update_total
                   )}
                 </div>
               </div>
@@ -331,6 +362,37 @@ const PythonActionsPanel: React.FC = () => {
               {analysisResults.analyses.associations.associations_to_remove} to remove, affecting{" "}
               {analysisResults.analyses.associations.tracks_with_changes.length} tracks
             </p>
+
+            {/* Paginated Association Changes */}
+            {analysisResults.analyses.associations.samples.length > 0 && (
+              <div className={styles.sampleChanges}>
+                <h5>
+                  Track Association Changes (
+                  {analysisResults.analyses.associations.tracks_with_changes.length})
+                </h5>
+                <div className={styles.trackList}>
+                  {renderPaginatedList(
+                    analysisResults.analyses.associations.all_changes ||
+                      analysisResults.analyses.associations.samples,
+                    "associations",
+                    (item) => (
+                      <div className={styles.trackItem}>
+                        <div>{item.track}</div>
+                        {item.add_to.length > 0 && (
+                          <div className={styles.addTo}>+ Adding to: {item.add_to.join(", ")}</div>
+                        )}
+                        {item.remove_from.length > 0 && (
+                          <div className={styles.removeFrom}>
+                            - Removing from: {item.remove_from.join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                    analysisResults.analyses.associations.tracks_with_changes.length
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -340,24 +402,23 @@ const PythonActionsPanel: React.FC = () => {
             {/* Render details based on what's available */}
             {analysisResults.details.to_add && analysisResults.details.to_add.length > 0 && (
               <div className={styles.sampleChanges}>
-                <h5>Items to Add</h5>
+                <h5>
+                  Items to Add (
+                  {analysisResults.details.to_add_total || analysisResults.details.to_add.length})
+                </h5>
                 <div className={styles.itemList}>
-                  {analysisResults.details.to_add.map(
-                    (
-                      item: { name: any; title: any; artists: any },
-                      index: React.Key | null | undefined
-                    ) => (
-                      <div key={index} className={styles.item}>
-                        {item.name || item.title || item.artists || JSON.stringify(item)}
+                  {renderPaginatedList(
+                    analysisResults.details.all_items_to_add || analysisResults.details.to_add,
+                    "items-add",
+                    (item) => (
+                      <div className={styles.item}>
+                        {item.name ||
+                          item.title ||
+                          item.artists ||
+                          (item.id ? `${item.artists} - ${item.title}` : JSON.stringify(item))}
                       </div>
-                    )
-                  )}
-                  {analysisResults.details.to_add_total > analysisResults.details.to_add.length && (
-                    <div className={styles.moreItems}>
-                      ...and{" "}
-                      {analysisResults.details.to_add_total - analysisResults.details.to_add.length}{" "}
-                      more items
-                    </div>
+                    ),
+                    analysisResults.details.to_add_total
                   )}
                 </div>
               </div>
@@ -365,44 +426,180 @@ const PythonActionsPanel: React.FC = () => {
 
             {analysisResults.details.to_update && analysisResults.details.to_update.length > 0 && (
               <div className={styles.sampleChanges}>
-                <h5>Items to Update</h5>
+                <h5>
+                  Items to Update (
+                  {analysisResults.details.to_update_total ||
+                    analysisResults.details.to_update.length}
+                  )
+                </h5>
                 <div className={styles.itemList}>
-                  {analysisResults.details.to_update.map(
-                    (
-                      item: {
-                        old_name: any;
-                        old_title: any;
-                        old_artists: any;
-                        name: any;
-                        title: any;
-                        artists: any;
-                      },
-                      index: React.Key | null | undefined
-                    ) => (
-                      <div key={index} className={styles.item}>
-                        {item.old_name ||
-                          item.old_title ||
-                          item.old_artists ||
-                          JSON.stringify(item)}
-                        {" -> "}
-                        {item.name || item.title || item.artists || JSON.stringify(item)}
+                  {renderPaginatedList(
+                    analysisResults.details.all_items_to_update ||
+                      analysisResults.details.to_update,
+                    "items-update",
+                    (item) => (
+                      <div className={styles.item}>
+                        {item.old_name || item.old_title || item.old_artists ? (
+                          <>
+                            {item.old_name ||
+                              item.old_title ||
+                              (item.old_artists && `${item.old_artists} - ${item.old_title}`)}
+                            {" → "}
+                            {item.name ||
+                              item.title ||
+                              (item.artists && `${item.artists} - ${item.title}`)}
+                          </>
+                        ) : (
+                          item.name || item.title || item.artists || JSON.stringify(item)
+                        )}
                       </div>
-                    )
-                  )}
-                  {analysisResults.details.to_update_total >
-                    analysisResults.details.to_update.length && (
-                    <div className={styles.moreItems}>
-                      ...and{" "}
-                      {analysisResults.details.to_update_total -
-                        analysisResults.details.to_update.length}{" "}
-                      more items
-                    </div>
+                    ),
+                    analysisResults.details.to_update_total
                   )}
                 </div>
               </div>
             )}
 
-            {/* Add more sections as needed for other types of details */}
+            {/* For embeddingTrackMetadata - show files */}
+            {analysisResults.details.files_to_process && (
+              <div className={styles.sampleChanges}>
+                <h5>Files to Process ({analysisResults.details.files_to_process.length})</h5>
+                <div className={styles.itemList}>
+                  {renderPaginatedList(
+                    analysisResults.details.files_to_process,
+                    "files-process",
+                    (file) => (
+                      <div className={styles.item}>{file.name || file}</div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* For generating M3U playlists */}
+            {analysisResults.details.playlists && (
+              <div className={styles.sampleChanges}>
+                <h5>Playlists to Generate ({analysisResults.details.playlists.length})</h5>
+                <div className={styles.itemList}>
+                  {renderPaginatedList(
+                    analysisResults.details.playlists,
+                    "m3u-playlists",
+                    (playlist) => (
+                      <div className={styles.item}>
+                        {playlist.name} ({playlist.track_count} tracks)
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* For sync-to-master */}
+        {analysisResults.master_sync && (
+          <div className={styles.masterSyncAnalysis}>
+            <h4>Sync to MASTER Playlist</h4>
+            <p>
+              {analysisResults.master_sync.total_tracks_to_add} tracks to add from{" "}
+              {analysisResults.master_sync.playlists_with_new_tracks} playlists
+            </p>
+
+            {analysisResults.master_sync.playlists && (
+              <div className={styles.sampleChanges}>
+                <h5>Tracks by Playlist</h5>
+                <div className={styles.accordion}>
+                  {analysisResults.master_sync.playlists.map(
+                    (
+                      playlist: {
+                        name:
+                          | string
+                          | number
+                          | bigint
+                          | boolean
+                          | React.ReactElement<unknown, string | React.JSXElementConstructor<any>>
+                          | Iterable<React.ReactNode>
+                          | React.ReactPortal
+                          | Promise<
+                              | string
+                              | number
+                              | bigint
+                              | boolean
+                              | React.ReactPortal
+                              | React.ReactElement<
+                                  unknown,
+                                  string | React.JSXElementConstructor<any>
+                                >
+                              | Iterable<React.ReactNode>
+                              | null
+                              | undefined
+                            >
+                          | null
+                          | undefined;
+                        track_count:
+                          | string
+                          | number
+                          | bigint
+                          | boolean
+                          | React.ReactElement<unknown, string | React.JSXElementConstructor<any>>
+                          | Iterable<React.ReactNode>
+                          | Promise<
+                              | string
+                              | number
+                              | bigint
+                              | boolean
+                              | React.ReactPortal
+                              | React.ReactElement<
+                                  unknown,
+                                  string | React.JSXElementConstructor<any>
+                                >
+                              | Iterable<React.ReactNode>
+                              | null
+                              | undefined
+                            >
+                          | null
+                          | undefined;
+                        tracks: any[];
+                      },
+                      i: React.Key | null | undefined
+                    ) => (
+                      <div key={i} className={styles.accordionItem}>
+                        <div
+                          className={styles.accordionHeader}
+                          onClick={() => toggleAccordion(`playlist-${i}`)}
+                        >
+                          {playlist.name} ({playlist.track_count} tracks)
+                          <span
+                            className={
+                              expandedSections[`playlist-${i}`]
+                                ? styles.accordionExpanded
+                                : styles.accordionCollapsed
+                            }
+                          >
+                            {expandedSections[`playlist-${i}`] ? "▼" : "►"}
+                          </span>
+                        </div>
+
+                        {expandedSections[`playlist-${i}`] && (
+                          <div className={styles.accordionContent}>
+                            {renderPaginatedList(
+                              playlist.tracks,
+                              `playlist-tracks-${i}`,
+                              (track) => (
+                                <div className={styles.trackItem}>
+                                  {track.artists} - {track.name}
+                                </div>
+                              ),
+                              Number(playlist.track_count)
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -416,6 +613,46 @@ const PythonActionsPanel: React.FC = () => {
         </div>
       </div>
     );
+  };
+
+  // Helper function to render paginated lists with "Load More" button
+  const renderPaginatedList = (
+    items: any[],
+    sectionKey: string,
+    renderItem: (item: any) => React.ReactNode,
+    totalItems?: number
+  ) => {
+    const { page, pageSize } = getPagination(sectionKey);
+    const displayItems = items.slice(0, page * pageSize);
+    const hasMore = totalItems
+      ? displayItems.length < totalItems
+      : displayItems.length < items.length;
+
+    return (
+      <>
+        {displayItems.map((item, index) => (
+          <React.Fragment key={index}>{renderItem(item)}</React.Fragment>
+        ))}
+
+        {hasMore && (
+          <div className={styles.loadMoreContainer}>
+            <button className={styles.loadMoreButton} onClick={() => loadMoreItems(sectionKey)}>
+              Load More ({displayItems.length} of {totalItems || items.length})
+            </button>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // State for accordion sections
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  const toggleAccordion = (sectionKey: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey],
+    }));
   };
 
   return (

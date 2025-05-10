@@ -198,18 +198,12 @@
 
 .trackList,
 .itemList {
-  max-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
   border: 1px solid var(--spice-button-disabled);
   border-radius: 4px;
   padding: 8px;
   background-color: var(--spice-card);
-}
-
-.trackItem,
-.item {
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--spice-button-disabled);
 }
 
 .trackItem:last-child,
@@ -229,4 +223,85 @@
 .allAnalyses,
 .specificAnalysis {
   margin-bottom: 16px;
+}
+
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--spice-button-disabled);
+  margin-top: 8px;
+}
+
+.loadMoreButton {
+  background-color: transparent;
+  border: 1px solid var(--spice-button);
+  color: var(--spice-text);
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.loadMoreButton:hover {
+  background-color: var(--spice-button);
+}
+
+.trackItem,
+.item {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--spice-button-disabled);
+}
+
+.addTo {
+  color: #2ecc71;
+  font-size: 0.9em;
+  margin-left: 12px;
+}
+
+.removeFrom {
+  color: #e74c3c;
+  font-size: 0.9em;
+  margin-left: 12px;
+}
+
+/* Accordion styles */
+.accordion {
+  border: 1px solid var(--spice-button-disabled);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.accordionItem {
+  border-bottom: 1px solid var(--spice-button-disabled);
+}
+
+.accordionItem:last-child {
+  border-bottom: none;
+}
+
+.accordionHeader {
+  padding: 10px 15px;
+  background-color: var(--spice-card);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 500;
+}
+
+.accordionHeader:hover {
+  background-color: var(--spice-highlight);
+}
+
+.accordionContent {
+  padding: 0;
+  background-color: var(--spice-card);
+  overflow: hidden;
+}
+
+.accordionExpanded,
+.accordionCollapsed {
+  font-size: 0.8em;
+  transition: transform 0.3s;
 }
